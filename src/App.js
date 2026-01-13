@@ -27,7 +27,7 @@ import {
 // ============================================
 // ⚠️ CONFIGURAÇÃO - ALTERE ESTA URL!
 // ============================================
-const API_URL = 'https://COLOQUE-SUA-URL-AQUI.vercel.app/api/sync';
+const API_URL = 'https://lumine-api-7qnj.vercel.app/';
 // Após fazer deploy da API no Vercel, substitua pela URL correta
 // Exemplo: https://lumine-api.vercel.app/api/sync
 // ============================================
