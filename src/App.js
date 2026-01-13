@@ -893,126 +893,161 @@ export default function LumineTracker() {
                 {showRecordForm && (
                   <form className="mt-5 grid gap-4" onSubmit={handleRecordSubmit}>
                     <div className="grid gap-4 md:grid-cols-3">
-                      <select
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        value={recordForm.childId}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, childId: event.target.value })
-                        }
-                        required
-                      >
-                        <option value="">Selecione a criança</option>
-                        {children.map(child => (
-                          <option key={child.id} value={child.id}>
-                            {child.name}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        type="date"
-                        value={recordForm.date}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, date: event.target.value })
-                        }
-                        required
-                      />
-                      <select
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        value={recordForm.attendance}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, attendance: event.target.value })
-                        }
-                      >
-                        <option value="present">Presente</option>
-                        <option value="late">Atrasado</option>
-                        <option value="absent">Ausente</option>
-                      </select>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Criança
+                        <select
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          value={recordForm.childId}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, childId: event.target.value })
+                          }
+                          required
+                        >
+                          <option value="">Selecione a criança</option>
+                          {children.map(child => (
+                            <option key={child.id} value={child.id}>
+                              {child.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Data
+                        <input
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          type="date"
+                          value={recordForm.date}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, date: event.target.value })
+                          }
+                          required
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Presença
+                        <select
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          value={recordForm.attendance}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, attendance: event.target.value })
+                          }
+                        >
+                          <option value="present">Presente</option>
+                          <option value="late">Atrasado</option>
+                          <option value="absent">Ausente</option>
+                        </select>
+                      </label>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-3">
-                      <select
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        value={recordForm.mood}
-                        onChange={event => setRecordForm({ ...recordForm, mood: event.target.value })}
-                      >
-                        <option value="happy">Feliz</option>
-                        <option value="neutral">Ok</option>
-                        <option value="sad">Triste</option>
-                      </select>
-                      <select
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        value={recordForm.participation}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, participation: event.target.value })
-                        }
-                      >
-                        <option value="high">Alta</option>
-                        <option value="medium">Média</option>
-                        <option value="low">Baixa</option>
-                      </select>
-                      <select
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        value={recordForm.interaction}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, interaction: event.target.value })
-                        }
-                      >
-                        <option value="high">Alta</option>
-                        <option value="medium">Média</option>
-                        <option value="low">Baixa</option>
-                      </select>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Humor
+                        <select
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          value={recordForm.mood}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, mood: event.target.value })
+                          }
+                        >
+                          <option value="happy">Feliz</option>
+                          <option value="neutral">Ok</option>
+                          <option value="sad">Triste</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Participação
+                        <select
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          value={recordForm.participation}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, participation: event.target.value })
+                          }
+                        >
+                          <option value="high">Alta</option>
+                          <option value="medium">Média</option>
+                          <option value="low">Baixa</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Interação
+                        <select
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          value={recordForm.interaction}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, interaction: event.target.value })
+                          }
+                        >
+                          <option value="high">Alta</option>
+                          <option value="medium">Média</option>
+                          <option value="low">Baixa</option>
+                        </select>
+                      </label>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-3">
-                      <input
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        placeholder="Atividade"
-                        value={recordForm.activity}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, activity: event.target.value })
-                        }
-                      />
-                      <select
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        value={recordForm.performance}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, performance: event.target.value })
-                        }
-                      >
-                        <option value="high">Alta</option>
-                        <option value="medium">Média</option>
-                        <option value="low">Baixa</option>
-                      </select>
-                      <select
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        value={recordForm.familyContact}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, familyContact: event.target.value })
-                        }
-                      >
-                        <option value="no">Sem contato familiar</option>
-                        <option value="yes">Contato feito</option>
-                      </select>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Atividade
+                        <input
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          placeholder="Atividade"
+                          value={recordForm.activity}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, activity: event.target.value })
+                          }
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Desempenho
+                        <select
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          value={recordForm.performance}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, performance: event.target.value })
+                          }
+                        >
+                          <option value="high">Alta</option>
+                          <option value="medium">Média</option>
+                          <option value="low">Baixa</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Contato familiar
+                        <select
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          value={recordForm.familyContact}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, familyContact: event.target.value })
+                          }
+                        >
+                          <option value="no">Sem contato familiar</option>
+                          <option value="yes">Contato feito</option>
+                        </select>
+                      </label>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                      <input
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        placeholder="Motivo do contato (se houver)"
-                        value={recordForm.contactReason}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, contactReason: event.target.value })
-                        }
-                      />
-                      <textarea
-                        className="min-h-[110px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        placeholder="Observações"
-                        value={recordForm.notes}
-                        onChange={event =>
-                          setRecordForm({ ...recordForm, notes: event.target.value })
-                        }
-                      />
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Motivo do contato
+                        <input
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          placeholder="Motivo do contato (se houver)"
+                          value={recordForm.contactReason}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, contactReason: event.target.value })
+                          }
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
+                        Observações
+                        <textarea
+                          className="min-h-[110px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                          placeholder="Observações"
+                          value={recordForm.notes}
+                          onChange={event =>
+                            setRecordForm({ ...recordForm, notes: event.target.value })
+                          }
+                        />
+                      </label>
                     </div>
 
                     <button
