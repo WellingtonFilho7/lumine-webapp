@@ -95,6 +95,7 @@ export default function LumineTracker() {
   const [selectedChild, setSelectedChild] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [syncStatus, setSyncStatus] = useState('idle');
+  const [syncError, setSyncError] = useState('');
   const [lastSync, setLastSync] = useLocalStorage('lumine_last_sync', null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingChanges, setPendingChanges] = useState(0);
@@ -115,6 +116,7 @@ export default function LumineTracker() {
   // Sync com servidor
   const syncWithServer = useCallback(async (payload = null) => {
     if (!isOnline) {
+      setSyncError('Sem conexão');
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
       return;
@@ -129,15 +131,24 @@ export default function LumineTracker() {
           data: payload || { children, records: dailyRecords },
         }),
       });
-      if (!res.ok) throw new Error();
-      const result = await res.json();
-      if (result.success) {
-        setLastSync(new Date().toISOString());
-        setPendingChanges(0);
-        setSyncStatus('success');
-        setTimeout(() => setSyncStatus('idle'), 2000);
-      } else throw new Error();
-    } catch {
+      let result = null;
+      try {
+        result = await res.json();
+      } catch {
+        result = null;
+      }
+      if (!res.ok || !result?.success) {
+        const message = result?.error || result?.details || `Erro HTTP ${res.status}`;
+        throw new Error(message);
+      }
+      setSyncError('');
+      setLastSync(new Date().toISOString());
+      setPendingChanges(0);
+      setSyncStatus('success');
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    } catch (error) {
+      const message = error?.message || 'Erro na sincronização';
+      setSyncError(message);
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
     }
@@ -147,17 +158,29 @@ export default function LumineTracker() {
   const downloadFromServer = useCallback(async () => {
     if (!isOnline) return;
     setSyncStatus('syncing');
+    setSyncError('');
     try {
       const res = await fetch(API_URL);
-      const result = await res.json();
-      if (result.success && result.data) {
+      let result = null;
+      try {
+        result = await res.json();
+      } catch {
+        result = null;
+      }
+      if (!res.ok || !result?.success) {
+        const message = result?.error || result?.details || `Erro HTTP ${res.status}`;
+        throw new Error(message);
+      }
+      if (result.data) {
         if (Array.isArray(result.data.children)) setChildren(result.data.children);
         if (Array.isArray(result.data.records)) setDailyRecords(result.data.records);
-        setLastSync(new Date().toISOString());
-        setSyncStatus('success');
-        setTimeout(() => setSyncStatus('idle'), 2000);
       }
-    } catch {
+      setLastSync(new Date().toISOString());
+      setSyncStatus('success');
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    } catch (error) {
+      const message = error?.message || 'Erro ao baixar dados';
+      setSyncError(message);
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
     }
@@ -217,7 +240,17 @@ export default function LumineTracker() {
     }
   };
 
-  // Excluir criança e registros
+    const clearLocalData = useCallback(() => {
+    setChildren([]);
+    setDailyRecords([]);
+    setPendingChanges(0);
+    setLastSync(null);
+    setSelectedChild(null);
+    setSearchTerm('');
+    setSyncError('');
+  }, [setChildren, setDailyRecords, setLastSync]);
+
+// Excluir criança e registros
   const deleteChild = async childId => {
     const confirmed = window.confirm(
       'Excluir este cadastro e todos os registros desta criança? Esta ação não pode ser desfeita.'
@@ -349,6 +382,9 @@ export default function LumineTracker() {
         {lastSync && syncStatus === 'idle' && (
           <p className="mt-1 text-xs text-indigo-200">Última sync: {formatTime(lastSync)}</p>
         )}
+        {syncStatus === 'error' && syncError && (
+          <p className="mt-1 text-xs text-rose-100">Sync: {syncError}</p>
+        )}
       </header>
 
       {/* ========== HEADER DESKTOP ========== */}
@@ -360,6 +396,9 @@ export default function LumineTracker() {
             Última sync:{" "}
             {lastSync ? `${formatDate(lastSync)} às ${formatTime(lastSync)}` : "Nenhuma"}
           </p>
+          {syncStatus === 'error' && syncError && (
+            <p className="text-xs text-rose-600">Sync: {syncError}</p>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
@@ -488,6 +527,7 @@ export default function LumineTracker() {
             downloadFromServer={downloadFromServer}
             lastSync={lastSync}
             isOnline={isOnline}
+            clearLocalData={clearLocalData}
           />
         )}
       </main>
@@ -2137,6 +2177,7 @@ function ConfigView({
   downloadFromServer,
   lastSync,
   isOnline,
+  clearLocalData,
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -2283,6 +2324,22 @@ function ConfigView({
             <input type="file" accept=".json" onChange={importJSON} className="hidden" />
           </label>
         </div>
+      </div>
+
+      {/* Limpar dados locais */}
+      <div className="space-y-3 rounded-xl bg-rose-50 p-4 shadow-sm">
+        <h3 className="font-semibold text-rose-700">Limpar dados locais</h3>
+        <p className="text-sm text-rose-600">Remove todas as crianças e registros deste dispositivo.</p>
+        <button
+          onClick={() => {
+            if (window.confirm('Tem certeza que deseja apagar os dados locais?')) {
+              clearLocalData();
+            }
+          }}
+          className="w-full rounded-xl bg-rose-600 py-3 text-sm font-semibold text-white"
+        >
+          Apagar dados locais
+        </button>
       </div>
 
       {/* Relatório Mensal em Cards */}
@@ -2440,6 +2497,27 @@ function ConfigView({
           </div>
         </div>
 
+        <div className="rounded-2xl bg-rose-50 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-rose-700">Limpar dados locais</h3>
+              <p className="mt-1 text-sm text-rose-600">
+                Remove todas as crianças e registros deste dispositivo.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja apagar os dados locais?')) {
+                  clearLocalData();
+                }
+              }}
+              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Apagar dados
+            </button>
+          </div>
+        </div>
+
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
@@ -2484,6 +2562,7 @@ function ConfigView({
 
         <div className="rounded-2xl bg-gray-100 p-4 text-center text-sm text-gray-500">
           {children.length} crianças • {dailyRecords.length} registros
+          <p className="mt-1 text-xs text-gray-400">Instituto Lumine v3.0</p>
         </div>
       </div>
     </div>
