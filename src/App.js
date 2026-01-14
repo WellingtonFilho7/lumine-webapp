@@ -113,7 +113,7 @@ export default function LumineTracker() {
   }, []);
 
   // Sync com servidor
-  const syncWithServer = useCallback(async () => {
+  const syncWithServer = useCallback(async (payload = null) => {
     if (!isOnline) {
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
@@ -126,7 +126,7 @@ export default function LumineTracker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'sync',
-          data: { children, records: dailyRecords },
+          data: payload || { children, records: dailyRecords },
         }),
       });
       if (!res.ok) throw new Error();
@@ -214,6 +214,27 @@ export default function LumineTracker() {
       } catch {
         return;
       }
+    }
+  };
+
+  // Excluir criança e registros
+  const deleteChild = async childId => {
+    const confirmed = window.confirm(
+      'Excluir este cadastro e todos os registros desta criança? Esta ação não pode ser desfeita.'
+    );
+    if (!confirmed) return;
+
+    const nextChildren = children.filter(child => child.id !== childId);
+    const nextRecords = dailyRecords.filter(record => record.childId !== childId);
+
+    setChildren(nextChildren);
+    setDailyRecords(nextRecords);
+    setSelectedChild(null);
+    setView('children');
+    setPendingChanges(p => p + 1);
+
+    if (isOnline) {
+      await syncWithServer({ children: nextChildren, records: nextRecords });
     }
   };
 
@@ -432,10 +453,10 @@ export default function LumineTracker() {
         {view === 'child-detail' && selectedChild && (
           <>
             <div className="lg:hidden">
-              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} />
+              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} onDelete={deleteChild} />
             </div>
             <div className="hidden lg:block">
-              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} />
+              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} onDelete={deleteChild} />
             </div>
           </>
         )}
@@ -1223,7 +1244,7 @@ function AddChildView({ addChild, setView }) {
 // ============================================
 // DETALHES DA CRIANÇA
 // ============================================
-function ChildDetailView({ child, dailyRecords }) {
+function ChildDetailView({ child, dailyRecords, onDelete }) {
   const childRecords = dailyRecords
     .filter(r => r.childId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1282,6 +1303,18 @@ function ChildDetailView({ child, dailyRecords }) {
           />
         )}
         <InfoRow icon={Clock} label="Entrada" value={formatDate(child.entryDate)} />
+      </div>
+
+      <div className="rounded-xl bg-white p-4 shadow-sm">
+        <h3 className="font-semibold text-gray-800">Ações</h3>
+        <p className="mt-1 text-xs text-gray-500">Excluir remove também todos os registros desta criança.</p>
+        <button
+          type="button"
+          onClick={() => onDelete && onDelete(child.id)}
+          className="mt-3 w-full rounded-xl bg-red-50 py-3 text-sm font-semibold text-red-700 hover:bg-red-100"
+        >
+          Excluir cadastro
+        </button>
       </div>
 
       {/* Histórico */}
@@ -1349,7 +1382,7 @@ function InfoRow({ icon: Icon, label, value }) {
   );
 }
 
-function ChildDetailDesktop({ child, dailyRecords }) {
+function ChildDetailDesktop({ child, dailyRecords, onDelete }) {
   const childRecords = dailyRecords
     .filter(r => r.childId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1406,6 +1439,18 @@ function ChildDetailDesktop({ child, dailyRecords }) {
             />
           )}
           <InfoRow icon={Clock} label="Entrada" value={formatDate(child.entryDate)} />
+        </div>
+
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <h3 className="font-semibold text-gray-800">Ações</h3>
+          <p className="mt-1 text-xs text-gray-500">Excluir remove também todos os registros desta criança.</p>
+          <button
+            type="button"
+            onClick={() => onDelete && onDelete(child.id)}
+            className="mt-3 w-full rounded-xl bg-red-50 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+          >
+            Excluir cadastro
+          </button>
         </div>
       </div>
 
