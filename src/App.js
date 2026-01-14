@@ -151,8 +151,8 @@ export default function LumineTracker() {
       const res = await fetch(API_URL);
       const result = await res.json();
       if (result.success && result.data) {
-        if (result.data.children?.length) setChildren(result.data.children);
-        if (result.data.records?.length) setDailyRecords(result.data.records);
+        if (Array.isArray(result.data.children)) setChildren(result.data.children);
+        if (Array.isArray(result.data.records)) setDailyRecords(result.data.records);
         setLastSync(new Date().toISOString());
         setSyncStatus('success');
         setTimeout(() => setSyncStatus('idle'), 2000);
