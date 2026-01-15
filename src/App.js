@@ -122,6 +122,44 @@ export default function LumineTracker() {
       return;
     }
     setSyncStatus('syncing');
+    setSyncError('');
+
+    if (!payload) {
+      try {
+        const preRes = await fetch(API_URL);
+        let preData = null;
+        try {
+          preData = await preRes.json();
+        } catch {
+          preData = null;
+        }
+        if (preRes.ok && preData?.success) {
+          const serverChildren = Array.isArray(preData.data?.children)
+            ? preData.data.children
+            : [];
+          const serverRecords = Array.isArray(preData.data?.records)
+            ? preData.data.records
+            : [];
+          const serverHasMore =
+            serverChildren.length > children.length ||
+            serverRecords.length > dailyRecords.length;
+          if (serverHasMore) {
+            const proceed = window.confirm(
+              'O servidor tem mais dados do que este dispositivo. Deseja enviar mesmo assim? Isso pode sobrescrever dados.'
+            );
+            if (!proceed) {
+              setSyncError('Use Baixar para atualizar');
+              setSyncStatus('error');
+              setTimeout(() => setSyncStatus('idle'), 3000);
+              return;
+            }
+          }
+        }
+      } catch {
+        // Ignora falha no pré-check e tenta sincronizar normalmente.
+      }
+    }
+
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
@@ -188,12 +226,12 @@ export default function LumineTracker() {
 
   // Auto-sync a cada 5 min
   useEffect(() => {
-    if (isOnline && (children.length > 0 || dailyRecords.length > 0)) {
+    if (isOnline && pendingChanges > 0) {
       const interval = setInterval(() => syncWithServer(), 5 * 60 * 1000);
       return () => clearInterval(interval);
     }
     return undefined;
-  }, [isOnline, children.length, dailyRecords.length, syncWithServer]);
+  }, [isOnline, pendingChanges, syncWithServer]);
 
   // Adicionar criança
   const addChild = async data => {
