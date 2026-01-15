@@ -422,6 +422,22 @@ export default function LumineTracker() {
     }
   };
 
+  const updateChild = (childId, updatedData) => {
+    setChildren(prev =>
+      prev.map(child => {
+        if (child.id !== childId) return child;
+        const merged = { ...child, ...updatedData };
+        return normalizeChild(merged).child;
+      })
+    );
+    setSelectedChild(prev => {
+      if (!prev || prev.id !== childId) return prev;
+      const merged = { ...prev, ...updatedData };
+      return normalizeChild(merged).child;
+    });
+    setPendingChanges(p => p + 1);
+  };
+
   // Adicionar registro
   const addDailyRecord = async data => {
     const newRecord = {
@@ -696,10 +712,10 @@ export default function LumineTracker() {
         {view === 'child-detail' && selectedChild && (
           <>
             <div className="lg:hidden">
-              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} onDelete={deleteChild} />
+              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} onDelete={deleteChild} onUpdateChild={updateChild} />
             </div>
             <div className="hidden lg:block">
-              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} onDelete={deleteChild} />
+              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} onDelete={deleteChild} onUpdateChild={updateChild} />
             </div>
           </>
         )}
@@ -1922,7 +1938,7 @@ function AddChildView({ addChild, setView }) {
 // ============================================
 // DETALHES DA CRIANÇA
 // ============================================
-function ChildDetailView({ child, dailyRecords, onDelete }) {
+function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
   const childRecords = dailyRecords
     .filter(r => r.childId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1932,10 +1948,61 @@ function ChildDetailView({ child, dailyRecords, onDelete }) {
   ).length;
   const absent = childRecords.filter(r => r.attendance === 'absent').length;
 
-  const moodLabels = {
-    happy: '😊 Feliz',
-    neutral: '😐 Ok',
-    sad: '😢 Triste',
+  const statusMeta = getStatusMeta(child);
+  const enrollmentHistory = parseEnrollmentHistory(child.enrollmentHistory);
+  const [showStatusForm, setShowStatusForm] = useState(false);
+  const [nextStatus, setNextStatus] = useState(statusMeta.status);
+  const [statusNotes, setStatusNotes] = useState('');
+  const [statusError, setStatusError] = useState('');
+
+  const allowedStatusOptions = [
+    { value: 'pre_inscrito', label: 'Pré-inscrito' },
+    { value: 'em_triagem', label: 'Em triagem' },
+    { value: 'aprovado', label: 'Aprovado' },
+    { value: 'lista_espera', label: 'Lista de espera' },
+    { value: 'matriculado', label: 'Matriculado' },
+    { value: 'recusado', label: 'Recusado' },
+    { value: 'desistente', label: 'Desistente' },
+    { value: 'inativo', label: 'Inativo' },
+  ];
+
+  const validateStatusTransition = status => {
+    if (status === statusMeta.status) return 'Escolha um status diferente.';
+    if (status === 'recusado' && !statusNotes.trim()) return 'Informe o motivo da recusa.';
+    if (status === 'desistente' && !statusNotes.trim()) return 'Informe o motivo da desistência.';
+    if (status === 'matriculado' && !child.startDate) return 'Defina a data de início antes de matricular.';
+    return '';
+  };
+
+  const applyStatusChange = () => {
+    const error = validateStatusTransition(nextStatus);
+    if (error) {
+      setStatusError(error);
+      return;
+    }
+    setStatusError('');
+    const now = new Date().toISOString();
+    const updatedHistory = [
+      ...enrollmentHistory,
+      { date: now, action: nextStatus, notes: statusNotes.trim() || 'Atualização de status' },
+    ];
+
+    const updates = {
+      enrollmentStatus: nextStatus,
+      enrollmentHistory: updatedHistory,
+    };
+
+    if (!child.enrollmentDate) updates.enrollmentDate = now;
+    if (nextStatus === 'em_triagem' && !child.triageDate) updates.triageDate = now;
+    if (nextStatus === 'matriculado') {
+      if (!child.startDate) updates.startDate = child.entryDate || now.split('T')[0];
+      updates.entryDate = child.entryDate || updates.startDate;
+      if (!child.matriculationDate) updates.matriculationDate = now;
+    }
+
+    if (onUpdateChild) onUpdateChild(child.id, updates);
+    setShowStatusForm(false);
+    setStatusNotes('');
   };
 
   return (
@@ -1949,6 +2016,69 @@ function ChildDetailView({ child, dailyRecords, onDelete }) {
         <p className="text-gray-500">
           {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
         </p>
+      </div>
+      <div className="rounded-xl bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase text-gray-400">Status da matrícula</p>
+            <span
+              className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.className}`}
+            >
+              {statusMeta.label}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowStatusForm(prev => !prev);
+              setStatusError('');
+              setNextStatus(statusMeta.status);
+            }}
+            className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700"
+          >
+            Alterar status
+          </button>
+        </div>
+
+        {showStatusForm && (
+          <div className="mt-4 space-y-3">
+            <select
+              value={nextStatus}
+              onChange={e => setNextStatus(e.target.value)}
+              className="w-full rounded-xl border px-3 py-2 text-sm"
+            >
+              {allowedStatusOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <textarea
+              value={statusNotes}
+              onChange={e => setStatusNotes(e.target.value)}
+              rows={2}
+              className="w-full rounded-xl border px-3 py-2 text-sm"
+              placeholder="Notas da mudança de status"
+            />
+            {statusError && <p className="text-xs text-rose-600">{statusError}</p>}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowStatusForm(false)}
+                className="flex-1 rounded-xl bg-gray-100 py-2 text-sm font-semibold text-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={applyStatusChange}
+                className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -1993,6 +2123,37 @@ function ChildDetailView({ child, dailyRecords, onDelete }) {
         >
           Excluir cadastro
         </button>
+      </div>
+
+      {/* Histórico de status */}
+      <div className="rounded-xl bg-white p-4 shadow-sm">
+        <h3 className="mb-3 font-semibold text-gray-800">Histórico da matrícula</h3>
+        {enrollmentHistory.length > 0 ? (
+          <div className="space-y-2">
+            {enrollmentHistory
+              .slice()
+              .sort((a, b) => new Date(b.date) - new Date(a.date))
+              .map((entry, index) => {
+                const meta = ENROLLMENT_STATUS_META[entry.action] || {
+                  label: entry.action || 'Status',
+                  className: 'bg-gray-100 text-gray-600',
+                };
+                return (
+                  <div key={`${entry.date}-${index}`} className="rounded-xl border border-gray-100 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.className}`}>
+                        {meta.label}
+                      </span>
+                      <span className="text-xs text-gray-500">{formatDate(entry.date)}</span>
+                    </div>
+                    {entry.notes && <p className="mt-2 text-xs text-gray-600">{entry.notes}</p>}
+                  </div>
+                );
+              })}
+          </div>
+        ) : (
+          <p className="py-4 text-center text-gray-500">Sem histórico registrado.</p>
+        )}
       </div>
 
       {/* Histórico */}
@@ -2060,7 +2221,7 @@ function InfoRow({ icon: Icon, label, value }) {
   );
 }
 
-function ChildDetailDesktop({ child, dailyRecords, onDelete }) {
+function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
   const childRecords = dailyRecords
     .filter(r => r.childId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -2070,10 +2231,61 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete }) {
   ).length;
   const absent = childRecords.filter(r => r.attendance === 'absent').length;
 
-  const moodLabels = {
-    happy: 'Feliz',
-    neutral: 'Ok',
-    sad: 'Triste',
+  const statusMeta = getStatusMeta(child);
+  const enrollmentHistory = parseEnrollmentHistory(child.enrollmentHistory);
+  const [showStatusForm, setShowStatusForm] = useState(false);
+  const [nextStatus, setNextStatus] = useState(statusMeta.status);
+  const [statusNotes, setStatusNotes] = useState('');
+  const [statusError, setStatusError] = useState('');
+
+  const allowedStatusOptions = [
+    { value: 'pre_inscrito', label: 'Pré-inscrito' },
+    { value: 'em_triagem', label: 'Em triagem' },
+    { value: 'aprovado', label: 'Aprovado' },
+    { value: 'lista_espera', label: 'Lista de espera' },
+    { value: 'matriculado', label: 'Matriculado' },
+    { value: 'recusado', label: 'Recusado' },
+    { value: 'desistente', label: 'Desistente' },
+    { value: 'inativo', label: 'Inativo' },
+  ];
+
+  const validateStatusTransition = status => {
+    if (status === statusMeta.status) return 'Escolha um status diferente.';
+    if (status === 'recusado' && !statusNotes.trim()) return 'Informe o motivo da recusa.';
+    if (status === 'desistente' && !statusNotes.trim()) return 'Informe o motivo da desistência.';
+    if (status === 'matriculado' && !child.startDate) return 'Defina a data de início antes de matricular.';
+    return '';
+  };
+
+  const applyStatusChange = () => {
+    const error = validateStatusTransition(nextStatus);
+    if (error) {
+      setStatusError(error);
+      return;
+    }
+    setStatusError('');
+    const now = new Date().toISOString();
+    const updatedHistory = [
+      ...enrollmentHistory,
+      { date: now, action: nextStatus, notes: statusNotes.trim() || 'Atualização de status' },
+    ];
+
+    const updates = {
+      enrollmentStatus: nextStatus,
+      enrollmentHistory: updatedHistory,
+    };
+
+    if (!child.enrollmentDate) updates.enrollmentDate = now;
+    if (nextStatus === 'em_triagem' && !child.triageDate) updates.triageDate = now;
+    if (nextStatus === 'matriculado') {
+      if (!child.startDate) updates.startDate = child.entryDate || now.split('T')[0];
+      updates.entryDate = child.entryDate || updates.startDate;
+      if (!child.matriculationDate) updates.matriculationDate = now;
+    }
+
+    if (onUpdateChild) onUpdateChild(child.id, updates);
+    setShowStatusForm(false);
+    setStatusNotes('');
   };
 
   return (
@@ -2104,6 +2316,69 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete }) {
           </div>
         </div>
 
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase text-gray-400">Status da matrícula</p>
+              <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.className}`}
+              >
+                {statusMeta.label}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowStatusForm(prev => !prev);
+                setStatusError('');
+                setNextStatus(statusMeta.status);
+              }}
+              className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700"
+            >
+              Alterar status
+            </button>
+          </div>
+
+          {showStatusForm && (
+            <div className="mt-4 space-y-3">
+              <select
+                value={nextStatus}
+                onChange={e => setNextStatus(e.target.value)}
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+              >
+                {allowedStatusOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                value={statusNotes}
+                onChange={e => setStatusNotes(e.target.value)}
+                rows={2}
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+                placeholder="Notas da mudança de status"
+              />
+              {statusError && <p className="text-xs text-rose-600">{statusError}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStatusForm(false)}
+                  className="flex-1 rounded-xl bg-gray-100 py-2 text-sm font-semibold text-gray-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={applyStatusChange}
+                  className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
           <h3 className="font-semibold text-gray-800">Informações</h3>
           <InfoRow icon={User} label="Responsável" value={child.guardianName} />
@@ -2129,6 +2404,40 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete }) {
           >
             Excluir cadastro
           </button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-800">Histórico da matrícula</h3>
+          <span className="text-xs text-gray-500">{enrollmentHistory.length} eventos</span>
+        </div>
+        <div className="mt-4 space-y-2">
+          {enrollmentHistory.length === 0 && (
+            <div className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
+              Sem histórico registrado.
+            </div>
+          )}
+          {enrollmentHistory
+            .slice()
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map((entry, index) => {
+              const meta = ENROLLMENT_STATUS_META[entry.action] || {
+                label: entry.action || 'Status',
+                className: 'bg-gray-100 text-gray-600',
+              };
+              return (
+                <div key={`${entry.date}-${index}`} className="rounded-xl border border-gray-100 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.className}`}>
+                      {meta.label}
+                    </span>
+                    <span className="text-xs text-gray-500">{formatDate(entry.date)}</span>
+                  </div>
+                  {entry.notes && <p className="mt-2 text-xs text-gray-600">{entry.notes}</p>}
+                </div>
+              );
+            })}
         </div>
       </div>
 
