@@ -1138,7 +1138,14 @@ function StatCard({ value, label, color, icon: Icon }) {
 // LISTA DE CRIANÇAS
 // ============================================
 function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSearchTerm }) {
-  const filtered = children.filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filtered = children.filter(child => {
+    const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesName) return false;
+    if (statusFilter === 'all') return true;
+    return getEnrollmentStatus(child) === statusFilter;
+  });
 
   return (
     <div className="space-y-4">
@@ -1154,6 +1161,33 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
         />
       </div>
 
+      {/* Filtro */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { value: 'all', label: 'Todas' },
+          { value: 'pre_inscrito', label: 'Pré-inscrito' },
+          { value: 'em_triagem', label: 'Triagem' },
+          { value: 'aprovado', label: 'Aprovado' },
+          { value: 'lista_espera', label: 'Lista espera' },
+          { value: 'matriculado', label: 'Matriculado' },
+          { value: 'recusado', label: 'Recusado' },
+          { value: 'desistente', label: 'Desistente' },
+          { value: 'inativo', label: 'Inativo' },
+        ].map(option => (
+          <button
+            key={option.value}
+            onClick={() => setStatusFilter(option.value)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              statusFilter === option.value
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       {/* Contador */}
       <p className="text-sm text-gray-500">
         {filtered.length} criança{filtered.length !== 1 ? 's' : ''}
@@ -1161,27 +1195,35 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
 
       {/* Lista */}
       <div className="space-y-2">
-        {filtered.map(child => (
-          <div
-            key={child.id}
-            onClick={() => {
-              setSelectedChild(child);
-              setView('child-detail');
-            }}
-            className="flex cursor-pointer items-center gap-4 rounded-xl bg-white p-4 shadow-sm active:bg-gray-50"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
-              <User size={24} className="text-indigo-600" />
+        {filtered.map(child => {
+          const statusMeta = getStatusMeta(child);
+          return (
+            <div
+              key={child.id}
+              onClick={() => {
+                setSelectedChild(child);
+                setView('child-detail');
+              }}
+              className="flex cursor-pointer items-center gap-4 rounded-xl bg-white p-4 shadow-sm active:bg-gray-50"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
+                <User size={24} className="text-indigo-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-semibold text-gray-800">{child.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
+                </p>
+                <span
+                  className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusMeta.className}`}
+                >
+                  {statusMeta.label}
+                </span>
+              </div>
+              <ChevronRight size={20} className="text-gray-400" />
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate font-semibold text-gray-800">{child.name}</h3>
-              <p className="text-sm text-gray-500">
-                {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
-              </p>
-            </div>
-            <ChevronRight size={20} className="text-gray-400" />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (
@@ -1198,11 +1240,18 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
 
 
 function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSearchTerm }) {
-  const filtered = children.filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filtered = children.filter(child => {
+    const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesName) return false;
+    if (statusFilter === 'all') return true;
+    return getEnrollmentStatus(child) === statusFilter;
+  });
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
@@ -1220,6 +1269,32 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
           <Plus size={16} />
           Nova criança
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          { value: 'all', label: 'Todas' },
+          { value: 'pre_inscrito', label: 'Pré-inscrito' },
+          { value: 'em_triagem', label: 'Triagem' },
+          { value: 'aprovado', label: 'Aprovado' },
+          { value: 'lista_espera', label: 'Lista espera' },
+          { value: 'matriculado', label: 'Matriculado' },
+          { value: 'recusado', label: 'Recusado' },
+          { value: 'desistente', label: 'Desistente' },
+          { value: 'inativo', label: 'Inativo' },
+        ].map(option => (
+          <button
+            key={option.value}
+            onClick={() => setStatusFilter(option.value)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              statusFilter === option.value
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
