@@ -22,7 +22,6 @@ import {
   ChevronRight,
   User,
   Phone,
-  MapPin,
   School,
   Clock,
 } from 'lucide-react';
@@ -2607,7 +2606,6 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
         <h3 className="font-semibold text-gray-800">Informações</h3>
         <InfoRow icon={User} label="Responsável" value={child.guardianName} />
         <InfoRow icon={Phone} label="Telefone" value={child.guardianPhone} />
-        {child.address && <InfoRow icon={MapPin} label="Endereço" value={child.address} />}
         {child.school && (
           <InfoRow
             icon={School}
@@ -3146,8 +3144,7 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
           <h3 className="font-semibold text-gray-800">Informações</h3>
           <InfoRow icon={User} label="Responsável" value={child.guardianName} />
           <InfoRow icon={Phone} label="Telefone" value={child.guardianPhone} />
-          {child.address && <InfoRow icon={MapPin} label="Endereço" value={child.address} />}
-          {child.school && (
+            {child.school && (
             <InfoRow
               icon={School}
               label="Escola"
