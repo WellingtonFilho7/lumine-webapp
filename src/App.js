@@ -196,6 +196,15 @@ function calculateAttendanceRate(records) {
   return Math.round((present / records.length) * 100);
 }
 
+const moodLabels = {
+  happy: '😊 Animada',
+  calm: '😌 Tranquila',
+  quiet: '🤫 Quieta',
+  sad: '😢 Chorosa',
+  agitated: '😤 Agitada',
+  irritated: '😠 Irritada',
+};
+
 function useLocalStorage(key, initialValue) {
   const [storedValue, setStoredValue] = useState(() => {
     try {
