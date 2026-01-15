@@ -352,7 +352,7 @@ export default function LumineTracker() {
 
             {/* Botão Sync */}
             <button
-              onClick={syncWithServer}
+              onClick={() => syncWithServer()}
               disabled={syncStatus === 'syncing'}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                 syncStatus === 'syncing'
@@ -410,7 +410,7 @@ export default function LumineTracker() {
             {isOnline ? "Online" : "Offline"}
           </div>
           <button
-            onClick={syncWithServer}
+            onClick={() => syncWithServer()}
             disabled={syncStatus === "syncing"}
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
               syncStatus === "syncing"
@@ -2289,7 +2289,7 @@ function ConfigView({
 
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={syncWithServer}
+            onClick={() => syncWithServer()}
             disabled={!isOnline}
             className="flex items-center justify-center gap-2 rounded-xl bg-green-100 py-3 font-medium text-green-700 disabled:opacity-50"
           >
@@ -2435,7 +2435,7 @@ function ConfigView({
             <p className="mt-2 text-sm text-gray-500">Envie e baixe dados da planilha.</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
-                onClick={syncWithServer}
+                onClick={() => syncWithServer()}
                 disabled={!isOnline}
                 className="flex items-center justify-center gap-2 rounded-xl bg-green-100 py-2 text-sm font-semibold text-green-700 disabled:opacity-50"
               >
