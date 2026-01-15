@@ -32,6 +32,137 @@ import {
 // ============================================
 const API_URL = 'https://lumine-api-7qnj.vercel.app/api/sync';
 
+const ENROLLMENT_STATUS_META = {
+  pre_inscrito: { label: 'Pré-inscrito', className: 'bg-gray-100 text-gray-600' },
+  em_triagem: { label: 'Em triagem', className: 'bg-yellow-100 text-yellow-700' },
+  aprovado: { label: 'Aprovado', className: 'bg-blue-100 text-blue-700' },
+  lista_espera: { label: 'Lista de espera', className: 'bg-orange-100 text-orange-700' },
+  matriculado: { label: 'Matriculado', className: 'bg-emerald-100 text-emerald-700' },
+  recusado: { label: 'Recusado', className: 'bg-rose-100 text-rose-700' },
+  desistente: { label: 'Desistente', className: 'bg-gray-100 text-gray-600' },
+  inativo: { label: 'Inativo', className: 'bg-gray-100 text-gray-600' },
+};
+
+const LEGACY_STATUS_MAP = {
+  active: 'matriculado',
+  inactive: 'inativo',
+};
+
+function getEnrollmentStatus(child) {
+  if (!child) return 'matriculado';
+  if (child.enrollmentStatus) return child.enrollmentStatus;
+  const legacy = child.status ? LEGACY_STATUS_MAP[child.status] : '';
+  return legacy || 'matriculado';
+}
+
+function getStatusMeta(child) {
+  const status = getEnrollmentStatus(child);
+  return {
+    status,
+    ...(ENROLLMENT_STATUS_META[status] || {
+      label: 'Sem status',
+      className: 'bg-gray-100 text-gray-600',
+    }),
+  };
+}
+
+function isMatriculated(child) {
+  return getEnrollmentStatus(child) === 'matriculado';
+}
+
+function parseEnrollmentHistory(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseDocumentsReceived(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return String(value)
+    .split('|')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeChild(child) {
+  const normalized = { ...child };
+  let changed = false;
+
+  const status = getEnrollmentStatus(normalized);
+  if (normalized.enrollmentStatus !== status) {
+    normalized.enrollmentStatus = status;
+    changed = true;
+  }
+
+  if (normalized.childId == null) {
+    normalized.childId = '';
+    changed = true;
+  }
+
+  const docs = parseDocumentsReceived(normalized.documentsReceived);
+  if (docs !== normalized.documentsReceived) {
+    normalized.documentsReceived = docs;
+    changed = true;
+  }
+
+  const history = parseEnrollmentHistory(normalized.enrollmentHistory);
+  if (history !== normalized.enrollmentHistory) {
+    normalized.enrollmentHistory = history;
+    changed = true;
+  }
+
+  if (!normalized.enrollmentHistory.length) {
+    const baseDate = normalized.createdAt || new Date().toISOString();
+    const notes = normalized.status ? 'Migração do sistema anterior' : 'Cadastro inicial';
+    normalized.enrollmentHistory = [{ date: baseDate, action: status, notes }];
+    changed = true;
+  }
+
+  if (!normalized.enrollmentDate) {
+    normalized.enrollmentDate =
+      normalized.entryDate || normalized.createdAt || new Date().toISOString();
+    changed = true;
+  }
+
+  if (status === 'matriculado' && !normalized.matriculationDate) {
+    normalized.matriculationDate = normalized.entryDate || normalized.enrollmentDate;
+    changed = true;
+  }
+
+  if (!normalized.startDate && normalized.entryDate) {
+    normalized.startDate = normalized.entryDate;
+    changed = true;
+  }
+
+  ['responsibilityTerm', 'consentTerm', 'imageConsent'].forEach(field => {
+    if (typeof normalized[field] !== 'boolean') {
+      normalized[field] = normalized[field] === true || normalized[field] === 'true';
+      changed = true;
+    }
+  });
+
+  return { child: normalized, changed };
+}
+
+function normalizeChildren(childrenList) {
+  if (!Array.isArray(childrenList)) {
+    return { children: [], changed: true };
+  }
+  let changed = false;
+  const normalized = childrenList.map(child => {
+    const result = normalizeChild(child);
+    if (result.changed) changed = true;
+    return result.child;
+  });
+  return { children: normalized, changed };
+}
+
 // ============================================
 // FUNÇÕES AUXILIARES
 // ============================================
@@ -76,8 +207,11 @@ function useLocalStorage(key, initialValue) {
   });
   const setValue = value => {
     try {
-      setStoredValue(value);
-      localStorage.setItem(key, JSON.stringify(value));
+      setStoredValue(prevValue => {
+        const valueToStore = value instanceof Function ? value(prevValue) : value;
+        localStorage.setItem(key, JSON.stringify(valueToStore));
+        return valueToStore;
+      });
     } catch (e) {
       console.error('Erro:', e);
     }
@@ -112,6 +246,11 @@ export default function LumineTracker() {
       window.removeEventListener('offline', off);
     };
   }, []);
+
+  useEffect(() => {
+    const { children: normalized, changed } = normalizeChildren(children);
+    if (changed) setChildren(normalized);
+  }, [children, setChildren]);
 
   // Sync com servidor
   const syncWithServer = useCallback(async (payload = null) => {
@@ -210,7 +349,10 @@ export default function LumineTracker() {
         throw new Error(message);
       }
       if (result.data) {
-        if (Array.isArray(result.data.children)) setChildren(result.data.children);
+        if (Array.isArray(result.data.children)) {
+          const normalized = normalizeChildren(result.data.children).children;
+          setChildren(normalized);
+        }
         if (Array.isArray(result.data.records)) setDailyRecords(result.data.records);
       }
       setLastSync(new Date().toISOString());
@@ -235,21 +377,45 @@ export default function LumineTracker() {
 
   // Adicionar criança
   const addChild = async data => {
-    const newChild = {
+    const now = new Date().toISOString();
+    const entryDate = data.entryDate || new Date().toISOString().split('T')[0];
+    const enrollmentStatus = data.enrollmentStatus || 'matriculado';
+    const baseChild = {
       ...data,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      status: 'active',
+      createdAt: now,
+      entryDate,
+      enrollmentStatus,
+      enrollmentDate: data.enrollmentDate || now,
+      matriculationDate:
+        enrollmentStatus === 'matriculado'
+          ? data.matriculationDate || data.enrollmentDate || now
+          : data.matriculationDate || '',
+      startDate: data.startDate || entryDate,
+      documentsReceived: data.documentsReceived || [],
+      enrollmentHistory:
+        Array.isArray(data.enrollmentHistory) && data.enrollmentHistory.length
+          ? data.enrollmentHistory
+          : [{ date: now, action: enrollmentStatus, notes: 'Cadastro inicial' }],
     };
-    setChildren([...children, newChild]);
+    const newChild = normalizeChild(baseChild).child;
+    setChildren(prev => [...prev, newChild]);
     setPendingChanges(p => p + 1);
     if (isOnline) {
       try {
-        await fetch(API_URL, {
+        const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'addChild', data: newChild }),
         });
+        const result = await res.json().catch(() => null);
+        if (result?.childId) {
+          setChildren(prev =>
+            prev.map(child =>
+              child.id === newChild.id ? { ...child, childId: result.childId } : child
+            )
+          );
+        }
       } catch {
         return;
       }
@@ -263,7 +429,7 @@ export default function LumineTracker() {
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
     };
-    setDailyRecords([...dailyRecords, newRecord]);
+    setDailyRecords(prev => [...prev, newRecord]);
     setPendingChanges(p => p + 1);
     if (isOnline) {
       try {
@@ -278,7 +444,7 @@ export default function LumineTracker() {
     }
   };
 
-    const clearLocalData = useCallback(() => {
+  const clearLocalData = useCallback(() => {
     setChildren([]);
     setDailyRecords([]);
     setPendingChanges(0);
@@ -288,7 +454,7 @@ export default function LumineTracker() {
     setSyncError('');
   }, [setChildren, setDailyRecords, setLastSync]);
 
-// Excluir criança e registros
+  // Excluir criança e registros
   const deleteChild = async childId => {
     const confirmed = window.confirm(
       'Excluir este cadastro e todos os registros desta criança? Esta ação não pode ser desfeita.'
@@ -316,7 +482,7 @@ export default function LumineTracker() {
     const present = todayRecs.filter(
       r => r.attendance === 'present' || r.attendance === 'late'
     ).length;
-    const active = children.filter(c => c.status === 'active').length;
+    const active = children.filter(isMatriculated).length;
     const thisMonth = new Date();
     thisMonth.setDate(1);
     const monthRecs = dailyRecords.filter(r => new Date(r.date) >= thisMonth);
@@ -332,7 +498,7 @@ export default function LumineTracker() {
     const last7 = new Date();
     last7.setDate(last7.getDate() - 7);
     children
-      .filter(c => c.status === 'active')
+      .filter(isMatriculated)
       .forEach(child => {
         const recent = dailyRecords
           .filter(r => r.childId === child.id && new Date(r.date) > last7)
@@ -722,7 +888,7 @@ function SidebarItem({ icon: Icon, label, active, onClick }) {
 function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild, setView }) {
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === today);
-  const activeChildren = children.filter(c => c.status === 'active');
+  const activeChildren = children.filter(isMatriculated);
   const pendingToday = activeChildren.filter(c => !todayRecords.find(r => r.childId === c.id));
 
   return (
@@ -830,7 +996,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
 function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedChild, setView }) {
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === today);
-  const activeChildren = children.filter(c => c.status === 'active');
+  const activeChildren = children.filter(isMatriculated);
   const pendingToday = activeChildren.filter(c => !todayRecords.find(r => r.childId === c.id));
 
   return (
@@ -1088,15 +1254,16 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
                   {child.school ? `${child.school}${child.grade ? ` - ${child.grade}` : ''}` : '-'}
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                      child.status === 'inactive'
-                        ? 'bg-gray-100 text-gray-500'
-                        : 'bg-emerald-100 text-emerald-700'
-                    }`}
-                  >
-                    {child.status === 'inactive' ? 'Inativa' : 'Ativa'}
-                  </span>
+                  {(() => {
+                    const statusMeta = getStatusMeta(child);
+                    return (
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-semibold ${statusMeta.className}`}
+                      >
+                        {statusMeta.label}
+                      </span>
+                    );
+                  })()}
                 </td>
               </tr>
             ))}
@@ -1611,7 +1778,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const activeChildren = children.filter(c => c.status === 'active');
+  const activeChildren = children.filter(isMatriculated);
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
   const recordedIds = todayRecords.map(r => r.childId);
   const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
@@ -1936,7 +2103,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const activeChildren = children.filter(c => c.status === 'active');
+  const activeChildren = children.filter(isMatriculated);
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
   const recordedIds = todayRecords.map(r => r.childId);
   const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
@@ -2249,8 +2416,9 @@ function ConfigView({
           ? data.records
           : null;
         if (Array.isArray(data.children) && importedRecords) {
+          const normalized = normalizeChildren(data.children).children;
           setConfirmAction(() => () => {
-            setChildren(data.children);
+            setChildren(normalized);
             setDailyRecords(importedRecords);
             setShowConfirm(false);
           });
@@ -2266,7 +2434,7 @@ function ConfigView({
 
   // Relatório em cards
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
-  const activeChildren = children.filter(c => c.status === 'active');
+  const activeChildren = children.filter(isMatriculated);
   const monthRecords = dailyRecords.filter(r => r.date?.startsWith(selectedMonth));
   const monthDays = [...new Set(monthRecords.map(r => r.date?.split('T')[0]))].length;
   const monthMeals = monthRecords.filter(r => r.attendance !== 'absent').length;
