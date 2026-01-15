@@ -1289,38 +1289,170 @@ function AddChildView({ addChild, setView }) {
   const [form, setForm] = useState({
     name: '',
     birthDate: '',
-    entryDate: new Date().toISOString().split('T')[0],
     guardianName: '',
     guardianPhone: '',
-    guardianPhoneAlt: '',
-    address: '',
     school: '',
+    schoolShift: '',
     grade: '',
+    neighborhood: '',
+    referralSource: '',
+    entryDate: '',
+    address: '',
+    guardianPhoneAlt: '',
+    guardianRelation: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+    authorizedPickup: '',
+    healthNotes: '',
+    specialNeeds: '',
+    priority: '',
+    priorityReason: '',
+    triageNotes: '',
+    startDate: new Date().toISOString().split('T')[0],
+    classGroup: '',
+    responsibilityTerm: false,
+    consentTerm: false,
+    imageConsent: false,
+    documentsReceived: [],
     initialObservations: '',
   });
 
-  const handleSubmit = () => {
-    if (!form.name) {
-      alert('Informe o nome da criança');
-      return;
+  const updateField = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const toggleDocument = value => {
+    setForm(prev => {
+      const current = Array.isArray(prev.documentsReceived) ? prev.documentsReceived : [];
+      const next = current.includes(value)
+        ? current.filter(item => item !== value)
+        : [...current, value];
+      return { ...prev, documentsReceived: next };
+    });
+  };
+
+  const validateRequired = fields => {
+    const missing = fields.filter(field => !form[field]);
+    if (missing.length === 0) return true;
+    const labels = {
+      name: 'Nome completo',
+      birthDate: 'Data de nascimento',
+      guardianName: 'Nome do responsável',
+      guardianPhone: 'Telefone',
+      school: 'Escola',
+      schoolShift: 'Turno escolar',
+      neighborhood: 'Bairro/comunidade',
+      referralSource: 'Origem do contato',
+      address: 'Endereço',
+      guardianRelation: 'Relação com a criança',
+      emergencyContact: 'Contato de emergência',
+      emergencyPhone: 'Telefone de emergência',
+      authorizedPickup: 'Autorizados para buscar',
+      priority: 'Prioridade',
+      startDate: 'Data de início',
+    };
+    const missingLabels = missing.map(field => labels[field] || field).join(', ');
+    alert(`Preencha os campos obrigatórios: ${missingLabels}`);
+    return false;
+  };
+
+  const validateStep1 = () =>
+    validateRequired([
+      'name',
+      'birthDate',
+      'guardianName',
+      'guardianPhone',
+      'school',
+      'schoolShift',
+      'neighborhood',
+      'referralSource',
+    ]);
+
+  const validateStep2 = () =>
+    validateRequired([
+      'address',
+      'guardianRelation',
+      'emergencyContact',
+      'emergencyPhone',
+      'authorizedPickup',
+      'priority',
+    ]);
+
+  const validateStep3 = () => {
+    if (!validateRequired(['startDate'])) return false;
+    if (!form.responsibilityTerm || !form.consentTerm) {
+      alert('Confirme os termos obrigatórios para efetivar a matrícula.');
+      return false;
     }
-    addChild(form);
+    return true;
+  };
+
+  const buildPayload = status => {
+    const now = new Date().toISOString();
+    const enrollmentDate = now;
+    const triageDate = status !== 'pre_inscrito' ? now : '';
+    const matriculationDate = status === 'matriculado' ? now : '';
+
+    const enrollmentHistory = [];
+    if (status === 'pre_inscrito') {
+      enrollmentHistory.push({
+        date: now,
+        action: 'pre_inscrito',
+        notes: 'Pré-inscrição registrada',
+      });
+    } else if (status === 'em_triagem') {
+      enrollmentHistory.push(
+        { date: enrollmentDate, action: 'pre_inscrito', notes: 'Pré-inscrição registrada' },
+        { date: now, action: 'em_triagem', notes: 'Triagem registrada' }
+      );
+    } else if (status === 'matriculado') {
+      enrollmentHistory.push(
+        { date: enrollmentDate, action: 'pre_inscrito', notes: 'Pré-inscrição registrada' },
+        { date: triageDate, action: 'em_triagem', notes: 'Triagem registrada' },
+        { date: now, action: 'matriculado', notes: 'Matrícula efetivada' }
+      );
+    }
+
+    return {
+      ...form,
+      enrollmentStatus: status,
+      enrollmentDate,
+      triageDate,
+      matriculationDate,
+      startDate: status === 'matriculado' ? form.startDate : '',
+      entryDate: status === 'matriculado' ? form.startDate : '',
+      enrollmentHistory,
+    };
+  };
+
+  const handleSave = status => {
+    if (!validateStep1()) return;
+    if (status === 'em_triagem' && !validateStep2()) return;
+    if (status === 'matriculado') {
+      if (!validateStep2()) return;
+      if (!validateStep3()) return;
+    }
+    addChild(buildPayload(status));
     setView('children');
   };
 
   return (
     <div className="space-y-4">
-      {/* Progress */}
       <div className="flex gap-2">
         {[1, 2, 3].map(s => (
-          <div key={s} className={`h-1 flex-1 rounded-full ${step >= s ? 'bg-indigo-600' : 'bg-gray-200'}`} />
+          <div
+            key={s}
+            className={`h-1 flex-1 rounded-full ${step >= s ? 'bg-indigo-600' : 'bg-gray-200'}`}
+          />
         ))}
       </div>
 
-      {/* Step 1: Dados básicos */}
       {step === 1 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Dados da criança</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800">Pré-inscrição</h2>
+            <p className="text-sm text-gray-500">Coleta rápida de dados essenciais.</p>
+          </div>
 
           <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
             <div>
@@ -1328,75 +1460,238 @@ function AddChildView({ addChild, setView }) {
               <input
                 type="text"
                 value={form.name}
-                onChange={e => setForm({ ...form, name: e.target.value })}
+                onChange={e => updateField('name', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
                 placeholder="Nome da criança"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Data de nascimento</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Data de nascimento *</label>
               <input
                 type="date"
                 value={form.birthDate}
-                onChange={e => setForm({ ...form, birthDate: e.target.value })}
+                onChange={e => updateField('birthDate', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Data de entrada</label>
-              <input
-                type="date"
-                value={form.entryDate}
-                onChange={e => setForm({ ...form, entryDate: e.target.value })}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={() => setStep(2)}
-            disabled={!form.name}
-            className="w-full rounded-xl bg-indigo-600 py-4 font-semibold text-white disabled:bg-gray-300"
-          >
-            Continuar
-          </button>
-        </div>
-      )}
-
-      {/* Step 2: Responsável */}
-      {step === 2 && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Responsável</h2>
-
-          <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Nome do responsável</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Nome do responsável *</label>
               <input
                 type="text"
                 value={form.guardianName}
-                onChange={e => setForm({ ...form, guardianName: e.target.value })}
+                onChange={e => updateField('guardianName', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                placeholder="Nome completo"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone (WhatsApp) *</label>
               <input
                 type="tel"
                 value={form.guardianPhone}
-                onChange={e => setForm({ ...form, guardianPhone: e.target.value })}
+                onChange={e => updateField('guardianPhone', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
                 placeholder="(83) 99999-9999"
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Escola *</label>
+                <input
+                  type="text"
+                  value={form.school}
+                  onChange={e => updateField('school', e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Série</label>
+                <input
+                  type="text"
+                  value={form.grade}
+                  onChange={e => updateField('grade', e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                  placeholder="2º ano"
+                />
+              </div>
+            </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone alternativo</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Turno escolar *</label>
+              <select
+                value={form.schoolShift}
+                onChange={e => updateField('schoolShift', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="manhã">Manhã</option>
+                <option value="tarde">Tarde</option>
+                <option value="integral">Integral</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Bairro/Comunidade *</label>
+              <input
+                type="text"
+                value={form.neighborhood}
+                onChange={e => updateField('neighborhood', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Como conheceu o Lumine? *</label>
+              <select
+                value={form.referralSource}
+                onChange={e => updateField('referralSource', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="igreja">Igreja</option>
+                <option value="escola">Escola</option>
+                <option value="CRAS">CRAS</option>
+                <option value="indicação">Indicação</option>
+                <option value="redes_sociais">Redes sociais</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => handleSave('pre_inscrito')}
+              className="flex-1 rounded-xl bg-gray-100 py-4 font-semibold text-gray-700"
+            >
+              Salvar pré-inscrição
+            </button>
+            <button
+              onClick={() => {
+                if (validateStep1()) setStep(2);
+              }}
+              className="flex-1 rounded-xl bg-indigo-600 py-4 font-semibold text-white"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800">Triagem</h2>
+            <p className="text-sm text-gray-500">Informações adicionais e prioridade.</p>
+          </div>
+
+          <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Endereço *</label>
+              <input
+                type="text"
+                value={form.address}
+                onChange={e => updateField('address', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Relação com a criança *</label>
+              <select
+                value={form.guardianRelation}
+                onChange={e => updateField('guardianRelation', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="mãe">Mãe</option>
+                <option value="pai">Pai</option>
+                <option value="avó">Avó</option>
+                <option value="avô">Avô</option>
+                <option value="tio/tia">Tio/Tia</option>
+                <option value="responsável legal">Responsável legal</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Telefone alternativo</label>
+                <input
+                  type="tel"
+                  value={form.guardianPhoneAlt}
+                  onChange={e => updateField('guardianPhoneAlt', e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Quem pode buscar *</label>
+                <input
+                  type="text"
+                  value={form.authorizedPickup}
+                  onChange={e => updateField('authorizedPickup', e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Contato de emergência *</label>
+              <input
+                type="text"
+                value={form.emergencyContact}
+                onChange={e => updateField('emergencyContact', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone de emergência *</label>
               <input
                 type="tel"
-                value={form.guardianPhoneAlt}
-                onChange={e => setForm({ ...form, guardianPhoneAlt: e.target.value })}
+                value={form.emergencyPhone}
+                onChange={e => updateField('emergencyPhone', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                placeholder="(83) 99999-9999"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Prioridade *</label>
+              <select
+                value={form.priority}
+                onChange={e => updateField('priority', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="alta">Alta</option>
+                <option value="média">Média</option>
+                <option value="baixa">Baixa</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Motivo da prioridade</label>
+              <input
+                type="text"
+                value={form.priorityReason}
+                onChange={e => updateField('priorityReason', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Observações de saúde</label>
+              <input
+                type="text"
+                value={form.healthNotes}
+                onChange={e => updateField('healthNotes', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Necessidades específicas</label>
+              <input
+                type="text"
+                value={form.specialNeeds}
+                onChange={e => updateField('specialNeeds', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Notas da triagem</label>
+              <textarea
+                value={form.triageNotes}
+                onChange={e => updateField('triageNotes', e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -1409,7 +1704,15 @@ function AddChildView({ addChild, setView }) {
               Voltar
             </button>
             <button
-              onClick={() => setStep(3)}
+              onClick={() => handleSave('em_triagem')}
+              className="flex-1 rounded-xl bg-gray-200 py-4 font-semibold text-gray-700"
+            >
+              Salvar triagem
+            </button>
+            <button
+              onClick={() => {
+                if (validateStep1() && validateStep2()) setStep(3);
+              }}
               className="flex-1 rounded-xl bg-indigo-600 py-4 font-semibold text-white"
             >
               Continuar
@@ -1418,50 +1721,105 @@ function AddChildView({ addChild, setView }) {
         </div>
       )}
 
-      {/* Step 3: Complementares */}
       {step === 3 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Informações adicionais</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800">Matrícula</h2>
+            <p className="text-sm text-gray-500">Dados finais e termos obrigatórios.</p>
+          </div>
 
           <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Endereço</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Data de início *</label>
               <input
-                type="text"
-                value={form.address}
-                onChange={e => setForm({ ...form, address: e.target.value })}
+                type="date"
+                value={form.startDate}
+                onChange={e => updateField('startDate', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Escola</label>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Turma/Grupo</label>
+              <select
+                value={form.classGroup}
+                onChange={e => updateField('classGroup', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="pré_alfabetização">Pré-alfabetização</option>
+                <option value="alfabetização">Alfabetização</option>
+                <option value="fundamental_1">Fundamental 1</option>
+                <option value="fundamental_2">Fundamental 2</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 text-sm text-gray-700">
                 <input
-                  type="text"
-                  value={form.school}
-                  onChange={e => setForm({ ...form, school: e.target.value })}
-                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                  type="checkbox"
+                  checked={form.responsibilityTerm}
+                  onChange={e => updateField('responsibilityTerm', e.target.checked)}
+                  className="h-4 w-4 rounded"
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Série</label>
+                Termo de responsabilidade assinado *
+              </label>
+              <label className="flex items-center gap-3 text-sm text-gray-700">
                 <input
-                  type="text"
-                  value={form.grade}
-                  onChange={e => setForm({ ...form, grade: e.target.value })}
-                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                  placeholder="2º ano"
+                  type="checkbox"
+                  checked={form.consentTerm}
+                  onChange={e => updateField('consentTerm', e.target.checked)}
+                  className="h-4 w-4 rounded"
                 />
+                Termo de consentimento assinado *
+              </label>
+              <label className="flex items-center gap-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.imageConsent}
+                  onChange={e => updateField('imageConsent', e.target.checked)}
+                  className="h-4 w-4 rounded"
+                />
+                Autoriza uso de imagem
+              </label>
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-700">Documentos recebidos</p>
+              <div className="space-y-2 text-sm text-gray-600">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={form.documentsReceived.includes('certidão_nascimento')}
+                    onChange={() => toggleDocument('certidão_nascimento')}
+                    className="h-4 w-4 rounded"
+                  />
+                  Certidão de nascimento
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={form.documentsReceived.includes('documento_responsável')}
+                    onChange={() => toggleDocument('documento_responsável')}
+                    className="h-4 w-4 rounded"
+                  />
+                  Documento do responsável
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={form.documentsReceived.includes('comprovante_residência')}
+                    onChange={() => toggleDocument('comprovante_residência')}
+                    className="h-4 w-4 rounded"
+                  />
+                  Comprovante de residência
+                </label>
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Observações</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Observações pedagógicas</label>
               <textarea
                 value={form.initialObservations}
-                onChange={e => setForm({ ...form, initialObservations: e.target.value })}
+                onChange={e => updateField('initialObservations', e.target.value)}
                 rows={3}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                placeholder="Informações importantes..."
               />
             </div>
           </div>
@@ -1474,10 +1832,10 @@ function AddChildView({ addChild, setView }) {
               Voltar
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={() => handleSave('matriculado')}
               className="flex-1 rounded-xl bg-green-600 py-4 font-semibold text-white"
             >
-              Cadastrar
+              Matricular
             </button>
           </div>
         </div>
