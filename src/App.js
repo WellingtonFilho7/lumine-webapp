@@ -38,10 +38,24 @@ const ENROLLMENT_STATUS_META = {
   aprovado: { label: 'Aprovado', className: 'bg-blue-100 text-blue-700' },
   lista_espera: { label: 'Lista de espera', className: 'bg-orange-100 text-orange-700' },
   matriculado: { label: 'Matriculado', className: 'bg-emerald-100 text-emerald-700' },
-  recusado: { label: 'Recusado', className: 'bg-rose-100 text-rose-700' },
+  recusado: { label: 'Não atendida', className: 'bg-rose-100 text-rose-700' },
   desistente: { label: 'Desistente', className: 'bg-gray-100 text-gray-600' },
   inativo: { label: 'Inativo', className: 'bg-gray-100 text-gray-600' },
 };
+
+const TRIAGE_RESULT_OPTIONS = [
+  { value: 'aprovado', label: 'Aprovada para matrícula' },
+  { value: 'lista_espera', label: 'Lista de espera' },
+  { value: 'recusado', label: 'Não atendida no momento' },
+];
+
+const PARTICIPATION_DAYS = [
+  { value: 'seg', label: 'Seg' },
+  { value: 'ter', label: 'Ter' },
+  { value: 'qua', label: 'Qua' },
+  { value: 'qui', label: 'Qui' },
+  { value: 'sex', label: 'Sex' },
+];
 
 const LEGACY_STATUS_MAP = {
   active: 'matriculado',
@@ -88,6 +102,129 @@ function parseDocumentsReceived(value) {
     .split('|')
     .map(item => item.trim())
     .filter(Boolean);
+}
+
+function parseParticipationDays(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return String(value)
+    .split('|')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function parseBoolean(value) {
+  if (value === true || value === false) return value;
+  if (value == null) return false;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', 'sim', 'yes', '1'].includes(normalized)) return true;
+  if (['false', 'nao', 'não', 'no', '0'].includes(normalized)) return false;
+  return false;
+}
+
+function normalizeYesNo(value) {
+  if (value == null) return '';
+  const normalized = String(value).trim().toLowerCase();
+  if (['sim', 'yes', 'true', '1'].includes(normalized)) return 'sim';
+  if (['nao', 'não', 'no', 'false', '0'].includes(normalized)) return 'nao';
+  return normalized;
+}
+
+function normalizeImageConsent(value) {
+  if (value === true) return 'comunicacao';
+  if (value === false || value == null) return '';
+  const normalized = String(value).trim().toLowerCase();
+  if (['interno', 'internal', 'uso_interno'].includes(normalized)) return 'interno';
+  if (['comunicacao', 'communication', 'comunicação'].includes(normalized)) return 'comunicacao';
+  if (['nao', 'não', 'no', 'nenhum'].includes(normalized)) return '';
+  return normalized;
+}
+
+const TRIAGE_REQUIRED_FIELDS = [
+  'name',
+  'birthDate',
+  'guardianName',
+  'guardianPhone',
+  'neighborhood',
+  'school',
+  'schoolShift',
+  'referralSource',
+  'schoolCommuteAlone',
+];
+
+const MATRICULA_REQUIRED_FIELDS = [
+  'startDate',
+  'participationDays',
+  'authorizedPickup',
+  'canLeaveAlone',
+  'termsAccepted',
+];
+
+const STATUS_FIELD_LABELS = {
+  name: 'Nome completo',
+  birthDate: 'Data de nascimento',
+  guardianName: 'Nome do responsável',
+  guardianPhone: 'Telefone (WhatsApp)',
+  neighborhood: 'Bairro/Comunidade',
+  school: 'Escola',
+  schoolShift: 'Turno escolar',
+  referralSource: 'Origem do contato',
+  schoolCommuteAlone: 'Vai e volta sozinha da escola',
+  startDate: 'Data de início',
+  participationDays: 'Dias de participação',
+  authorizedPickup: 'Quem pode buscar',
+  canLeaveAlone: 'Pode ir embora sozinha',
+  leaveAloneConsent: 'Autorização de saída sozinha',
+  leaveAloneConfirmation: 'Confirmação da autorização',
+  termsAccepted: 'Termo de responsabilidade e consentimento',
+};
+
+function buildStatusFormData(child) {
+  return {
+    name: child?.name || '',
+    birthDate: child?.birthDate || '',
+    guardianName: child?.guardianName || '',
+    guardianPhone: child?.guardianPhone || '',
+    neighborhood: child?.neighborhood || '',
+    school: child?.school || '',
+    schoolShift: child?.schoolShift || '',
+    referralSource: child?.referralSource || '',
+    schoolCommuteAlone: child?.schoolCommuteAlone || '',
+    startDate: child?.startDate || child?.entryDate || '',
+    participationDays: parseParticipationDays(child?.participationDays),
+    authorizedPickup: child?.authorizedPickup || '',
+    canLeaveAlone: child?.canLeaveAlone || '',
+    leaveAloneConsent: parseBoolean(child?.leaveAloneConsent),
+    leaveAloneConfirmation: child?.leaveAloneConfirmation || '',
+    termsAccepted: Boolean(child?.responsibilityTerm || child?.consentTerm),
+  };
+}
+
+function getMissingTriageFields(data) {
+  return TRIAGE_REQUIRED_FIELDS.filter(field => !data[field]);
+}
+
+function getMissingMatriculaFields(data) {
+  const missing = MATRICULA_REQUIRED_FIELDS.filter(field => {
+    if (field === 'participationDays') return !data.participationDays?.length;
+    return !data[field];
+  });
+  if (data.canLeaveAlone === 'sim') {
+    if (!data.leaveAloneConsent) missing.push('leaveAloneConsent');
+    if (!data.leaveAloneConfirmation?.trim()) missing.push('leaveAloneConfirmation');
+  }
+  return missing;
+}
+
+function getMissingFieldsForStatus(status, data) {
+  const requiresTriage = ['em_triagem', 'aprovado', 'lista_espera', 'recusado', 'matriculado']
+    .includes(status);
+  const requiresMatricula = status === 'matriculado';
+  const missingKeys = [
+    ...(requiresTriage ? getMissingTriageFields(data) : []),
+    ...(requiresMatricula ? getMissingMatriculaFields(data) : []),
+  ];
+  return [...new Set(missingKeys)].map(field => STATUS_FIELD_LABELS[field] || field);
 }
 
 function normalizeChild(child) {
@@ -140,12 +277,39 @@ function normalizeChild(child) {
     changed = true;
   }
 
-  ['responsibilityTerm', 'consentTerm', 'imageConsent'].forEach(field => {
-    if (typeof normalized[field] !== 'boolean') {
-      normalized[field] = normalized[field] === true || normalized[field] === 'true';
+  const participationDays = parseParticipationDays(normalized.participationDays);
+  if (participationDays !== normalized.participationDays) {
+    normalized.participationDays = participationDays;
+    changed = true;
+  }
+
+  const normalizedImageConsent = normalizeImageConsent(normalized.imageConsent);
+  if (normalizedImageConsent !== normalized.imageConsent) {
+    normalized.imageConsent = normalizedImageConsent;
+    changed = true;
+  }
+
+  ['responsibilityTerm', 'consentTerm', 'leaveAloneConsent'].forEach(field => {
+    const parsed = parseBoolean(normalized[field]);
+    if (parsed !== normalized[field]) {
+      normalized[field] = parsed;
       changed = true;
     }
   });
+
+  ['schoolCommuteAlone', 'healthCareNeeded', 'dietaryRestriction', 'canLeaveAlone']
+    .forEach(field => {
+      const normalizedValue = normalizeYesNo(normalized[field]);
+      if (normalizedValue !== normalized[field]) {
+        normalized[field] = normalizedValue;
+        changed = true;
+      }
+    });
+
+  if (normalized.leaveAloneConfirmation == null) {
+    normalized.leaveAloneConfirmation = '';
+    changed = true;
+  }
 
   return { child: normalized, changed };
 }
@@ -387,8 +551,11 @@ export default function LumineTracker() {
   // Adicionar criança
   const addChild = async data => {
     const now = new Date().toISOString();
-    const entryDate = data.entryDate || new Date().toISOString().split('T')[0];
     const enrollmentStatus = data.enrollmentStatus || 'matriculado';
+    const entryDate =
+      enrollmentStatus === 'matriculado'
+        ? data.entryDate || new Date().toISOString().split('T')[0]
+        : data.entryDate || '';
     const baseChild = {
       ...data,
       id: Date.now().toString(),
@@ -400,7 +567,10 @@ export default function LumineTracker() {
         enrollmentStatus === 'matriculado'
           ? data.matriculationDate || data.enrollmentDate || now
           : data.matriculationDate || '',
-      startDate: data.startDate || entryDate,
+      startDate:
+        enrollmentStatus === 'matriculado'
+          ? data.startDate || entryDate
+          : data.startDate || '',
       documentsReceived: data.documentsReceived || [],
       enrollmentHistory:
         Array.isArray(data.enrollmentHistory) && data.enrollmentHistory.length
@@ -1190,12 +1360,11 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
       <div className="flex flex-wrap gap-2">
         {[
           { value: 'all', label: 'Todas' },
-          { value: 'pre_inscrito', label: 'Pré-inscrito' },
-          { value: 'em_triagem', label: 'Triagem' },
+                    { value: 'em_triagem', label: 'Triagem' },
           { value: 'aprovado', label: 'Aprovado' },
-          { value: 'lista_espera', label: 'Lista espera' },
+          { value: 'lista_espera', label: 'Lista de espera' },
           { value: 'matriculado', label: 'Matriculado' },
-          { value: 'recusado', label: 'Recusado' },
+          { value: 'recusado', label: 'Não atendida' },
           { value: 'desistente', label: 'Desistente' },
           { value: 'inativo', label: 'Inativo' },
         ].map(option => (
@@ -1299,12 +1468,11 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
       <div className="flex flex-wrap gap-2">
         {[
           { value: 'all', label: 'Todas' },
-          { value: 'pre_inscrito', label: 'Pré-inscrito' },
-          { value: 'em_triagem', label: 'Triagem' },
+                    { value: 'em_triagem', label: 'Triagem' },
           { value: 'aprovado', label: 'Aprovado' },
-          { value: 'lista_espera', label: 'Lista espera' },
+          { value: 'lista_espera', label: 'Lista de espera' },
           { value: 'matriculado', label: 'Matriculado' },
-          { value: 'recusado', label: 'Recusado' },
+          { value: 'recusado', label: 'Não atendida' },
           { value: 'desistente', label: 'Desistente' },
           { value: 'inativo', label: 'Inativo' },
         ].map(option => (
@@ -1391,28 +1559,30 @@ function AddChildView({ addChild, setView }) {
     birthDate: '',
     guardianName: '',
     guardianPhone: '',
+    neighborhood: '',
     school: '',
     schoolShift: '',
-    grade: '',
-    neighborhood: '',
     referralSource: '',
-    entryDate: '',
-    address: '',
+    schoolCommuteAlone: '',
+    grade: '',
     guardianPhoneAlt: '',
-    guardianRelation: '',
-    emergencyContact: '',
-    emergencyPhone: '',
-    authorizedPickup: '',
+    healthCareNeeded: '',
     healthNotes: '',
+    dietaryRestriction: '',
     specialNeeds: '',
+    triageNotes: '',
     priority: '',
     priorityReason: '',
-    triageNotes: '',
+    triageResult: '',
     startDate: new Date().toISOString().split('T')[0],
+    participationDays: [],
+    authorizedPickup: '',
+    canLeaveAlone: '',
+    leaveAloneConsent: false,
+    leaveAloneConfirmation: '',
+    termsAccepted: false,
     classGroup: '',
-    responsibilityTerm: false,
-    consentTerm: false,
-    imageConsent: false,
+    imageConsent: '',
     documentsReceived: [],
     initialObservations: '',
   });
@@ -1431,115 +1601,154 @@ function AddChildView({ addChild, setView }) {
     });
   };
 
+  const toggleParticipationDay = value => {
+    setForm(prev => {
+      const current = Array.isArray(prev.participationDays) ? prev.participationDays : [];
+      const next = current.includes(value)
+        ? current.filter(item => item !== value)
+        : [...current, value];
+      return { ...prev, participationDays: next };
+    });
+  };
+
   const validateRequired = fields => {
-    const missing = fields.filter(field => !form[field]);
+    const missing = fields.filter(field => {
+      const value = form[field];
+      if (Array.isArray(value)) return value.length === 0;
+      return !value;
+    });
     if (missing.length === 0) return true;
     const labels = {
       name: 'Nome completo',
       birthDate: 'Data de nascimento',
       guardianName: 'Nome do responsável',
-      guardianPhone: 'Telefone',
+      guardianPhone: 'Telefone (WhatsApp)',
+      neighborhood: 'Bairro/Comunidade',
       school: 'Escola',
       schoolShift: 'Turno escolar',
-      neighborhood: 'Bairro/comunidade',
       referralSource: 'Origem do contato',
-      address: 'Endereço',
-      guardianRelation: 'Relação com a criança',
-      emergencyContact: 'Contato de emergência',
-      emergencyPhone: 'Telefone de emergência',
-      authorizedPickup: 'Autorizados para buscar',
-      priority: 'Prioridade',
+      schoolCommuteAlone: 'Vai e volta sozinha da escola',
+      triageResult: 'Resultado da triagem',
       startDate: 'Data de início',
+      participationDays: 'Dias de participação',
+      authorizedPickup: 'Quem pode buscar',
+      canLeaveAlone: 'Pode ir embora sozinha',
+      termsAccepted: 'Termo de responsabilidade e consentimento',
     };
     const missingLabels = missing.map(field => labels[field] || field).join(', ');
     alert(`Preencha os campos obrigatórios: ${missingLabels}`);
     return false;
   };
 
-  const validateStep1 = () =>
-    validateRequired([
-      'name',
-      'birthDate',
-      'guardianName',
-      'guardianPhone',
-      'school',
-      'schoolShift',
-      'neighborhood',
-      'referralSource',
-    ]);
-
-  const validateStep2 = () =>
-    validateRequired([
-      'address',
-      'guardianRelation',
-      'emergencyContact',
-      'emergencyPhone',
-      'authorizedPickup',
-      'priority',
-    ]);
-
-  const validateStep3 = () => {
-    if (!validateRequired(['startDate'])) return false;
-    if (!form.responsibilityTerm || !form.consentTerm) {
-      alert('Confirme os termos obrigatórios para efetivar a matrícula.');
+  const validateStep1 = () => {
+    if (
+      !validateRequired([
+        'name',
+        'birthDate',
+        'guardianName',
+        'guardianPhone',
+        'neighborhood',
+        'school',
+        'schoolShift',
+        'referralSource',
+        'schoolCommuteAlone',
+        'triageResult',
+      ])
+    ) {
       return false;
+    }
+    if (form.healthCareNeeded === 'sim' && !form.healthNotes.trim()) {
+      alert('Descreva o cuidado de saúde informado.');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!validateRequired(['startDate', 'authorizedPickup', 'canLeaveAlone', 'termsAccepted'])) {
+      return false;
+    }
+    if (!form.participationDays.length) {
+      alert('Selecione os dias de participação.');
+      return false;
+    }
+    if (form.canLeaveAlone === 'sim') {
+      if (!form.leaveAloneConsent) {
+        alert('Confirme a autorização para saída sozinha.');
+        return false;
+      }
+      if (!form.leaveAloneConfirmation.trim()) {
+        alert('Preencha a confirmação textual da autorização.');
+        return false;
+      }
     }
     return true;
   };
 
   const buildPayload = status => {
     const now = new Date().toISOString();
-    const enrollmentDate = now;
-    const triageDate = status !== 'pre_inscrito' ? now : '';
-    const matriculationDate = status === 'matriculado' ? now : '';
-
     const enrollmentHistory = [];
-    if (status === 'pre_inscrito') {
+
+    if (status === 'matriculado') {
       enrollmentHistory.push({
         date: now,
-        action: 'pre_inscrito',
-        notes: 'Pré-inscrição registrada',
+        action: 'aprovado',
+        notes: 'Triagem aprovada',
       });
-    } else if (status === 'em_triagem') {
-      enrollmentHistory.push(
-        { date: enrollmentDate, action: 'pre_inscrito', notes: 'Pré-inscrição registrada' },
-        { date: now, action: 'em_triagem', notes: 'Triagem registrada' }
-      );
-    } else if (status === 'matriculado') {
-      enrollmentHistory.push(
-        { date: enrollmentDate, action: 'pre_inscrito', notes: 'Pré-inscrição registrada' },
-        { date: triageDate, action: 'em_triagem', notes: 'Triagem registrada' },
-        { date: now, action: 'matriculado', notes: 'Matrícula efetivada' }
-      );
+      enrollmentHistory.push({
+        date: now,
+        action: 'matriculado',
+        notes: 'Matrícula efetivada',
+      });
+    } else {
+      enrollmentHistory.push({
+        date: now,
+        action: status,
+        notes: 'Triagem registrada',
+      });
     }
 
+    const {
+      termsAccepted,
+      triageResult,
+      healthNotes,
+      leaveAloneConfirmation,
+      ...rest
+    } = form;
+
     return {
-      ...form,
+      ...rest,
+      healthNotes: form.healthCareNeeded === 'sim' ? healthNotes : '',
+      leaveAloneConfirmation: form.canLeaveAlone === 'sim' ? leaveAloneConfirmation : '',
       enrollmentStatus: status,
-      enrollmentDate,
-      triageDate,
-      matriculationDate,
+      enrollmentDate: now,
+      triageDate: now,
+      matriculationDate: status === 'matriculado' ? now : '',
       startDate: status === 'matriculado' ? form.startDate : '',
       entryDate: status === 'matriculado' ? form.startDate : '',
+      responsibilityTerm: termsAccepted,
+      consentTerm: termsAccepted,
       enrollmentHistory,
     };
   };
 
-  const handleSave = status => {
+  const handleSaveTriagem = () => {
     if (!validateStep1()) return;
-    if (status === 'em_triagem' && !validateStep2()) return;
-    if (status === 'matriculado') {
-      if (!validateStep2()) return;
-      if (!validateStep3()) return;
-    }
-    addChild(buildPayload(status));
+    addChild(buildPayload(form.triageResult));
+    setView('children');
+  };
+
+  const handleMatricular = () => {
+    if (!validateStep1()) return;
+    if (!validateStep2()) return;
+    addChild(buildPayload('matriculado'));
     setView('children');
   };
 
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        {[1, 2, 3].map(s => (
+        {[1, 2].map(s => (
           <div
             key={s}
             className={`h-1 flex-1 rounded-full ${step >= s ? 'bg-indigo-600' : 'bg-gray-200'}`}
@@ -1550,8 +1759,8 @@ function AddChildView({ addChild, setView }) {
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Pré-inscrição</h2>
-            <p className="text-sm text-gray-500">Coleta rápida de dados essenciais.</p>
+            <h2 className="text-lg font-semibold text-gray-800">Triagem</h2>
+            <p className="text-sm text-gray-500">Coleta inicial em um único momento.</p>
           </div>
 
           <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
@@ -1575,7 +1784,7 @@ function AddChildView({ addChild, setView }) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Nome do responsável *</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Nome do responsável principal *</label>
               <input
                 type="text"
                 value={form.guardianName}
@@ -1652,101 +1861,84 @@ function AddChildView({ addChild, setView }) {
                 <option value="outro">Outro</option>
               </select>
             </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleSave('pre_inscrito')}
-              className="flex-1 rounded-xl bg-gray-100 py-4 font-semibold text-gray-700"
-            >
-              Salvar pré-inscrição
-            </button>
-            <button
-              onClick={() => {
-                if (validateStep1()) setStep(2);
-              }}
-              className="flex-1 rounded-xl bg-indigo-600 py-4 font-semibold text-white"
-            >
-              Continuar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">Triagem</h2>
-            <p className="text-sm text-gray-500">Informações adicionais e prioridade.</p>
-          </div>
-
-          <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Endereço *</label>
-              <input
-                type="text"
-                value={form.address}
-                onChange={e => updateField('address', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Relação com a criança *</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                A criança vai e volta sozinha da escola? *
+              </label>
               <select
-                value={form.guardianRelation}
-                onChange={e => updateField('guardianRelation', e.target.value)}
+                value={form.schoolCommuteAlone}
+                onChange={e => updateField('schoolCommuteAlone', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Selecione</option>
-                <option value="mãe">Mãe</option>
-                <option value="pai">Pai</option>
-                <option value="avó">Avó</option>
-                <option value="avô">Avô</option>
-                <option value="tio/tia">Tio/Tia</option>
-                <option value="responsável legal">Responsável legal</option>
-                <option value="outro">Outro</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Telefone alternativo</label>
-                <input
-                  type="tel"
-                  value={form.guardianPhoneAlt}
-                  onChange={e => updateField('guardianPhoneAlt', e.target.value)}
-                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Quem pode buscar *</label>
-                <input
-                  type="text"
-                  value={form.authorizedPickup}
-                  onChange={e => updateField('authorizedPickup', e.target.value)}
-                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Contato de emergência *</label>
-              <input
-                type="text"
-                value={form.emergencyContact}
-                onChange={e => updateField('emergencyContact', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone de emergência *</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone alternativo</label>
               <input
                 type="tel"
-                value={form.emergencyPhone}
-                onChange={e => updateField('emergencyPhone', e.target.value)}
+                value={form.guardianPhoneAlt}
+                onChange={e => updateField('guardianPhoneAlt', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Prioridade *</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Existe algum cuidado de saúde?</label>
+              <select
+                value={form.healthCareNeeded}
+                onChange={e => updateField('healthCareNeeded', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </div>
+            {form.healthCareNeeded === 'sim' && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Qual cuidado de saúde?</label>
+                <input
+                  type="text"
+                  value={form.healthNotes}
+                  onChange={e => updateField('healthNotes', e.target.value)}
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            )}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Existe alguma restrição alimentar?</label>
+              <select
+                value={form.dietaryRestriction}
+                onChange={e => updateField('dietaryRestriction', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Necessidades específicas</label>
+              <input
+                type="text"
+                value={form.specialNeeds}
+                onChange={e => updateField('specialNeeds', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Observações da triagem</label>
+              <textarea
+                value={form.triageNotes}
+                onChange={e => updateField('triageNotes', e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Prioridade (interna)</label>
               <select
                 value={form.priority}
                 onChange={e => updateField('priority', e.target.value)}
@@ -1759,7 +1951,7 @@ function AddChildView({ addChild, setView }) {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Motivo da prioridade</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Notas internas da triagem</label>
               <input
                 type="text"
                 value={form.priorityReason}
@@ -1768,64 +1960,50 @@ function AddChildView({ addChild, setView }) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Observações de saúde</label>
-              <input
-                type="text"
-                value={form.healthNotes}
-                onChange={e => updateField('healthNotes', e.target.value)}
+              <label className="mb-1 block text-sm font-medium text-gray-700">Resultado da triagem *</label>
+              <select
+                value={form.triageResult}
+                onChange={e => updateField('triageResult', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Necessidades específicas</label>
-              <input
-                type="text"
-                value={form.specialNeeds}
-                onChange={e => updateField('specialNeeds', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Notas da triagem</label>
-              <textarea
-                value={form.triageNotes}
-                onChange={e => updateField('triageNotes', e.target.value)}
-                rows={3}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-              />
+              >
+                <option value="">Selecione</option>
+                {TRIAGE_RESULT_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="flex gap-3">
             <button
-              onClick={() => setStep(1)}
+              onClick={handleSaveTriagem}
               className="flex-1 rounded-xl bg-gray-100 py-4 font-semibold text-gray-700"
-            >
-              Voltar
-            </button>
-            <button
-              onClick={() => handleSave('em_triagem')}
-              className="flex-1 rounded-xl bg-gray-200 py-4 font-semibold text-gray-700"
             >
               Salvar triagem
             </button>
             <button
               onClick={() => {
-                if (validateStep1() && validateStep2()) setStep(3);
+                if (form.triageResult !== 'aprovado') {
+                  alert('Apenas triagens aprovadas seguem para matrícula.');
+                  return;
+                }
+                if (validateStep1()) setStep(2);
               }}
               className="flex-1 rounded-xl bg-indigo-600 py-4 font-semibold text-white"
             >
-              Continuar
+              Continuar para matrícula
             </button>
           </div>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <div className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-800">Matrícula</h2>
-            <p className="text-sm text-gray-500">Dados finais e termos obrigatórios.</p>
+            <p className="text-sm text-gray-500">Somente para crianças aprovadas na triagem.</p>
           </div>
 
           <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
@@ -1838,6 +2016,83 @@ function AddChildView({ addChild, setView }) {
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
+            <div>
+              <p className="mb-2 text-sm font-medium text-gray-700">Dias de participação *</p>
+              <div className="flex flex-wrap gap-2">
+                {PARTICIPATION_DAYS.map(day => (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => toggleParticipationDay(day.value)}
+                    className={`rounded-full px-3 py-1 text-sm font-medium transition-all ${
+                      form.participationDays.includes(day.value)
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Quem normalmente pode buscar *</label>
+              <input
+                type="text"
+                value={form.authorizedPickup}
+                onChange={e => updateField('authorizedPickup', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                placeholder="Nome(s) do responsável"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                A criança pode ir embora sozinha ao sair do Lumine? *
+              </label>
+              <select
+                value={form.canLeaveAlone}
+                onChange={e => updateField('canLeaveAlone', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Selecione</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </div>
+            {form.canLeaveAlone === 'sim' && (
+              <div className="space-y-3 rounded-xl bg-indigo-50 p-4">
+                <label className="flex items-center gap-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={form.leaveAloneConsent}
+                    onChange={e => updateField('leaveAloneConsent', e.target.checked)}
+                    className="h-4 w-4 rounded"
+                  />
+                  Autorizo saída sozinha
+                </label>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Confirmação simples *
+                  </label>
+                  <input
+                    type="text"
+                    value={form.leaveAloneConfirmation}
+                    onChange={e => updateField('leaveAloneConfirmation', e.target.value)}
+                    className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Ex: Autorizo que Maria saia sozinha"
+                  />
+                </div>
+              </div>
+            )}
+            <label className="flex items-center gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={form.termsAccepted}
+                onChange={e => updateField('termsAccepted', e.target.checked)}
+                className="h-4 w-4 rounded"
+              />
+              Termo único de responsabilidade e consentimento *
+            </label>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Turma/Grupo</label>
               <select
@@ -1852,34 +2107,17 @@ function AddChildView({ addChild, setView }) {
                 <option value="fundamental_2">Fundamental 2</option>
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.responsibilityTerm}
-                  onChange={e => updateField('responsibilityTerm', e.target.checked)}
-                  className="h-4 w-4 rounded"
-                />
-                Termo de responsabilidade assinado *
-              </label>
-              <label className="flex items-center gap-3 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.consentTerm}
-                  onChange={e => updateField('consentTerm', e.target.checked)}
-                  className="h-4 w-4 rounded"
-                />
-                Termo de consentimento assinado *
-              </label>
-              <label className="flex items-center gap-3 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.imageConsent}
-                  onChange={e => updateField('imageConsent', e.target.checked)}
-                  className="h-4 w-4 rounded"
-                />
-                Autoriza uso de imagem
-              </label>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Autoriza uso de imagem</label>
+              <select
+                value={form.imageConsent}
+                onChange={e => updateField('imageConsent', e.target.value)}
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Não autoriza</option>
+                <option value="interno">Apenas uso interno</option>
+                <option value="comunicacao">Pode usar em comunicação</option>
+              </select>
             </div>
             <div>
               <p className="mb-2 text-sm font-medium text-gray-700">Documentos recebidos</p>
@@ -1926,13 +2164,13 @@ function AddChildView({ addChild, setView }) {
 
           <div className="flex gap-3">
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(1)}
               className="flex-1 rounded-xl bg-gray-100 py-4 font-semibold text-gray-700"
             >
               Voltar
             </button>
             <button
-              onClick={() => handleSave('matriculado')}
+              onClick={handleMatricular}
               className="flex-1 rounded-xl bg-green-600 py-4 font-semibold text-white"
             >
               Matricular
@@ -1963,23 +2201,44 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
   const [nextStatus, setNextStatus] = useState(statusMeta.status);
   const [statusNotes, setStatusNotes] = useState('');
   const [statusError, setStatusError] = useState('');
+  const [statusFormData, setStatusFormData] = useState(() => buildStatusFormData(child));
+
+  useEffect(() => {
+    setStatusFormData(buildStatusFormData(child));
+  }, [child]);
+
+  const requiresTriage = ['em_triagem', 'aprovado', 'lista_espera', 'recusado', 'matriculado']
+    .includes(nextStatus);
+  const requiresMatricula = nextStatus === 'matriculado';
+  const missingTriage = requiresTriage ? getMissingTriageFields(statusFormData) : [];
+  const missingMatricula = requiresMatricula ? getMissingMatriculaFields(statusFormData) : [];
+
+  const updateStatusField = (field, value) => {
+    setStatusFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const allowedStatusOptions = [
-    { value: 'pre_inscrito', label: 'Pré-inscrito' },
     { value: 'em_triagem', label: 'Em triagem' },
     { value: 'aprovado', label: 'Aprovado' },
     { value: 'lista_espera', label: 'Lista de espera' },
     { value: 'matriculado', label: 'Matriculado' },
-    { value: 'recusado', label: 'Recusado' },
+    { value: 'recusado', label: 'Não atendida' },
     { value: 'desistente', label: 'Desistente' },
     { value: 'inativo', label: 'Inativo' },
   ];
 
   const validateStatusTransition = status => {
     if (status === statusMeta.status) return 'Escolha um status diferente.';
-    if (status === 'recusado' && !statusNotes.trim()) return 'Informe o motivo da recusa.';
-    if (status === 'desistente' && !statusNotes.trim()) return 'Informe o motivo da desistência.';
-    if (status === 'matriculado' && !child.startDate) return 'Defina a data de início antes de matricular.';
+    const missing = getMissingFieldsForStatus(status, statusFormData);
+    if (missing.length) {
+      return `Complete os campos obrigatórios: ${missing.join(', ')}.`;
+    }
+    if (status === 'recusado' && !statusNotes.trim()) {
+      return 'Informe o motivo do não atendimento.';
+    }
+    if (status === 'desistente' && !statusNotes.trim()) {
+      return 'Informe o motivo da desistência.';
+    }
     return '';
   };
 
@@ -2001,11 +2260,33 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
       enrollmentHistory: updatedHistory,
     };
 
+    if (requiresTriage) {
+      updates.name = statusFormData.name.trim();
+      updates.birthDate = statusFormData.birthDate;
+      updates.guardianName = statusFormData.guardianName.trim();
+      updates.guardianPhone = statusFormData.guardianPhone.trim();
+      updates.neighborhood = statusFormData.neighborhood.trim();
+      updates.school = statusFormData.school.trim();
+      updates.schoolShift = statusFormData.schoolShift;
+      updates.referralSource = statusFormData.referralSource;
+      updates.schoolCommuteAlone = statusFormData.schoolCommuteAlone;
+    }
+
     if (!child.enrollmentDate) updates.enrollmentDate = now;
-    if (nextStatus === 'em_triagem' && !child.triageDate) updates.triageDate = now;
-    if (nextStatus === 'matriculado') {
-      if (!child.startDate) updates.startDate = child.entryDate || now.split('T')[0];
-      updates.entryDate = child.entryDate || updates.startDate;
+    if (requiresTriage && !child.triageDate) updates.triageDate = now;
+
+    if (requiresMatricula) {
+      updates.startDate = statusFormData.startDate;
+      updates.entryDate = statusFormData.startDate;
+      updates.participationDays = statusFormData.participationDays;
+      updates.authorizedPickup = statusFormData.authorizedPickup.trim();
+      updates.canLeaveAlone = statusFormData.canLeaveAlone;
+      updates.leaveAloneConsent =
+        statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConsent : false;
+      updates.leaveAloneConfirmation =
+        statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConfirmation.trim() : '';
+      updates.responsibilityTerm = statusFormData.termsAccepted;
+      updates.consentTerm = statusFormData.termsAccepted;
       if (!child.matriculationDate) updates.matriculationDate = now;
     }
 
@@ -2042,6 +2323,7 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
               setShowStatusForm(prev => !prev);
               setStatusError('');
               setNextStatus(statusMeta.status);
+              setStatusFormData(buildStatusFormData(child));
             }}
             className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700"
           >
@@ -2069,6 +2351,226 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
               className="w-full rounded-xl border px-3 py-2 text-sm"
               placeholder="Notas da mudança de status"
             />
+            {(missingTriage.length > 0 || missingMatricula.length > 0) && (
+              <div className="space-y-3 rounded-xl bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-600">Complete os dados obrigatórios</p>
+                {missingTriage.includes('name') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Nome completo</label>
+                    <input
+                      type="text"
+                      value={statusFormData.name}
+                      onChange={e => updateStatusField('name', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingTriage.includes('birthDate') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Data de nascimento</label>
+                    <input
+                      type="date"
+                      value={statusFormData.birthDate}
+                      onChange={e => updateStatusField('birthDate', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingTriage.includes('guardianName') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Nome do responsável</label>
+                    <input
+                      type="text"
+                      value={statusFormData.guardianName}
+                      onChange={e => updateStatusField('guardianName', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingTriage.includes('guardianPhone') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Telefone (WhatsApp)</label>
+                    <input
+                      type="tel"
+                      value={statusFormData.guardianPhone}
+                      onChange={e => updateStatusField('guardianPhone', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingTriage.includes('neighborhood') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Bairro/Comunidade</label>
+                    <input
+                      type="text"
+                      value={statusFormData.neighborhood}
+                      onChange={e => updateStatusField('neighborhood', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingTriage.includes('school') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Escola</label>
+                    <input
+                      type="text"
+                      value={statusFormData.school}
+                      onChange={e => updateStatusField('school', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingTriage.includes('schoolShift') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Turno escolar</label>
+                    <select
+                      value={statusFormData.schoolShift}
+                      onChange={e => updateStatusField('schoolShift', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="manhã">Manhã</option>
+                      <option value="tarde">Tarde</option>
+                      <option value="integral">Integral</option>
+                    </select>
+                  </div>
+                )}
+                {missingTriage.includes('referralSource') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
+                    <select
+                      value={statusFormData.referralSource}
+                      onChange={e => updateStatusField('referralSource', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="igreja">Igreja</option>
+                      <option value="escola">Escola</option>
+                      <option value="CRAS">CRAS</option>
+                      <option value="indicação">Indicação</option>
+                      <option value="redes_sociais">Redes sociais</option>
+                      <option value="outro">Outro</option>
+                    </select>
+                  </div>
+                )}
+                {missingTriage.includes('schoolCommuteAlone') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Vai e volta sozinha da escola?
+                    </label>
+                    <select
+                      value={statusFormData.schoolCommuteAlone}
+                      onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="sim">Sim</option>
+                      <option value="nao">Não</option>
+                    </select>
+                  </div>
+                )}
+
+                {missingMatricula.includes('startDate') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Data de início</label>
+                    <input
+                      type="date"
+                      value={statusFormData.startDate}
+                      onChange={e => updateStatusField('startDate', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingMatricula.includes('participationDays') && (
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-gray-700">Dias de participação</p>
+                    <div className="flex flex-wrap gap-2">
+                      {PARTICIPATION_DAYS.map(day => (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() =>
+                            updateStatusField(
+                              'participationDays',
+                              statusFormData.participationDays.includes(day.value)
+                                ? statusFormData.participationDays.filter(item => item !== day.value)
+                                : [...statusFormData.participationDays, day.value]
+                            )
+                          }
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${
+                            statusFormData.participationDays.includes(day.value)
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-gray-200 text-gray-600'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {missingMatricula.includes('authorizedPickup') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
+                    <input
+                      type="text"
+                      value={statusFormData.authorizedPickup}
+                      onChange={e => updateStatusField('authorizedPickup', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingMatricula.includes('canLeaveAlone') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">
+                      Pode ir embora sozinha?
+                    </label>
+                    <select
+                      value={statusFormData.canLeaveAlone}
+                      onChange={e => updateStatusField('canLeaveAlone', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="sim">Sim</option>
+                      <option value="nao">Não</option>
+                    </select>
+                  </div>
+                )}
+                {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConsent') && (
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={statusFormData.leaveAloneConsent}
+                      onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
+                      className="h-4 w-4 rounded"
+                    />
+                    Autorizo saída sozinha
+                  </label>
+                )}
+                {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConfirmation') && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-700">Confirmação da autorização</label>
+                    <input
+                      type="text"
+                      value={statusFormData.leaveAloneConfirmation}
+                      onChange={e => updateStatusField('leaveAloneConfirmation', e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+                {missingMatricula.includes('termsAccepted') && (
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={statusFormData.termsAccepted}
+                      onChange={e => updateStatusField('termsAccepted', e.target.checked)}
+                      className="h-4 w-4 rounded"
+                    />
+                    Termo de responsabilidade e consentimento
+                  </label>
+                )}
+              </div>
+            )}
             {statusError && <p className="text-xs text-rose-600">{statusError}</p>}
             <div className="flex gap-2">
               <button
@@ -2246,23 +2748,44 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
   const [nextStatus, setNextStatus] = useState(statusMeta.status);
   const [statusNotes, setStatusNotes] = useState('');
   const [statusError, setStatusError] = useState('');
+  const [statusFormData, setStatusFormData] = useState(() => buildStatusFormData(child));
+
+  useEffect(() => {
+    setStatusFormData(buildStatusFormData(child));
+  }, [child]);
+
+  const requiresTriage = ['em_triagem', 'aprovado', 'lista_espera', 'recusado', 'matriculado']
+    .includes(nextStatus);
+  const requiresMatricula = nextStatus === 'matriculado';
+  const missingTriage = requiresTriage ? getMissingTriageFields(statusFormData) : [];
+  const missingMatricula = requiresMatricula ? getMissingMatriculaFields(statusFormData) : [];
+
+  const updateStatusField = (field, value) => {
+    setStatusFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const allowedStatusOptions = [
-    { value: 'pre_inscrito', label: 'Pré-inscrito' },
-    { value: 'em_triagem', label: 'Em triagem' },
+        { value: 'em_triagem', label: 'Em triagem' },
     { value: 'aprovado', label: 'Aprovado' },
     { value: 'lista_espera', label: 'Lista de espera' },
     { value: 'matriculado', label: 'Matriculado' },
-    { value: 'recusado', label: 'Recusado' },
+    { value: 'recusado', label: 'Não atendida' },
     { value: 'desistente', label: 'Desistente' },
     { value: 'inativo', label: 'Inativo' },
   ];
 
   const validateStatusTransition = status => {
     if (status === statusMeta.status) return 'Escolha um status diferente.';
-    if (status === 'recusado' && !statusNotes.trim()) return 'Informe o motivo da recusa.';
-    if (status === 'desistente' && !statusNotes.trim()) return 'Informe o motivo da desistência.';
-    if (status === 'matriculado' && !child.startDate) return 'Defina a data de início antes de matricular.';
+    const missing = getMissingFieldsForStatus(status, statusFormData);
+    if (missing.length) {
+      return `Complete os campos obrigatórios: ${missing.join(', ')}.`;
+    }
+    if (status === 'recusado' && !statusNotes.trim()) {
+      return 'Informe o motivo do não atendimento.';
+    }
+    if (status === 'desistente' && !statusNotes.trim()) {
+      return 'Informe o motivo da desistência.';
+    }
     return '';
   };
 
@@ -2284,11 +2807,33 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
       enrollmentHistory: updatedHistory,
     };
 
+    if (requiresTriage) {
+      updates.name = statusFormData.name.trim();
+      updates.birthDate = statusFormData.birthDate;
+      updates.guardianName = statusFormData.guardianName.trim();
+      updates.guardianPhone = statusFormData.guardianPhone.trim();
+      updates.neighborhood = statusFormData.neighborhood.trim();
+      updates.school = statusFormData.school.trim();
+      updates.schoolShift = statusFormData.schoolShift;
+      updates.referralSource = statusFormData.referralSource;
+      updates.schoolCommuteAlone = statusFormData.schoolCommuteAlone;
+    }
+
     if (!child.enrollmentDate) updates.enrollmentDate = now;
-    if (nextStatus === 'em_triagem' && !child.triageDate) updates.triageDate = now;
-    if (nextStatus === 'matriculado') {
-      if (!child.startDate) updates.startDate = child.entryDate || now.split('T')[0];
-      updates.entryDate = child.entryDate || updates.startDate;
+    if (requiresTriage && !child.triageDate) updates.triageDate = now;
+
+    if (requiresMatricula) {
+      updates.startDate = statusFormData.startDate;
+      updates.entryDate = statusFormData.startDate;
+      updates.participationDays = statusFormData.participationDays;
+      updates.authorizedPickup = statusFormData.authorizedPickup.trim();
+      updates.canLeaveAlone = statusFormData.canLeaveAlone;
+      updates.leaveAloneConsent =
+        statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConsent : false;
+      updates.leaveAloneConfirmation =
+        statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConfirmation.trim() : '';
+      updates.responsibilityTerm = statusFormData.termsAccepted;
+      updates.consentTerm = statusFormData.termsAccepted;
       if (!child.matriculationDate) updates.matriculationDate = now;
     }
 
@@ -2340,6 +2885,7 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
                 setShowStatusForm(prev => !prev);
                 setStatusError('');
                 setNextStatus(statusMeta.status);
+                setStatusFormData(buildStatusFormData(child));
               }}
               className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700"
             >
@@ -2367,6 +2913,226 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
                 className="w-full rounded-xl border px-3 py-2 text-sm"
                 placeholder="Notas da mudança de status"
               />
+              {(missingTriage.length > 0 || missingMatricula.length > 0) && (
+                <div className="space-y-3 rounded-xl bg-gray-50 p-3">
+                  <p className="text-xs font-semibold text-gray-600">Complete os dados obrigatórios</p>
+                  {missingTriage.includes('name') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Nome completo</label>
+                      <input
+                        type="text"
+                        value={statusFormData.name}
+                        onChange={e => updateStatusField('name', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingTriage.includes('birthDate') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Data de nascimento</label>
+                      <input
+                        type="date"
+                        value={statusFormData.birthDate}
+                        onChange={e => updateStatusField('birthDate', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingTriage.includes('guardianName') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Nome do responsável</label>
+                      <input
+                        type="text"
+                        value={statusFormData.guardianName}
+                        onChange={e => updateStatusField('guardianName', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingTriage.includes('guardianPhone') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Telefone (WhatsApp)</label>
+                      <input
+                        type="tel"
+                        value={statusFormData.guardianPhone}
+                        onChange={e => updateStatusField('guardianPhone', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingTriage.includes('neighborhood') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Bairro/Comunidade</label>
+                      <input
+                        type="text"
+                        value={statusFormData.neighborhood}
+                        onChange={e => updateStatusField('neighborhood', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingTriage.includes('school') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Escola</label>
+                      <input
+                        type="text"
+                        value={statusFormData.school}
+                        onChange={e => updateStatusField('school', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingTriage.includes('schoolShift') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Turno escolar</label>
+                      <select
+                        value={statusFormData.schoolShift}
+                        onChange={e => updateStatusField('schoolShift', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="manhã">Manhã</option>
+                        <option value="tarde">Tarde</option>
+                        <option value="integral">Integral</option>
+                      </select>
+                    </div>
+                  )}
+                  {missingTriage.includes('referralSource') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
+                      <select
+                        value={statusFormData.referralSource}
+                        onChange={e => updateStatusField('referralSource', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="igreja">Igreja</option>
+                        <option value="escola">Escola</option>
+                        <option value="CRAS">CRAS</option>
+                        <option value="indicação">Indicação</option>
+                        <option value="redes_sociais">Redes sociais</option>
+                        <option value="outro">Outro</option>
+                      </select>
+                    </div>
+                  )}
+                  {missingTriage.includes('schoolCommuteAlone') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        Vai e volta sozinha da escola?
+                      </label>
+                      <select
+                        value={statusFormData.schoolCommuteAlone}
+                        onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {missingMatricula.includes('startDate') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Data de início</label>
+                      <input
+                        type="date"
+                        value={statusFormData.startDate}
+                        onChange={e => updateStatusField('startDate', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingMatricula.includes('participationDays') && (
+                    <div>
+                      <p className="mb-2 text-xs font-medium text-gray-700">Dias de participação</p>
+                      <div className="flex flex-wrap gap-2">
+                        {PARTICIPATION_DAYS.map(day => (
+                          <button
+                            key={day.value}
+                            type="button"
+                            onClick={() =>
+                              updateStatusField(
+                                'participationDays',
+                                statusFormData.participationDays.includes(day.value)
+                                  ? statusFormData.participationDays.filter(item => item !== day.value)
+                                  : [...statusFormData.participationDays, day.value]
+                              )
+                            }
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              statusFormData.participationDays.includes(day.value)
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {day.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {missingMatricula.includes('authorizedPickup') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
+                      <input
+                        type="text"
+                        value={statusFormData.authorizedPickup}
+                        onChange={e => updateStatusField('authorizedPickup', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingMatricula.includes('canLeaveAlone') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        Pode ir embora sozinha?
+                      </label>
+                      <select
+                        value={statusFormData.canLeaveAlone}
+                        onChange={e => updateStatusField('canLeaveAlone', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </div>
+                  )}
+                  {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConsent') && (
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={statusFormData.leaveAloneConsent}
+                        onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
+                        className="h-4 w-4 rounded"
+                      />
+                      Autorizo saída sozinha
+                    </label>
+                  )}
+                  {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConfirmation') && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Confirmação da autorização</label>
+                      <input
+                        type="text"
+                        value={statusFormData.leaveAloneConfirmation}
+                        onChange={e => updateStatusField('leaveAloneConfirmation', e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
+                  {missingMatricula.includes('termsAccepted') && (
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={statusFormData.termsAccepted}
+                        onChange={e => updateStatusField('termsAccepted', e.target.checked)}
+                        className="h-4 w-4 rounded"
+                      />
+                      Termo de responsabilidade e consentimento
+                    </label>
+                  )}
+                </div>
+              )}
               {statusError && <p className="text-xs text-rose-600">{statusError}</p>}
               <div className="flex gap-2">
                 <button
