@@ -1652,7 +1652,6 @@ function AddChildView({ addChild, setView }) {
         'schoolShift',
         'referralSource',
         'schoolCommuteAlone',
-        'triageResult',
       ])
     ) {
       return false;
@@ -1734,7 +1733,8 @@ function AddChildView({ addChild, setView }) {
 
   const handleSaveTriagem = () => {
     if (!validateStep1()) return;
-    addChild(buildPayload(form.triageResult));
+    const status = form.triageResult || 'em_triagem';
+    addChild(buildPayload(status));
     setView('children');
   };
 
@@ -1960,7 +1960,7 @@ function AddChildView({ addChild, setView }) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Resultado da triagem *</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Resultado da triagem (opcional)</label>
               <select
                 value={form.triageResult}
                 onChange={e => updateField('triageResult', e.target.value)}
@@ -2213,6 +2213,10 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
   const missingTriage = requiresTriage ? getMissingTriageFields(statusFormData) : [];
   const missingMatricula = requiresMatricula ? getMissingMatriculaFields(statusFormData) : [];
 
+  const missingSet = new Set([...missingTriage, ...missingMatricula]);
+  const fieldClass = field =>
+    `w-full rounded-lg border px-3 py-2 text-sm ${missingSet.has(field) ? 'border-rose-300 focus:ring-rose-300' : 'border-gray-200'}`;
+
   const updateStatusField = (field, value) => {
     setStatusFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -2351,223 +2355,213 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
               className="w-full rounded-xl border px-3 py-2 text-sm"
               placeholder="Notas da mudança de status"
             />
-            {(missingTriage.length > 0 || missingMatricula.length > 0) && (
+            {(requiresTriage || requiresMatricula) && (
               <div className="space-y-3 rounded-xl bg-gray-50 p-3">
-                <p className="text-xs font-semibold text-gray-600">Complete os dados obrigatórios</p>
-                {missingTriage.includes('name') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Nome completo</label>
-                    <input
-                      type="text"
-                      value={statusFormData.name}
-                      onChange={e => updateStatusField('name', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingTriage.includes('birthDate') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Data de nascimento</label>
-                    <input
-                      type="date"
-                      value={statusFormData.birthDate}
-                      onChange={e => updateStatusField('birthDate', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingTriage.includes('guardianName') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Nome do responsável</label>
-                    <input
-                      type="text"
-                      value={statusFormData.guardianName}
-                      onChange={e => updateStatusField('guardianName', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingTriage.includes('guardianPhone') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Telefone (WhatsApp)</label>
-                    <input
-                      type="tel"
-                      value={statusFormData.guardianPhone}
-                      onChange={e => updateStatusField('guardianPhone', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingTriage.includes('neighborhood') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Bairro/Comunidade</label>
-                    <input
-                      type="text"
-                      value={statusFormData.neighborhood}
-                      onChange={e => updateStatusField('neighborhood', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingTriage.includes('school') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Escola</label>
-                    <input
-                      type="text"
-                      value={statusFormData.school}
-                      onChange={e => updateStatusField('school', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingTriage.includes('schoolShift') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Turno escolar</label>
-                    <select
-                      value={statusFormData.schoolShift}
-                      onChange={e => updateStatusField('schoolShift', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <option value="">Selecione</option>
-                      <option value="manhã">Manhã</option>
-                      <option value="tarde">Tarde</option>
-                      <option value="integral">Integral</option>
-                    </select>
-                  </div>
-                )}
-                {missingTriage.includes('referralSource') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
-                    <select
-                      value={statusFormData.referralSource}
-                      onChange={e => updateStatusField('referralSource', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <option value="">Selecione</option>
-                      <option value="igreja">Igreja</option>
-                      <option value="escola">Escola</option>
-                      <option value="CRAS">CRAS</option>
-                      <option value="indicação">Indicação</option>
-                      <option value="redes_sociais">Redes sociais</option>
-                      <option value="outro">Outro</option>
-                    </select>
-                  </div>
-                )}
-                {missingTriage.includes('schoolCommuteAlone') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Vai e volta sozinha da escola?
-                    </label>
-                    <select
-                      value={statusFormData.schoolCommuteAlone}
-                      onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <option value="">Selecione</option>
-                      <option value="sim">Sim</option>
-                      <option value="nao">Não</option>
-                    </select>
-                  </div>
-                )}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-700">Dados obrigatórios</p>
+                  {missingSet.size > 0 && (
+                    <span className="text-xs font-semibold text-rose-600">
+                      {missingSet.size} pendente(s)
+                    </span>
+                  )}
+                </div>
 
-                {missingMatricula.includes('startDate') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Data de início</label>
-                    <input
-                      type="date"
-                      value={statusFormData.startDate}
-                      onChange={e => updateStatusField('startDate', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingMatricula.includes('participationDays') && (
-                  <div>
-                    <p className="mb-2 text-xs font-medium text-gray-700">Dias de participação</p>
-                    <div className="flex flex-wrap gap-2">
-                      {PARTICIPATION_DAYS.map(day => (
-                        <button
-                          key={day.value}
-                          type="button"
-                          onClick={() =>
-                            updateStatusField(
-                              'participationDays',
-                              statusFormData.participationDays.includes(day.value)
-                                ? statusFormData.participationDays.filter(item => item !== day.value)
-                                : [...statusFormData.participationDays, day.value]
-                            )
-                          }
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            statusFormData.participationDays.includes(day.value)
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-gray-200 text-gray-600'
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      ))}
+                {requiresTriage && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-gray-500">Triagem</p>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Nome completo</label>
+                      <input
+                        type="text"
+                        value={statusFormData.name}
+                        onChange={e => updateStatusField('name', e.target.value)}
+                        className={fieldClass('name')}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Data de nascimento</label>
+                      <input
+                        type="date"
+                        value={statusFormData.birthDate}
+                        onChange={e => updateStatusField('birthDate', e.target.value)}
+                        className={fieldClass('birthDate')}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Nome do responsável</label>
+                      <input
+                        type="text"
+                        value={statusFormData.guardianName}
+                        onChange={e => updateStatusField('guardianName', e.target.value)}
+                        className={fieldClass('guardianName')}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Telefone (WhatsApp)</label>
+                      <input
+                        type="tel"
+                        value={statusFormData.guardianPhone}
+                        onChange={e => updateStatusField('guardianPhone', e.target.value)}
+                        className={fieldClass('guardianPhone')}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Bairro/Comunidade</label>
+                      <input
+                        type="text"
+                        value={statusFormData.neighborhood}
+                        onChange={e => updateStatusField('neighborhood', e.target.value)}
+                        className={fieldClass('neighborhood')}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Escola</label>
+                      <input
+                        type="text"
+                        value={statusFormData.school}
+                        onChange={e => updateStatusField('school', e.target.value)}
+                        className={fieldClass('school')}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Turno escolar</label>
+                      <select
+                        value={statusFormData.schoolShift}
+                        onChange={e => updateStatusField('schoolShift', e.target.value)}
+                        className={fieldClass('schoolShift')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="manhã">Manhã</option>
+                        <option value="tarde">Tarde</option>
+                        <option value="integral">Integral</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
+                      <select
+                        value={statusFormData.referralSource}
+                        onChange={e => updateStatusField('referralSource', e.target.value)}
+                        className={fieldClass('referralSource')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="igreja">Igreja</option>
+                        <option value="escola">Escola</option>
+                        <option value="CRAS">CRAS</option>
+                        <option value="indicação">Indicação</option>
+                        <option value="redes_sociais">Redes sociais</option>
+                        <option value="outro">Outro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        Vai e volta sozinha da escola?
+                      </label>
+                      <select
+                        value={statusFormData.schoolCommuteAlone}
+                        onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
+                        className={fieldClass('schoolCommuteAlone')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
                     </div>
                   </div>
                 )}
-                {missingMatricula.includes('authorizedPickup') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
-                    <input
-                      type="text"
-                      value={statusFormData.authorizedPickup}
-                      onChange={e => updateStatusField('authorizedPickup', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingMatricula.includes('canLeaveAlone') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">
-                      Pode ir embora sozinha?
+
+                {requiresMatricula && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-gray-500">Matrícula</p>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Data de início</label>
+                      <input
+                        type="date"
+                        value={statusFormData.startDate}
+                        onChange={e => updateStatusField('startDate', e.target.value)}
+                        className={fieldClass('startDate')}
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-medium text-gray-700">Dias de participação</p>
+                      <div className="flex flex-wrap gap-2">
+                        {PARTICIPATION_DAYS.map(day => (
+                          <button
+                            key={day.value}
+                            type="button"
+                            onClick={() =>
+                              updateStatusField(
+                                'participationDays',
+                                statusFormData.participationDays.includes(day.value)
+                                  ? statusFormData.participationDays.filter(item => item !== day.value)
+                                  : [...statusFormData.participationDays, day.value]
+                              )
+                            }
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              statusFormData.participationDays.includes(day.value)
+                                ? 'bg-indigo-600 text-white'
+                                : missingSet.has('participationDays')
+                                ? 'bg-rose-100 text-rose-700'
+                                : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {day.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
+                      <input
+                        type="text"
+                        value={statusFormData.authorizedPickup}
+                        onChange={e => updateStatusField('authorizedPickup', e.target.value)}
+                        className={fieldClass('authorizedPickup')}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        Pode ir embora sozinha?
+                      </label>
+                      <select
+                        value={statusFormData.canLeaveAlone}
+                        onChange={e => updateStatusField('canLeaveAlone', e.target.value)}
+                        className={fieldClass('canLeaveAlone')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </div>
+                    {statusFormData.canLeaveAlone === 'sim' && (
+                      <div className="space-y-2 rounded-lg bg-white p-2">
+                        <label className="flex items-center gap-2 text-xs text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={statusFormData.leaveAloneConsent}
+                            onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
+                            className="h-4 w-4 rounded"
+                          />
+                          Autorizo saída sozinha
+                        </label>
+                        <input
+                          type="text"
+                          value={statusFormData.leaveAloneConfirmation}
+                          onChange={e => updateStatusField('leaveAloneConfirmation', e.target.value)}
+                          placeholder="Confirmação da autorização"
+                          className={fieldClass('leaveAloneConfirmation')}
+                        />
+                      </div>
+                    )}
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={statusFormData.termsAccepted}
+                        onChange={e => updateStatusField('termsAccepted', e.target.checked)}
+                        className="h-4 w-4 rounded"
+                      />
+                      Termo de responsabilidade e consentimento
                     </label>
-                    <select
-                      value={statusFormData.canLeaveAlone}
-                      onChange={e => updateStatusField('canLeaveAlone', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <option value="">Selecione</option>
-                      <option value="sim">Sim</option>
-                      <option value="nao">Não</option>
-                    </select>
                   </div>
-                )}
-                {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConsent') && (
-                  <label className="flex items-center gap-2 text-xs text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={statusFormData.leaveAloneConsent}
-                      onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
-                      className="h-4 w-4 rounded"
-                    />
-                    Autorizo saída sozinha
-                  </label>
-                )}
-                {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConfirmation') && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-700">Confirmação da autorização</label>
-                    <input
-                      type="text"
-                      value={statusFormData.leaveAloneConfirmation}
-                      onChange={e => updateStatusField('leaveAloneConfirmation', e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                  </div>
-                )}
-                {missingMatricula.includes('termsAccepted') && (
-                  <label className="flex items-center gap-2 text-xs text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={statusFormData.termsAccepted}
-                      onChange={e => updateStatusField('termsAccepted', e.target.checked)}
-                      className="h-4 w-4 rounded"
-                    />
-                    Termo de responsabilidade e consentimento
-                  </label>
                 )}
               </div>
             )}
@@ -2760,6 +2754,10 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
   const missingTriage = requiresTriage ? getMissingTriageFields(statusFormData) : [];
   const missingMatricula = requiresMatricula ? getMissingMatriculaFields(statusFormData) : [];
 
+  const missingSet = new Set([...missingTriage, ...missingMatricula]);
+  const fieldClass = field =>
+    `w-full rounded-lg border px-3 py-2 text-sm ${missingSet.has(field) ? 'border-rose-300 focus:ring-rose-300' : 'border-gray-200'}`;
+
   const updateStatusField = (field, value) => {
     setStatusFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -2913,223 +2911,213 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
                 className="w-full rounded-xl border px-3 py-2 text-sm"
                 placeholder="Notas da mudança de status"
               />
-              {(missingTriage.length > 0 || missingMatricula.length > 0) && (
+              {(requiresTriage || requiresMatricula) && (
                 <div className="space-y-3 rounded-xl bg-gray-50 p-3">
-                  <p className="text-xs font-semibold text-gray-600">Complete os dados obrigatórios</p>
-                  {missingTriage.includes('name') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Nome completo</label>
-                      <input
-                        type="text"
-                        value={statusFormData.name}
-                        onChange={e => updateStatusField('name', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingTriage.includes('birthDate') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Data de nascimento</label>
-                      <input
-                        type="date"
-                        value={statusFormData.birthDate}
-                        onChange={e => updateStatusField('birthDate', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingTriage.includes('guardianName') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Nome do responsável</label>
-                      <input
-                        type="text"
-                        value={statusFormData.guardianName}
-                        onChange={e => updateStatusField('guardianName', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingTriage.includes('guardianPhone') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Telefone (WhatsApp)</label>
-                      <input
-                        type="tel"
-                        value={statusFormData.guardianPhone}
-                        onChange={e => updateStatusField('guardianPhone', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingTriage.includes('neighborhood') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Bairro/Comunidade</label>
-                      <input
-                        type="text"
-                        value={statusFormData.neighborhood}
-                        onChange={e => updateStatusField('neighborhood', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingTriage.includes('school') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Escola</label>
-                      <input
-                        type="text"
-                        value={statusFormData.school}
-                        onChange={e => updateStatusField('school', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingTriage.includes('schoolShift') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Turno escolar</label>
-                      <select
-                        value={statusFormData.schoolShift}
-                        onChange={e => updateStatusField('schoolShift', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      >
-                        <option value="">Selecione</option>
-                        <option value="manhã">Manhã</option>
-                        <option value="tarde">Tarde</option>
-                        <option value="integral">Integral</option>
-                      </select>
-                    </div>
-                  )}
-                  {missingTriage.includes('referralSource') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
-                      <select
-                        value={statusFormData.referralSource}
-                        onChange={e => updateStatusField('referralSource', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      >
-                        <option value="">Selecione</option>
-                        <option value="igreja">Igreja</option>
-                        <option value="escola">Escola</option>
-                        <option value="CRAS">CRAS</option>
-                        <option value="indicação">Indicação</option>
-                        <option value="redes_sociais">Redes sociais</option>
-                        <option value="outro">Outro</option>
-                      </select>
-                    </div>
-                  )}
-                  {missingTriage.includes('schoolCommuteAlone') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        Vai e volta sozinha da escola?
-                      </label>
-                      <select
-                        value={statusFormData.schoolCommuteAlone}
-                        onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      >
-                        <option value="">Selecione</option>
-                        <option value="sim">Sim</option>
-                        <option value="nao">Não</option>
-                      </select>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-gray-700">Dados obrigatórios</p>
+                    {missingSet.size > 0 && (
+                      <span className="text-xs font-semibold text-rose-600">
+                        {missingSet.size} pendente(s)
+                      </span>
+                    )}
+                  </div>
 
-                  {missingMatricula.includes('startDate') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Data de início</label>
-                      <input
-                        type="date"
-                        value={statusFormData.startDate}
-                        onChange={e => updateStatusField('startDate', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingMatricula.includes('participationDays') && (
-                    <div>
-                      <p className="mb-2 text-xs font-medium text-gray-700">Dias de participação</p>
-                      <div className="flex flex-wrap gap-2">
-                        {PARTICIPATION_DAYS.map(day => (
-                          <button
-                            key={day.value}
-                            type="button"
-                            onClick={() =>
-                              updateStatusField(
-                                'participationDays',
-                                statusFormData.participationDays.includes(day.value)
-                                  ? statusFormData.participationDays.filter(item => item !== day.value)
-                                  : [...statusFormData.participationDays, day.value]
-                              )
-                            }
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              statusFormData.participationDays.includes(day.value)
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-600'
-                            }`}
-                          >
-                            {day.label}
-                          </button>
-                        ))}
+                  {requiresTriage && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-gray-500">Triagem</p>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Nome completo</label>
+                        <input
+                          type="text"
+                          value={statusFormData.name}
+                          onChange={e => updateStatusField('name', e.target.value)}
+                          className={fieldClass('name')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Data de nascimento</label>
+                        <input
+                          type="date"
+                          value={statusFormData.birthDate}
+                          onChange={e => updateStatusField('birthDate', e.target.value)}
+                          className={fieldClass('birthDate')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Nome do responsável</label>
+                        <input
+                          type="text"
+                          value={statusFormData.guardianName}
+                          onChange={e => updateStatusField('guardianName', e.target.value)}
+                          className={fieldClass('guardianName')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Telefone (WhatsApp)</label>
+                        <input
+                          type="tel"
+                          value={statusFormData.guardianPhone}
+                          onChange={e => updateStatusField('guardianPhone', e.target.value)}
+                          className={fieldClass('guardianPhone')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Bairro/Comunidade</label>
+                        <input
+                          type="text"
+                          value={statusFormData.neighborhood}
+                          onChange={e => updateStatusField('neighborhood', e.target.value)}
+                          className={fieldClass('neighborhood')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Escola</label>
+                        <input
+                          type="text"
+                          value={statusFormData.school}
+                          onChange={e => updateStatusField('school', e.target.value)}
+                          className={fieldClass('school')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Turno escolar</label>
+                        <select
+                          value={statusFormData.schoolShift}
+                          onChange={e => updateStatusField('schoolShift', e.target.value)}
+                          className={fieldClass('schoolShift')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="manhã">Manhã</option>
+                          <option value="tarde">Tarde</option>
+                          <option value="integral">Integral</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
+                        <select
+                          value={statusFormData.referralSource}
+                          onChange={e => updateStatusField('referralSource', e.target.value)}
+                          className={fieldClass('referralSource')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="igreja">Igreja</option>
+                          <option value="escola">Escola</option>
+                          <option value="CRAS">CRAS</option>
+                          <option value="indicação">Indicação</option>
+                          <option value="redes_sociais">Redes sociais</option>
+                          <option value="outro">Outro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">
+                          Vai e volta sozinha da escola?
+                        </label>
+                        <select
+                          value={statusFormData.schoolCommuteAlone}
+                          onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
+                          className={fieldClass('schoolCommuteAlone')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="sim">Sim</option>
+                          <option value="nao">Não</option>
+                        </select>
                       </div>
                     </div>
                   )}
-                  {missingMatricula.includes('authorizedPickup') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
-                      <input
-                        type="text"
-                        value={statusFormData.authorizedPickup}
-                        onChange={e => updateStatusField('authorizedPickup', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingMatricula.includes('canLeaveAlone') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        Pode ir embora sozinha?
+
+                  {requiresMatricula && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-gray-500">Matrícula</p>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Data de início</label>
+                        <input
+                          type="date"
+                          value={statusFormData.startDate}
+                          onChange={e => updateStatusField('startDate', e.target.value)}
+                          className={fieldClass('startDate')}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs font-medium text-gray-700">Dias de participação</p>
+                        <div className="flex flex-wrap gap-2">
+                          {PARTICIPATION_DAYS.map(day => (
+                            <button
+                              key={day.value}
+                              type="button"
+                              onClick={() =>
+                                updateStatusField(
+                                  'participationDays',
+                                  statusFormData.participationDays.includes(day.value)
+                                    ? statusFormData.participationDays.filter(item => item !== day.value)
+                                    : [...statusFormData.participationDays, day.value]
+                                )
+                              }
+                              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                                statusFormData.participationDays.includes(day.value)
+                                  ? 'bg-indigo-600 text-white'
+                                  : missingSet.has('participationDays')
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : 'bg-gray-200 text-gray-600'
+                              }`}
+                            >
+                              {day.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
+                        <input
+                          type="text"
+                          value={statusFormData.authorizedPickup}
+                          onChange={e => updateStatusField('authorizedPickup', e.target.value)}
+                          className={fieldClass('authorizedPickup')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">
+                          Pode ir embora sozinha?
+                        </label>
+                        <select
+                          value={statusFormData.canLeaveAlone}
+                          onChange={e => updateStatusField('canLeaveAlone', e.target.value)}
+                          className={fieldClass('canLeaveAlone')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="sim">Sim</option>
+                          <option value="nao">Não</option>
+                        </select>
+                      </div>
+                      {statusFormData.canLeaveAlone === 'sim' && (
+                        <div className="space-y-2 rounded-lg bg-white p-2">
+                          <label className="flex items-center gap-2 text-xs text-gray-700">
+                            <input
+                              type="checkbox"
+                              checked={statusFormData.leaveAloneConsent}
+                              onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
+                              className="h-4 w-4 rounded"
+                            />
+                            Autorizo saída sozinha
+                          </label>
+                          <input
+                            type="text"
+                            value={statusFormData.leaveAloneConfirmation}
+                            onChange={e => updateStatusField('leaveAloneConfirmation', e.target.value)}
+                            placeholder="Confirmação da autorização"
+                            className={fieldClass('leaveAloneConfirmation')}
+                          />
+                        </div>
+                      )}
+                      <label className="flex items-center gap-2 text-xs text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={statusFormData.termsAccepted}
+                          onChange={e => updateStatusField('termsAccepted', e.target.checked)}
+                          className="h-4 w-4 rounded"
+                        />
+                        Termo de responsabilidade e consentimento
                       </label>
-                      <select
-                        value={statusFormData.canLeaveAlone}
-                        onChange={e => updateStatusField('canLeaveAlone', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      >
-                        <option value="">Selecione</option>
-                        <option value="sim">Sim</option>
-                        <option value="nao">Não</option>
-                      </select>
                     </div>
-                  )}
-                  {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConsent') && (
-                    <label className="flex items-center gap-2 text-xs text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={statusFormData.leaveAloneConsent}
-                        onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
-                        className="h-4 w-4 rounded"
-                      />
-                      Autorizo saída sozinha
-                    </label>
-                  )}
-                  {statusFormData.canLeaveAlone === 'sim' && missingMatricula.includes('leaveAloneConfirmation') && (
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Confirmação da autorização</label>
-                      <input
-                        type="text"
-                        value={statusFormData.leaveAloneConfirmation}
-                        onChange={e => updateStatusField('leaveAloneConfirmation', e.target.value)}
-                        className="w-full rounded-lg border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  )}
-                  {missingMatricula.includes('termsAccepted') && (
-                    <label className="flex items-center gap-2 text-xs text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={statusFormData.termsAccepted}
-                        onChange={e => updateStatusField('termsAccepted', e.target.checked)}
-                        className="h-4 w-4 rounded"
-                      />
-                      Termo de responsabilidade e consentimento
-                    </label>
                   )}
                 </div>
               )}
