@@ -30,6 +30,9 @@ import {
 // CONFIGURAÇÃO
 // ============================================
 const API_URL = 'https://lumine-api-7qnj.vercel.app/api/sync';
+const API_TOKEN = process.env.REACT_APP_API_TOKEN || '';
+const AUTH_HEADERS = API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {};
+const JSON_HEADERS = { 'Content-Type': 'application/json', ...AUTH_HEADERS };
 
 const ENROLLMENT_STATUS_META = {
   pre_inscrito: { label: 'Pré-inscrito', className: 'bg-gray-100 text-gray-600' },
@@ -326,6 +329,38 @@ function normalizeChildren(childrenList) {
   return { children: normalized, changed };
 }
 
+
+function normalizeRecord(record) {
+  const normalized = { ...record };
+  let changed = false;
+  const internalId = normalized.childInternalId || normalized.childId || '';
+
+  if (normalized.childInternalId !== internalId) {
+    normalized.childInternalId = internalId;
+    changed = true;
+  }
+
+  if (normalized.childId !== internalId) {
+    normalized.childId = internalId;
+    changed = true;
+  }
+
+  return { record: normalized, changed };
+}
+
+function normalizeRecords(recordsList) {
+  if (!Array.isArray(recordsList)) {
+    return { records: [], changed: true };
+  }
+  let changed = false;
+  const normalized = recordsList.map(record => {
+    const result = normalizeRecord(record);
+    if (result.changed) changed = true;
+    return result.record;
+  });
+  return { records: normalized, changed };
+}
+
 // ============================================
 // FUNÇÕES AUXILIARES
 // ============================================
@@ -403,7 +438,10 @@ export default function LumineTracker() {
   const [syncStatus, setSyncStatus] = useState('idle');
   const [syncError, setSyncError] = useState('');
   const [lastSync, setLastSync] = useLocalStorage('lumine_last_sync', null);
+  const [dataRev, setDataRev] = useLocalStorage('lumine_data_rev', 0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [overwriteBlocked, setOverwriteBlocked] = useState(false);
+  const [syncModal, setSyncModal] = useState(null);
   const [pendingChanges, setPendingChanges] = useState(0);
   const [showFABMenu, setShowFABMenu] = useState(false);
 
@@ -424,6 +462,11 @@ export default function LumineTracker() {
     if (changed) setChildren(normalized);
   }, [children, setChildren]);
 
+  useEffect(() => {
+    const { records: normalized, changed } = normalizeRecords(dailyRecords);
+    if (changed) setDailyRecords(normalized);
+  }, [dailyRecords, setDailyRecords]);
+
   // Sync com servidor
   const syncWithServer = useCallback(async (payload = null) => {
     if (!isOnline) {
@@ -432,12 +475,23 @@ export default function LumineTracker() {
       setTimeout(() => setSyncStatus('idle'), 3000);
       return;
     }
+
+    if (overwriteBlocked && !payload) {
+      setSyncError('Baixe os dados antes de sincronizar');
+      setSyncStatus('error');
+      setTimeout(() => setSyncStatus('idle'), 3000);
+      return;
+    }
+
     setSyncStatus('syncing');
     setSyncError('');
 
+    const localRevBefore = Number(dataRev) || 0;
+    let serverRev = localRevBefore;
+
     if (!payload) {
       try {
-        const preRes = await fetch(API_URL);
+        const preRes = await fetch(API_URL, { headers: AUTH_HEADERS });
         let preData = null;
         try {
           preData = await preRes.json();
@@ -445,25 +499,31 @@ export default function LumineTracker() {
           preData = null;
         }
         if (preRes.ok && preData?.success) {
-          const serverChildren = Array.isArray(preData.data?.children)
-            ? preData.data.children
-            : [];
-          const serverRecords = Array.isArray(preData.data?.records)
-            ? preData.data.records
-            : [];
-          const serverHasMore =
-            serverChildren.length > children.length ||
-            serverRecords.length > dailyRecords.length;
-          if (serverHasMore) {
-            const proceed = window.confirm(
-              'O servidor tem mais dados do que este dispositivo. Deseja enviar mesmo assim? Isso pode sobrescrever dados.'
-            );
-            if (!proceed) {
-              setSyncError('Use Baixar para atualizar');
-              setSyncStatus('error');
-              setTimeout(() => setSyncStatus('idle'), 3000);
-              return;
+          if (preData.data) {
+            if (Array.isArray(preData.data.children)) {
+              const normalized = normalizeChildren(preData.data.children).children;
+              setChildren(normalized);
             }
+            if (Array.isArray(preData.data.records)) {
+              const normalizedRecords = normalizeRecords(preData.data.records).records;
+              setDailyRecords(normalizedRecords);
+            }
+            setPendingChanges(0);
+          }
+          if (typeof preData.dataRev === 'number') {
+            serverRev = preData.dataRev;
+            setDataRev(serverRev);
+          }
+          setOverwriteBlocked(false);
+
+          if (serverRev > localRevBefore) {
+            setSyncModal({
+              type: 'server-new',
+              message: 'Há dados novos no servidor. Baixe os dados atuais antes de sincronizar.',
+            });
+            setSyncStatus('error');
+            setTimeout(() => setSyncStatus('idle'), 3000);
+            return;
           }
         }
       } catch {
@@ -474,9 +534,10 @@ export default function LumineTracker() {
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: JSON_HEADERS,
         body: JSON.stringify({
           action: 'sync',
+          ifMatchRev: serverRev,
           data: payload || { children, records: dailyRecords },
         }),
       });
@@ -486,10 +547,40 @@ export default function LumineTracker() {
       } catch {
         result = null;
       }
+
       if (!res.ok || !result?.success) {
+        if (res.status === 409 && result?.error === 'REVISION_MISMATCH') {
+          setSyncModal({
+            type: 'revision-mismatch',
+            message: 'Os dados foram alterados por outro dispositivo. Baixe a versão atual.',
+          });
+          setSyncStatus('error');
+          setTimeout(() => setSyncStatus('idle'), 3000);
+          return;
+        }
+
+        if (res.status === 409 && result?.error === 'DATA_LOSS_PREVENTED') {
+          const serverCount = result?.serverCount || {};
+          setOverwriteBlocked(true);
+          setSyncError(
+            `Servidor tem mais dados (Crianças: ${serverCount.children || 0}, Registros: ${serverCount.records || 0}). Baixe antes de sincronizar.`
+          );
+          setSyncStatus('error');
+          setTimeout(() => setSyncStatus('idle'), 3000);
+          alert(
+            `O servidor tem mais dados (Crianças: ${serverCount.children || 0}, Registros: ${serverCount.records || 0}). Baixe antes de sincronizar.`
+          );
+          return;
+        }
+
         const message = result?.error || result?.details || `Erro HTTP ${res.status}`;
         throw new Error(message);
       }
+
+      if (typeof result?.dataRev === 'number') {
+        setDataRev(result.dataRev);
+      }
+      setOverwriteBlocked(false);
       setSyncError('');
       setLastSync(new Date().toISOString());
       setPendingChanges(0);
@@ -501,7 +592,7 @@ export default function LumineTracker() {
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
     }
-  }, [children, dailyRecords, isOnline, setLastSync]);
+  }, [children, dailyRecords, isOnline, dataRev, overwriteBlocked, setChildren, setDailyRecords, setDataRev, setLastSync, setOverwriteBlocked, setSyncModal, setPendingChanges]);
 
   // Download do servidor
   const downloadFromServer = useCallback(async () => {
@@ -509,7 +600,7 @@ export default function LumineTracker() {
     setSyncStatus('syncing');
     setSyncError('');
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(API_URL, { headers: AUTH_HEADERS });
       let result = null;
       try {
         result = await res.json();
@@ -525,8 +616,14 @@ export default function LumineTracker() {
           const normalized = normalizeChildren(result.data.children).children;
           setChildren(normalized);
         }
-        if (Array.isArray(result.data.records)) setDailyRecords(result.data.records);
+        if (Array.isArray(result.data.records)) {
+          const normalizedRecords = normalizeRecords(result.data.records).records;
+          setDailyRecords(normalizedRecords);
+        }
+        setPendingChanges(0);
       }
+      if (typeof result?.dataRev === 'number') setDataRev(result.dataRev);
+      setOverwriteBlocked(false);
       setLastSync(new Date().toISOString());
       setSyncStatus('success');
       setTimeout(() => setSyncStatus('idle'), 2000);
@@ -536,16 +633,16 @@ export default function LumineTracker() {
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
     }
-  }, [isOnline, setChildren, setDailyRecords, setLastSync]);
+  }, [isOnline, setChildren, setDailyRecords, setDataRev, setLastSync, setOverwriteBlocked, setPendingChanges]);
 
   // Auto-sync a cada 5 min
   useEffect(() => {
-    if (isOnline && pendingChanges > 0) {
+    if (isOnline && pendingChanges > 0 && !overwriteBlocked) {
       const interval = setInterval(() => syncWithServer(), 5 * 60 * 1000);
       return () => clearInterval(interval);
     }
     return undefined;
-  }, [isOnline, pendingChanges, syncWithServer]);
+  }, [isOnline, pendingChanges, overwriteBlocked, syncWithServer]);
 
   // Adicionar criança
   const addChild = async data => {
@@ -583,7 +680,7 @@ export default function LumineTracker() {
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: JSON_HEADERS,
           body: JSON.stringify({ action: 'addChild', data: newChild }),
         });
         const result = await res.json().catch(() => null);
@@ -593,6 +690,9 @@ export default function LumineTracker() {
               child.id === newChild.id ? { ...child, childId: result.childId } : child
             )
           );
+        }
+        if (typeof result?.dataRev === 'number') {
+          setDataRev(result.dataRev);
         }
       } catch {
         return;
@@ -618,8 +718,11 @@ export default function LumineTracker() {
 
   // Adicionar registro
   const addDailyRecord = async data => {
+    const internalId = data.childInternalId || data.childId || '';
     const newRecord = {
       ...data,
+      childInternalId: internalId,
+      childId: internalId,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
     };
@@ -627,11 +730,15 @@ export default function LumineTracker() {
     setPendingChanges(p => p + 1);
     if (isOnline) {
       try {
-        await fetch(API_URL, {
+        const res = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: JSON_HEADERS,
           body: JSON.stringify({ action: 'addRecord', data: newRecord }),
         });
+        const result = await res.json().catch(() => null);
+        if (typeof result?.dataRev === 'number') {
+          setDataRev(result.dataRev);
+        }
       } catch {
         return;
       }
@@ -639,14 +746,9 @@ export default function LumineTracker() {
   };
 
   const clearLocalData = useCallback(() => {
-    setChildren([]);
-    setDailyRecords([]);
-    setPendingChanges(0);
-    setLastSync(null);
-    setSelectedChild(null);
-    setSearchTerm('');
-    setSyncError('');
-  }, [setChildren, setDailyRecords, setLastSync]);
+    localStorage.clear();
+    window.location.reload();
+  }, []);
 
   // Excluir criança e registros
   const deleteChild = async childId => {
@@ -656,7 +758,7 @@ export default function LumineTracker() {
     if (!confirmed) return;
 
     const nextChildren = children.filter(child => child.id !== childId);
-    const nextRecords = dailyRecords.filter(record => record.childId !== childId);
+    const nextRecords = dailyRecords.filter(record => record.childInternalId !== childId);
 
     setChildren(nextChildren);
     setDailyRecords(nextRecords);
@@ -689,22 +791,65 @@ export default function LumineTracker() {
   // Alertas
   const getAlerts = () => {
     const alerts = [];
-    const last7 = new Date();
-    last7.setDate(last7.getDate() - 7);
+    const today = new Date();
+    const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
     children
       .filter(isMatriculated)
       .forEach(child => {
-        const recent = dailyRecords
-          .filter(r => r.childId === child.id && new Date(r.date) > last7)
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-        if (recent.slice(0, 3).filter(r => r.attendance === 'absent').length >= 3) {
+        const participation = parseParticipationDays(child.participationDays);
+        if (!participation.length) return;
+
+        let confirmedAbsences = 0;
+        let pending = 0;
+
+        for (let offset = 0; offset < 14; offset += 1) {
+          const date = new Date(today);
+          date.setHours(0, 0, 0, 0);
+          date.setDate(today.getDate() - offset);
+          const dayKey = dayKeys[date.getDay()];
+          if (!participation.includes(dayKey)) continue;
+
+          const dateStr = date.toISOString().split('T')[0];
+          const record = dailyRecords.find(
+            r => r.childInternalId === child.id && r.date?.split('T')[0] === dateStr
+          );
+
+          if (!record) {
+            pending += 1;
+            continue;
+          }
+
+          if (record.attendance === 'absent') {
+            confirmedAbsences += 1;
+            continue;
+          }
+
+          if (record.attendance === 'present' || record.attendance === 'late') {
+            break;
+          }
+        }
+
+        if (confirmedAbsences >= 3) {
           alerts.push({
             childId: child.id,
             childName: child.name,
-            msg: '3+ faltas seguidas',
+            msg: '3+ faltas confirmadas seguidas',
+            severity: 'strong',
+          });
+          return;
+        }
+
+        if (confirmedAbsences >= 2 && pending >= 1) {
+          alerts.push({
+            childId: child.id,
+            childName: child.name,
+            msg: 'Possível sequência de faltas. Verificar registros pendentes dos últimos encontros.',
+            severity: 'weak',
           });
         }
       });
+
     return alerts;
   };
 
@@ -751,7 +896,7 @@ export default function LumineTracker() {
             {/* Botão Sync */}
             <button
               onClick={() => syncWithServer()}
-              disabled={syncStatus === 'syncing'}
+              disabled={syncStatus === 'syncing' || overwriteBlocked}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                 syncStatus === 'syncing'
                   ? 'bg-indigo-500'
@@ -809,7 +954,7 @@ export default function LumineTracker() {
           </div>
           <button
             onClick={() => syncWithServer()}
-            disabled={syncStatus === "syncing"}
+            disabled={syncStatus === "syncing" || overwriteBlocked}
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
               syncStatus === "syncing"
                 ? "bg-indigo-100 text-indigo-700"
@@ -925,10 +1070,39 @@ export default function LumineTracker() {
             downloadFromServer={downloadFromServer}
             lastSync={lastSync}
             isOnline={isOnline}
+            overwriteBlocked={overwriteBlocked}
             clearLocalData={clearLocalData}
           />
         )}
       </main>
+
+      {syncModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6">
+            <h3 className="mb-2 text-lg font-bold">Atenção</h3>
+            <p className="mb-6 text-gray-600">{syncModal.message}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSyncModal(null)}
+                className="flex-1 rounded-xl bg-gray-100 py-3 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (syncModal.type === 'revision-mismatch') {
+                    await downloadFromServer();
+                  }
+                  setSyncModal(null);
+                }}
+                className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white"
+              >
+                Baixar agora
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
 
       {/* ========== FAB (Floating Action Button) ========== */}
@@ -1083,7 +1257,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === today);
   const activeChildren = children.filter(isMatriculated);
-  const pendingToday = activeChildren.filter(c => !todayRecords.find(r => r.childId === c.id));
+  const pendingToday = activeChildren.filter(c => !todayRecords.find(r => r.childInternalId === c.id));
 
   return (
     <div className="space-y-4">
@@ -1157,7 +1331,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
           <h3 className="mb-3 font-semibold text-gray-800">Registros de hoje</h3>
           <div className="space-y-2">
             {todayRecords.slice(0, 5).map(rec => {
-              const child = children.find(c => c.id === rec.childId);
+              const child = children.find(c => c.id === rec.childInternalId);
               return (
                 <div key={rec.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-2">
                   <div
@@ -1191,7 +1365,7 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === today);
   const activeChildren = children.filter(isMatriculated);
-  const pendingToday = activeChildren.filter(c => !todayRecords.find(r => r.childId === c.id));
+  const pendingToday = activeChildren.filter(c => !todayRecords.find(r => r.childInternalId === c.id));
 
   return (
     <div className="space-y-6">
@@ -1276,7 +1450,7 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
               </div>
             )}
             {todayRecords.map(record => {
-              const child = children.find(c => c.id === record.childId);
+              const child = children.find(c => c.id === record.childInternalId);
               return (
                 <div key={record.id} className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2">
                   <div>
@@ -2186,7 +2360,7 @@ function AddChildView({ addChild, setView }) {
 // ============================================
 function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
   const childRecords = dailyRecords
-    .filter(r => r.childId === child.id)
+    .filter(r => r.childInternalId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
   const rate = calculateAttendanceRate(childRecords);
   const present = childRecords.filter(
@@ -2726,7 +2900,7 @@ function InfoRow({ icon: Icon, label, value }) {
 
 function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
   const childRecords = dailyRecords
-    .filter(r => r.childId === child.id)
+    .filter(r => r.childInternalId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
   const rate = calculateAttendanceRate(childRecords);
   const present = childRecords.filter(
@@ -3282,12 +3456,12 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 
   const activeChildren = children.filter(isMatriculated);
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
-  const recordedIds = todayRecords.map(r => r.childId);
+  const recordedIds = todayRecords.map(r => r.childInternalId);
   const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
 
   const quickRecord = (childId, attendance) => {
     addDailyRecord({
-      childId,
+      childInternalId: childId,
       date,
       attendance,
       participation: 'medium',
@@ -3305,7 +3479,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 
   const handleDetailedRecord = () => {
     if (!selectedChildId) return;
-    addDailyRecord({ childId: selectedChildId, date, ...form });
+    addDailyRecord({ childInternalId: selectedChildId, date, ...form });
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
@@ -3607,13 +3781,13 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
 
   const activeChildren = children.filter(isMatriculated);
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
-  const recordedIds = todayRecords.map(r => r.childId);
+  const recordedIds = todayRecords.map(r => r.childInternalId);
   const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
   const selectedChild = activeChildren.find(c => c.id === selectedChildId);
 
   const quickRecord = (childId, attendance) => {
     addDailyRecord({
-      childId,
+      childInternalId: childId,
       date,
       attendance,
       participation: 'medium',
@@ -3631,7 +3805,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
 
   const handleDetailedRecord = () => {
     if (!selectedChildId) return;
-    addDailyRecord({ childId: selectedChildId, date, ...form });
+    addDailyRecord({ childInternalId: selectedChildId, date, ...form });
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 1200);
   };
@@ -3884,6 +4058,7 @@ function ConfigView({
   downloadFromServer,
   lastSync,
   isOnline,
+  overwriteBlocked,
   clearLocalData,
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
@@ -3921,7 +4096,8 @@ function ConfigView({
           const normalized = normalizeChildren(data.children).children;
           setConfirmAction(() => () => {
             setChildren(normalized);
-            setDailyRecords(importedRecords);
+            const normalizedRecords = normalizeRecords(importedRecords).records;
+            setDailyRecords(normalizedRecords);
             setShowConfirm(false);
           });
           setShowConfirm(true);
@@ -3943,7 +4119,7 @@ function ConfigView({
 
   const childStats = activeChildren
     .map(child => {
-      const recs = monthRecords.filter(r => r.childId === child.id);
+      const recs = monthRecords.filter(r => r.childInternalId === child.id);
       const present = recs.filter(r => r.attendance === 'present' || r.attendance === 'late')
         .length;
       return {
@@ -3998,7 +4174,7 @@ function ConfigView({
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => syncWithServer()}
-            disabled={!isOnline}
+            disabled={!isOnline || overwriteBlocked}
             className="flex items-center justify-center gap-2 rounded-xl bg-green-100 py-3 font-medium text-green-700 disabled:opacity-50"
           >
             <Upload size={18} />
@@ -4034,19 +4210,19 @@ function ConfigView({
         </div>
       </div>
 
-      {/* Limpar dados locais */}
+      {/* Segurança */}
       <div className="space-y-3 rounded-xl bg-rose-50 p-4 shadow-sm">
-        <h3 className="font-semibold text-rose-700">Limpar dados locais</h3>
+        <h3 className="font-semibold text-rose-700">Segurança</h3>
         <p className="text-sm text-rose-600">Remove todas as crianças e registros deste dispositivo.</p>
         <button
           onClick={() => {
-            if (window.confirm('Tem certeza que deseja apagar os dados locais?')) {
+            if (window.confirm('Isso vai apagar todos os dados locais. Os dados no servidor não serão afetados. Continuar?')) {
               clearLocalData();
             }
           }}
           className="w-full rounded-xl bg-rose-600 py-3 text-sm font-semibold text-white"
         >
-          Apagar dados locais
+          Sair e limpar dados deste dispositivo
         </button>
       </div>
 
@@ -4208,20 +4384,20 @@ function ConfigView({
         <div className="rounded-2xl bg-rose-50 p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-rose-700">Limpar dados locais</h3>
+              <h3 className="font-semibold text-rose-700">Segurança</h3>
               <p className="mt-1 text-sm text-rose-600">
                 Remove todas as crianças e registros deste dispositivo.
               </p>
             </div>
             <button
               onClick={() => {
-                if (window.confirm('Tem certeza que deseja apagar os dados locais?')) {
+                if (window.confirm('Isso vai apagar todos os dados locais. Os dados no servidor não serão afetados. Continuar?')) {
                   clearLocalData();
                 }
               }}
               className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
             >
-              Apagar dados
+              Sair e limpar dados deste dispositivo
             </button>
           </div>
         </div>
