@@ -8,7 +8,8 @@
 ## Proteção de dados
 - CORS/Origin restritos por allowlist (barreiras leves de navegador).
 - Overwrite protegido por DATA_REV e validação de conflito.
-- Backups automáticos antes de overwrite (com retenção).
+- Backups automáticos antes de overwrite para planilha secundária.
+- Log de operações na aba Audit.
 - Prevenção de regressão: bloqueia overwrite com menos dados que o servidor.
 
 ## Regras de uso

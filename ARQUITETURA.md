@@ -16,7 +16,7 @@ Sistema web para triagem, matrícula e acompanhamento diário de crianças do In
    ▼
 [Webapp React] ──(GET/POST /api/sync)──▶ [API Vercel sync.js] ──▶ [Google Sheets]
    │                         ▲                                 ▲
-   └── localStorage (offline)└───────────────sync/backup────────┘
+   └── localStorage (offline)└───────────────sync/backup (Sheets secundário)────────┘
 ```
 
 ## 2. ESTRUTURA DO GOOGLE SHEETS
@@ -25,7 +25,8 @@ Sistema web para triagem, matrícula e acompanhamento diário de crianças do In
 - **Criancas**: cadastro completo (triagem + matrícula + histórico).
 - **Registros**: registros diários de presença e acompanhamento.
 - **Config**: parâmetros operacionais (ex.: `NEXT_CHILD_ID`).
-- **Criancas_backup_*`**: backups gerados por scripts.
+- **Audit**: log de operações (sync/addChild/addRecord).
+- **Backup (planilha secundária)**: espelho das abas Criancas/Registros.
 
 ### Criancas — Colunas (tipo, obrigatório)
 > Obrigatório depende do estágio: **Triagem** ou **Matrícula**.
@@ -134,11 +135,15 @@ Sistema web para triagem, matrícula e acompanhamento diário de crianças do In
 ### Variáveis de ambiente
 - `SPREADSHEET_ID`
 - `GOOGLE_CREDENTIALS` (JSON completo da service account)
+- `API_TOKEN` (token Bearer da API)
+- `ORIGINS_ALLOWLIST` (domínios permitidos)
+- `BACKUP_ENABLED` (true/false)
+- `BACKUP_SPREADSHEET_ID` (planilha de backup)
 
 ### Tratamento de erros
 - `400` para ação não reconhecida.
 - `500` com `{ success:false, error, details }` em falhas internas.
-- CORS liberado (`Access-Control-Allow-Origin: *`).
+- CORS restrito por allowlist (Origin dinâmico).
 
 ### Observação sobre datas
 A API grava datas como **serial number** do Sheets (para visualização legível) e converte de volta para **ISO** no retorno para o app.
