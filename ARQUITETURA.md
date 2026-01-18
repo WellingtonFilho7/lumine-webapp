@@ -1,22 +1,22 @@
 # Arquitetura — Sistema Lumine
 
 ## 1. VISÃO GERAL
-Sistema web para triagem, matrícula e acompanhamento diário de crianças do Instituto Lumine. O app funciona offline via `localStorage` e sincroniza os dados com uma API simples que persiste em Google Sheets. O fluxo privilegia uso em campo (mobile) e oferece painel/gestão no desktop.
+O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompanhamento diário de crianças. Os dados ficam no `localStorage` durante o uso em campo e são sincronizados com uma API simples hospedada no Vercel, que persiste tudo em Google Sheets. O foco é operação leve, uso em celular e consistência de dados com múltiplos operadores.
 
 **Stack tecnológico**
 - Webapp: React 18 (Create React App), Tailwind CSS via CDN, lucide-react.
 - API: Node.js (Vercel Serverless), `googleapis`.
-- Persistência: Google Sheets (abas `Criancas`, `Registros`, `Config`).
+- Persistência: Google Sheets (abas `Criancas`, `Registros`, `Config`, `Audit`) + planilha secundária de backup.
 - Hospedagem: Vercel (webapp + API).
 
 **Diagrama ASCII (fluxo de dados)**
 ```
-[Usuário] 
+[Operador] 
    │
    ▼
 [Webapp React] ──(GET/POST /api/sync)──▶ [API Vercel sync.js] ──▶ [Google Sheets]
    │                         ▲                                 ▲
-   └── localStorage (offline)└───────────────sync/backup (Sheets secundário)────────┘
+   └── localStorage (offline)└──────────── backup (Sheets secundário) ────────┘
 ```
 
 ## 2. ESTRUTURA DO GOOGLE SHEETS
@@ -24,9 +24,9 @@ Sistema web para triagem, matrícula e acompanhamento diário de crianças do In
 ### Abas e funções
 - **Criancas**: cadastro completo (triagem + matrícula + histórico).
 - **Registros**: registros diários de presença e acompanhamento.
-- **Config**: parâmetros operacionais (ex.: `NEXT_CHILD_ID`).
-- **Audit**: log de operações (sync/addChild/addRecord).
-- **Backup (planilha secundária)**: espelho das abas Criancas/Registros.
+- **Config**: parâmetros operacionais (ex.: `NEXT_CHILD_ID`, `DATA_REV`).
+- **Audit**: log de operações (sync/addChild/addRecord) com contagens e dataRev.
+- **Backup (planilha secundária)**: espelho das abas `Criancas` e `Registros` em outro arquivo.
 
 ### Criancas — Colunas (tipo, obrigatório)
 > Obrigatório depende do estágio: **Triagem** ou **Matrícula**.
@@ -65,9 +65,9 @@ Sistema web para triagem, matrícula e acompanhamento diário de crianças do In
 | responsibilityTerm | boolean | sim (matrícula) | Termo único aceito. |
 | consentTerm | boolean | sim (matrícula) | Termo único aceito. |
 | imageConsent | select | não | interno/comunicacao/'' (nenhum). |
-| documentsReceived | list | não | `certidão_nascimento|documento_responsável|comprovante_residência` |
+| documentsReceived | list | não | `certidão_nascimento|documento_responsável|comprovante_residência`. |
 | initialObservations | string | não | Observações pedagógicas. |
-| classGroup | select | não | pré_alfabetização/alfabetização/fundamental_1/fundamental_2 |
+| classGroup | select | não | pré_alfabetização/alfabetização/fundamental_1/fundamental_2. |
 | matriculationDate | datetime | não | Data da matrícula. |
 | enrollmentHistory | json | sim | Array JSON de eventos. |
 | entryDate | date | não | Legado (migração). |
@@ -88,65 +88,70 @@ Sistema web para triagem, matrícula e acompanhamento diário de crianças do In
 | notes | string | não | Observações. |
 | familyContact | select | não | yes/no. |
 | contactReason | select | não | routine/praise/behavior/absence/other. |
+| childName | fórmula | não | Coluna derivada via `PROCV` para identificar a criança. |
 
 ### Config — Colunas (tipo, obrigatório)
 | Campo | Tipo | Obrigatório | Observação |
 |---|---|---|---|
-| Campo | string | sim | Ex.: NEXT_CHILD_ID |
-| Valor | string/number | sim | Próximo número para gerar CRI-XXXX |
+| Campo | string | sim | Ex.: NEXT_CHILD_ID, DATA_REV |
+| Valor | string/number | sim | Próximo número para CRI-XXXX e revisão do servidor |
+
+### Audit — Colunas (tipo, obrigatório)
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| timestamp | datetime | sim | Data/hora da ação |
+| action | string | sim | sync/addChild/addRecord |
+| dataRev | number | sim | revisão após a operação |
+| childrenCount | number | sim | contagem de crianças |
+| recordsCount | number | sim | contagem de registros |
+| result | string | sim | success/error |
+| message | string | não | detalhe curto |
 
 ### Relações entre abas
 - `Criancas.id` (interno) **conecta** com `Registros.childId`.
-- `Criancas.childId` (CRI-XXXX) é o **ID público** exibido no app, mas não é usado como FK hoje.
+- `Criancas.childId` (CRI‑XXXX) é o **ID público** exibido no app, não é FK.
 
 ## 3. API (sync.js)
 **Base**: `https://<lumine-api>.vercel.app/api/sync`
 
 ### Endpoints
-- **GET /api/sync** — Retorna todos os dados.
+- **GET /api/sync** — Retorna todos os dados + `dataRev`.
 - **POST /api/sync** — Ações:
   - `sync`: sobrescreve `Criancas` e `Registros` com payload completo.
   - `addChild`: adiciona uma criança (gera `childId` se vazio).
   - `addRecord`: adiciona um registro diário.
 
-### Request/Response (resumo)
+### Estrutura de request/response (resumo)
 **GET**
-```json
-{
-  "success": true,
-  "data": { "children": [ ... ], "records": [ ... ] },
-  "lastSync": "2026-01-15T18:17:49.660Z"
-}
-```
+- Resposta: `success`, `data { children, records }`, `dataRev`, `lastSync`.
 
-**POST / sync**
-```json
-{ "action": "sync", "data": { "children": [...], "records": [...] } }
-```
-**POST / addChild**
-```json
-{ "action": "addChild", "data": { "name": "...", "...": "..." } }
-```
-**POST / addRecord**
-```json
-{ "action": "addRecord", "data": { "childId": "...", "date": "..." } }
-```
+**POST action: sync**
+- Entrada: `{ action:'sync', ifMatchRev, data:{ children, records } }`
+- Saída: `{ success:true, dataRev, lastSync }`
+
+**POST action: addChild**
+- Entrada: `{ action:'addChild', data:{...child} }`
+- Saída: `{ success:true, dataRev, childId }`
+
+**POST action: addRecord**
+- Entrada: `{ action:'addRecord', data:{...record} }`
+- Saída: `{ success:true, dataRev }`
 
 ### Variáveis de ambiente
 - `SPREADSHEET_ID`
-- `GOOGLE_CREDENTIALS` (JSON completo da service account)
-- `API_TOKEN` (token Bearer da API)
+- `GOOGLE_CREDENTIALS` (JSON da service account)
+- `API_TOKEN` (token Bearer)
 - `ORIGINS_ALLOWLIST` (domínios permitidos)
 - `BACKUP_ENABLED` (true/false)
 - `BACKUP_SPREADSHEET_ID` (planilha de backup)
 
 ### Tratamento de erros
-- `400` para ação não reconhecida.
-- `500` com `{ success:false, error, details }` em falhas internas.
-- CORS restrito por allowlist (Origin dinâmico).
-
-### Observação sobre datas
-A API grava datas como **serial number** do Sheets (para visualização legível) e converte de volta para **ISO** no retorno para o app.
+- `401` para token inválido/ausente.
+- `403` para origin não permitido.
+- `400` para payload inválido ou ifMatchRev ausente.
+- `409` para `REVISION_MISMATCH` e `DATA_LOSS_PREVENTED`.
+- `413` para payload grande.
+- `500` para falhas internas.
 
 ## 4. WEBAPP (App.js)
 
@@ -165,119 +170,105 @@ A API grava datas como **serial number** do Sheets (para visualização legível
 - `children` (`localStorage: lumine_children`)
 - `dailyRecords` (`localStorage: lumine_records`)
 - `lastSync` (`localStorage: lumine_last_sync`)
+- `dataRev` (`localStorage: lumine_data_rev`)
 - `view`, `selectedChild`, `searchTerm`
-- `syncStatus`, `syncError`, `pendingChanges`, `isOnline`
+- `syncStatus`, `syncError`, `pendingChanges`, `isOnline`, `overwriteBlocked`
 
 ### Fluxo de sincronização
-- **Manual**: botão Sync chama `POST /api/sync`.
-- **Pré-check**: `GET /api/sync` compara quantidade; se servidor tiver mais dados, pergunta se deseja sobrescrever.
-- **Download**: botão “Baixar” chama `GET /api/sync` e substitui estado local.
+- **Download**: botão “Baixar” faz GET e substitui estado local.
+- **Sync (overwrite)**: antes de enviar, faz GET para comparar `dataRev`.
+  - Se servidor > local: bloqueia overwrite e orienta baixar.
+  - Se igual: envia `sync` com `ifMatchRev`.
+- **Append**: `addChild` / `addRecord` atualizam `dataRev` silenciosamente.
 - **Offline**: grava em `localStorage` e marca `pendingChanges`.
-- **Auto-sync**: se online e com pendências, tenta a cada 5 minutos.
 
 ### Regras de negócio implementadas
-- Só crianças com `enrollmentStatus === 'matriculado'` entram no **registro diário**.
+- Apenas `enrollmentStatus === 'matriculado'` entram no registro diário.
 - Triagem exige campos mínimos (nome, nascimento, responsável, telefone, bairro, escola, turno, origem, ida/volta sozinho).
 - Matrícula exige data de início, dias de participação, quem busca, pode sair sozinho e termo aceito.
 - Se `canLeaveAlone=sim`, exige autorização e confirmação textual.
-- Alertas: 3+ faltas seguidas nos últimos 7 dias (para matriculados).
-- Excluir criança remove também seus registros.
+- Alertas: sequência de faltas baseada nos últimos 14 dias e `participationDays`.
+- Exclusão remove também registros da criança (ação local + sync).
 
 ## 5. MODELO DE DADOS
 
 ### Child (objeto criança)
-```json
-{
-  "id": "string",
-  "childId": "CRI-0001",
-  "name": "string",
-  "birthDate": "YYYY-MM-DD",
-  "guardianName": "string",
-  "guardianPhone": "string",
-  "guardianPhoneAlt": "string",
-  "school": "string",
-  "schoolShift": "manhã|tarde|integral",
-  "grade": "string",
-  "neighborhood": "string",
-  "referralSource": "igreja|escola|CRAS|indicação|redes_sociais|outro",
-  "schoolCommuteAlone": "sim|nao",
-  "healthCareNeeded": "sim|nao",
-  "healthNotes": "string",
-  "dietaryRestriction": "sim|nao",
-  "specialNeeds": "string",
-  "triageNotes": "string",
-  "priority": "alta|média|baixa",
-  "priorityReason": "string",
-  "enrollmentStatus": "pre_inscrito|em_triagem|aprovado|lista_espera|matriculado|recusado|desistente|inativo",
-  "enrollmentDate": "ISO",
-  "triageDate": "ISO",
-  "startDate": "YYYY-MM-DD",
-  "participationDays": ["seg","ter","qua","qui","sex"],
-  "authorizedPickup": "string",
-  "canLeaveAlone": "sim|nao",
-  "leaveAloneConsent": true,
-  "leaveAloneConfirmation": "string",
-  "responsibilityTerm": true,
-  "consentTerm": true,
-  "imageConsent": "interno|comunicacao|''",
-  "documentsReceived": ["certidão_nascimento","documento_responsável","comprovante_residência"],
-  "initialObservations": "string",
-  "classGroup": "pré_alfabetização|alfabetização|fundamental_1|fundamental_2",
-  "matriculationDate": "ISO",
-  "enrollmentHistory": [{"date":"ISO","action":"status","notes":"..."}],
-  "entryDate": "YYYY-MM-DD",
-  "createdAt": "ISO"
-}
-```
+Campos principais:
+- Identificação: `id`, `childId`, `createdAt`.
+- Triagem: `name`, `birthDate`, `guardianName`, `guardianPhone`, `school`, `schoolShift`, `neighborhood`, `referralSource`, `schoolCommuteAlone`, `priority`, `priorityReason`, `triageNotes`, `enrollmentStatus`, `enrollmentDate`, `triageDate`.
+- Matrícula: `startDate`, `participationDays`, `authorizedPickup`, `canLeaveAlone`, `leaveAloneConsent`, `leaveAloneConfirmation`, `responsibilityTerm`, `consentTerm`, `imageConsent`, `documentsReceived`, `classGroup`, `matriculationDate`.
+- Histórico: `enrollmentHistory` (array JSON).
+- Legado: `entryDate`.
 
-### Record (registro diário)
-```json
-{
-  "id": "string",
-  "childId": "string (id interno da criança)",
-  "date": "YYYY-MM-DD",
-  "attendance": "present|late|absent",
-  "participation": "high|medium|low",
-  "mood": "happy|neutral|sad",
-  "interaction": "high|medium|low",
-  "activity": "string",
-  "performance": "high|medium|low",
-  "notes": "string",
-  "familyContact": "yes|no",
-  "contactReason": "routine|praise|behavior|absence|other"
-}
-```
+**Enums/selects**
+- `schoolShift`: manhã | tarde | integral
+- `referralSource`: igreja | escola | CRAS | indicação | redes_sociais | outro
+- `enrollmentStatus`: pre_inscrito | em_triagem | aprovado | lista_espera | matriculado | recusado | desistente | inativo
+- `priority`: alta | média | baixa
+- `participationDays`: seg | ter | qua | qui | sex | sab | dom
+- `canLeaveAlone`: sim | nao
+- `imageConsent`: interno | comunicacao | ''
+
+### Record (objeto registro)
+Campos principais:
+- Identificação: `id`, `childInternalId` (interno), `childId` (compat = interno)
+- Registro: `date`, `attendance`, `participation`, `mood`, `interaction`, `activity`, `performance`, `notes`, `familyContact`, `contactReason`
+
+**Enums/selects**
+- `attendance`: present | late | absent
+- `participation`: high | medium | low
+- `mood`: happy | neutral | sad | agitated | calm | quiet | irritated
+- `interaction`: high | medium | low
+- `performance`: high | medium | low
+- `familyContact`: yes | no
+- `contactReason`: routine | praise | behavior | absence | other
 
 ## 6. FLUXOS CRÍTICOS
 
-### Fluxo de matrícula (status)
-1. **Triagem**: salva com status `em_triagem` (ou `aprovado`/`lista_espera`/`recusado` se escolhido).
-2. **Matrícula**: só habilitada quando triagem está `aprovado`.
-3. **Histórico**: cada mudança gera evento em `enrollmentHistory`.
-
-**Transições possíveis (UI):** em_triagem → aprovado/lista_espera/recusado → matriculado (via validação de campos).
+### Fluxo de matrícula (status e transições)
+- Triagem → (aprovado | lista_espera | recusado)
+- aprovado → matriculado
+- lista_espera → aprovado → matriculado
+- matriculado → inativo | desistente
 
 ### Fluxo de registro diário
-- Mostra apenas crianças `matriculado`.
-- Registro rápido (presente/ausente) ou detalhado.
-- Salva local e tenta sincronizar; offline mantém no dispositivo.
+- Só crianças matriculadas aparecem no registro.
+- Registro rápido ou detalhado gera um `record` por criança/dia.
+- Dados ficam offline até sincronização.
 
 ### Fluxo de sincronização
-- **Baixar**: substitui dados locais pelos do servidor.
-- **Sync**: envia dados locais (sobrescreve planilhas).
-- **Pré-check**: alerta se o servidor possui mais registros.
+1. Operador clica “Sync”.
+2. App faz GET e compara `dataRev`.
+3. Se servidor > local: exige baixar antes.
+4. Se igual: envia overwrite com `ifMatchRev`.
+5. API valida, gera backup secundário, grava e incrementa `DATA_REV`.
 
 ## 7. SEGURANÇA E PERMISSÕES
-- **Google Sheets**: acesso via service account (`GOOGLE_CREDENTIALS`).
-- **Sem autenticação de usuário** no app ou na API (acesso por URL).
-- **Dados sensíveis**: saúde, necessidades especiais e notas internas ficam apenas em detalhes, não em listas.
-- **Armazenamento local**: dados em `localStorage` sem criptografia.
+
+### Autenticação com Google Sheets
+- Service account (JSON em variável de ambiente) autoriza a API a ler/escrever a planilha.
+
+### Acesso
+- API exige token Bearer.
+- CORS/Origin com allowlist (barreira de navegador).
+- Não há autenticação por usuário (acesso único).
+
+### Dados sensíveis
+- Campos sensíveis ficam apenas no detalhe da criança no app.
+- Dados ficam no Sheets institucional + cache local (localStorage).
 
 ## 8. PONTOS DE ATENÇÃO
-- `Registros.childId` usa **ID interno (`Criancas.id`)**, não o `CRI-0001`.
-- Sincronização `sync` sobrescreve toda a planilha (risco de perda se houver concorrência).
-- Não há autenticação: quem tiver a URL da API pode ler/escrever.
-- Google Sheets como “banco”: pode limitar performance se crescer muito.
-- Campos booleanos/sim-nao dependem de normalização no app.
-- `records.createdAt` não é persistido no Sheets.
-- `enrollmentHistory` é JSON string: edição manual pode corromper.
+
+### Limitações conhecidas
+- Token visível no bundle do frontend.
+- Sem autenticação por usuário.
+- Dados locais não criptografados.
+- Dependência de Google Sheets (limites e latência).
+
+### Débitos técnicos
+- Migração futura para renomear `Registros.childId` para `childInternalId`.
+- Automatizar backups adicionais (snapshots/Drive) se necessário.
+
+### Riscos identificados
+- Overwrite indevido sem treinamento (mitigado por `DATA_REV` e bloqueios).
+- Falhas de conexão em campo (mitigadas por offline‑first).
