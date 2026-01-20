@@ -26,13 +26,32 @@ import {
   Clock,
 } from 'lucide-react';
 
+function getDeviceId() {
+  if (typeof window === 'undefined' || !window.localStorage) return '';
+  const stored = localStorage.getItem('lumine_device_id');
+  if (stored) return stored;
+  const generated =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  localStorage.setItem('lumine_device_id', generated);
+  return generated;
+}
+
 // ============================================
 // CONFIGURAÇÃO
 // ============================================
 const API_URL = 'https://lumine-api-7qnj.vercel.app/api/sync';
 const API_TOKEN = process.env.REACT_APP_API_TOKEN || '';
+const APP_VERSION = process.env.REACT_APP_APP_VERSION || '';
+const DEVICE_ID = getDeviceId();
+const META_HEADERS = {
+  ...(DEVICE_ID ? { 'X-Device-Id': DEVICE_ID } : {}),
+  ...(APP_VERSION ? { 'X-App-Version': APP_VERSION } : {}),
+};
 const AUTH_HEADERS = API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {};
-const JSON_HEADERS = { 'Content-Type': 'application/json', ...AUTH_HEADERS };
+const BASE_HEADERS = { ...AUTH_HEADERS, ...META_HEADERS };
+const JSON_HEADERS = { 'Content-Type': 'application/json', ...BASE_HEADERS };
 
 const ENROLLMENT_STATUS_META = {
   pre_inscrito: { label: 'Pré-inscrito', className: 'bg-gray-100 text-gray-600' },
@@ -491,7 +510,7 @@ export default function LumineTracker() {
 
     if (!payload) {
       try {
-        const preRes = await fetch(API_URL, { headers: AUTH_HEADERS });
+        const preRes = await fetch(API_URL, { headers: BASE_HEADERS });
         let preData = null;
         try {
           preData = await preRes.json();
@@ -600,7 +619,7 @@ export default function LumineTracker() {
     setSyncStatus('syncing');
     setSyncError('');
     try {
-      const res = await fetch(API_URL, { headers: AUTH_HEADERS });
+      const res = await fetch(API_URL, { headers: BASE_HEADERS });
       let result = null;
       try {
         result = await res.json();
@@ -716,24 +735,52 @@ export default function LumineTracker() {
     setPendingChanges(p => p + 1);
   };
 
-  // Adicionar registro
+  // Adicionar registro (evita duplicidade por criança/dia)
   const addDailyRecord = async data => {
     const internalId = data.childInternalId || data.childId || '';
-    const newRecord = {
-      ...data,
-      childInternalId: internalId,
-      childId: internalId,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setDailyRecords(prev => [...prev, newRecord]);
+    const dateKey = data.date ? data.date.split('T')[0] : '';
+    const now = new Date().toISOString();
+    const existingIndex = dailyRecords.findIndex(
+      record => record.childInternalId === internalId && record.date?.split('T')[0] === dateKey
+    );
+
+    let recordPayload = null;
+    let nextRecords = [];
+
+    if (existingIndex >= 0) {
+      const existing = dailyRecords[existingIndex];
+      recordPayload = {
+        ...existing,
+        ...data,
+        childInternalId: internalId,
+        childId: internalId,
+      };
+      nextRecords = [...dailyRecords];
+      nextRecords[existingIndex] = recordPayload;
+    } else {
+      recordPayload = {
+        ...data,
+        childInternalId: internalId,
+        childId: internalId,
+        id: Date.now().toString(),
+        createdAt: now,
+      };
+      nextRecords = [...dailyRecords, recordPayload];
+    }
+
+    setDailyRecords(nextRecords);
     setPendingChanges(p => p + 1);
+
     if (isOnline) {
+      if (existingIndex >= 0) {
+        await syncWithServer({ children, records: nextRecords });
+        return;
+      }
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: JSON_HEADERS,
-          body: JSON.stringify({ action: 'addRecord', data: newRecord }),
+          body: JSON.stringify({ action: 'addRecord', data: recordPayload }),
         });
         const result = await res.json().catch(() => null);
         if (typeof result?.dataRev === 'number') {
@@ -750,24 +797,35 @@ export default function LumineTracker() {
     window.location.reload();
   }, []);
 
-  // Excluir criança e registros
-  const deleteChild = async childId => {
+  // Inativar criança (mantém registros)
+  const inactivateChild = async childId => {
     const confirmed = window.confirm(
-      'Excluir este cadastro e todos os registros desta criança? Esta ação não pode ser desfeita.'
+      'Marcar esta criança como inativa? Os registros serão mantidos.'
     );
     if (!confirmed) return;
 
-    const nextChildren = children.filter(child => child.id !== childId);
-    const nextRecords = dailyRecords.filter(record => record.childInternalId !== childId);
+    const now = new Date().toISOString();
+    let updatedChild = null;
+    const nextChildren = children.map(child => {
+      if (child.id !== childId) return child;
+      const history = Array.isArray(child.enrollmentHistory) ? child.enrollmentHistory : [];
+      updatedChild = {
+        ...child,
+        enrollmentStatus: 'inativo',
+        enrollmentHistory: [
+          ...history,
+          { date: now, action: 'inativo', notes: 'Cadastro inativado' },
+        ],
+      };
+      return updatedChild;
+    });
 
     setChildren(nextChildren);
-    setDailyRecords(nextRecords);
-    setSelectedChild(null);
-    setView('children');
+    if (updatedChild) setSelectedChild(updatedChild);
     setPendingChanges(p => p + 1);
 
     if (isOnline) {
-      await syncWithServer({ children: nextChildren, records: nextRecords });
+      await syncWithServer({ children: nextChildren, records: dailyRecords });
     }
   };
 
@@ -1035,10 +1093,10 @@ export default function LumineTracker() {
         {view === 'child-detail' && selectedChild && (
           <>
             <div className="lg:hidden">
-              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} onDelete={deleteChild} onUpdateChild={updateChild} />
+              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} onDelete={inactivateChild} onUpdateChild={updateChild} />
             </div>
             <div className="hidden lg:block">
-              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} onDelete={deleteChild} onUpdateChild={updateChild} />
+              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} onDelete={inactivateChild} onUpdateChild={updateChild} />
             </div>
           </>
         )}
@@ -2792,13 +2850,13 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
 
       <div className="rounded-xl bg-white p-4 shadow-sm">
         <h3 className="font-semibold text-gray-800">Ações</h3>
-        <p className="mt-1 text-xs text-gray-500">Excluir remove também todos os registros desta criança.</p>
+        <p className="mt-1 text-xs text-gray-500">Inativar mantém os registros desta criança.</p>
         <button
           type="button"
           onClick={() => onDelete && onDelete(child.id)}
           className="mt-3 w-full rounded-xl bg-red-50 py-3 text-sm font-semibold text-red-700 hover:bg-red-100"
         >
-          Excluir cadastro
+          Inativar cadastro
         </button>
       </div>
 
@@ -3330,13 +3388,13 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
 
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <h3 className="font-semibold text-gray-800">Ações</h3>
-          <p className="mt-1 text-xs text-gray-500">Excluir remove também todos os registros desta criança.</p>
+          <p className="mt-1 text-xs text-gray-500">Inativar mantém os registros desta criança.</p>
           <button
             type="button"
             onClick={() => onDelete && onDelete(child.id)}
             className="mt-3 w-full rounded-xl bg-red-50 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
           >
-            Excluir cadastro
+            Inativar cadastro
           </button>
         </div>
       </div>

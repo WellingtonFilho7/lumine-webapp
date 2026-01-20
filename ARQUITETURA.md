@@ -1,7 +1,7 @@
 # Arquitetura — Sistema Lumine
 
 ## 1. VISÃO GERAL
-O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompanhamento diário de crianças. Os dados ficam no `localStorage` durante o uso em campo e são sincronizados com uma API simples hospedada no Vercel, que persiste tudo em Google Sheets. O foco é operação leve, uso em celular e consistência de dados com múltiplos operadores.
+O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompanhamento diário de crianças. Os dados ficam no `localStorage` durante o uso em campo e são sincronizados com uma API simples hospedada no Vercel, que persiste em Google Sheets. O foco é operação leve, uso em celular e consistência de dados com múltiplos operadores.
 
 **Stack tecnológico**
 - Webapp: React 18 (Create React App), Tailwind CSS via CDN, lucide-react.
@@ -11,7 +11,7 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 
 **Diagrama ASCII (fluxo de dados)**
 ```
-[Operador] 
+[Operador]
    │
    ▼
 [Webapp React] ──(GET/POST /api/sync)──▶ [API Vercel sync.js] ──▶ [Google Sheets]
@@ -34,7 +34,7 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 | Campo | Tipo | Obrigatório | Observação |
 |---|---|---|---|
 | id | string | sim | ID interno (timestamp). |
-| childId | string | sim | ID público (CRI-0001…). |
+| childId | string | sim | ID público (CRI‑0001…). |
 | name | string | sim (triagem) | Nome completo. |
 | birthDate | date | sim (triagem) | Data de nascimento. |
 | guardianName | string | sim (triagem) | Responsável principal. |
@@ -94,7 +94,7 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 | Campo | Tipo | Obrigatório | Observação |
 |---|---|---|---|
 | Campo | string | sim | Ex.: NEXT_CHILD_ID, DATA_REV |
-| Valor | string/number | sim | Próximo número para CRI-XXXX e revisão do servidor |
+| Valor | string/number | sim | Próximo número para CRI‑XXXX e revisão do servidor |
 
 ### Audit — Colunas (tipo, obrigatório)
 | Campo | Tipo | Obrigatório | Observação |
@@ -106,9 +106,12 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 | recordsCount | number | sim | contagem de registros |
 | result | string | sim | success/error |
 | message | string | não | detalhe curto |
+| deviceId | string | não | identificador do dispositivo (local) |
+| appVersion | string | não | versão do app (env) |
 
-### Relações entre abas
-- `Criancas.id` (interno) **conecta** com `Registros.childId`.
+### Relações entre abas (regra de ouro)
+- **Registros.childId = ID interno da criança (Criancas.id).**
+- No app, o mesmo valor é chamado de `childInternalId` (nome correto para evitar confusão).
 - `Criancas.childId` (CRI‑XXXX) é o **ID público** exibido no app, não é FK.
 
 ## 3. API (sync.js)
@@ -122,36 +125,34 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
   - `addRecord`: adiciona um registro diário.
 
 ### Estrutura de request/response (resumo)
-**GET**
-- Resposta: `success`, `data { children, records }`, `dataRev`, `lastSync`.
-
-**POST action: sync**
-- Entrada: `{ action:'sync', ifMatchRev, data:{ children, records } }`
-- Saída: `{ success:true, dataRev, lastSync }`
-
-**POST action: addChild**
-- Entrada: `{ action:'addChild', data:{...child} }`
-- Saída: `{ success:true, dataRev, childId }`
-
-**POST action: addRecord**
-- Entrada: `{ action:'addRecord', data:{...record} }`
-- Saída: `{ success:true, dataRev }`
+- **GET**: `success`, `data { children, records }`, `dataRev`, `lastSync`.
+- **POST sync**: entrada `{ action:'sync', ifMatchRev, data }`, saída `{ success:true, dataRev }`.
+- **POST addChild**: saída inclui `childId` e `dataRev`.
+- **POST addRecord**: saída inclui `dataRev`.
 
 ### Variáveis de ambiente
 - `SPREADSHEET_ID`
 - `GOOGLE_CREDENTIALS` (JSON da service account)
 - `API_TOKEN` (token Bearer)
 - `ORIGINS_ALLOWLIST` (domínios permitidos)
+  - Ex.: produção `https://lumine-webapp.vercel.app`
+  - Ex.: dev `http://localhost:3000`
 - `BACKUP_ENABLED` (true/false)
 - `BACKUP_SPREADSHEET_ID` (planilha de backup)
 
 ### Tratamento de erros
 - `401` para token inválido/ausente.
 - `403` para origin não permitido.
-- `400` para payload inválido ou ifMatchRev ausente.
+- `400` para payload inválido ou `ifMatchRev` ausente.
 - `409` para `REVISION_MISMATCH` e `DATA_LOSS_PREVENTED`.
 - `413` para payload grande.
 - `500` para falhas internas.
+
+### Datas
+A API normaliza datas para **serial do Sheets** no armazenamento e retorna **ISO** para o app. Essa regra é única e deve ser preservada.
+
+### Backup secundário
+A service account precisa ter **permissão de Editor** na planilha de backup, caso contrário o backup não ocorre.
 
 ## 4. WEBAPP (App.js)
 
@@ -171,8 +172,9 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 - `dailyRecords` (`localStorage: lumine_records`)
 - `lastSync` (`localStorage: lumine_last_sync`)
 - `dataRev` (`localStorage: lumine_data_rev`)
+- `pendingChanges` (contador local de alterações não sincronizadas)
 - `view`, `selectedChild`, `searchTerm`
-- `syncStatus`, `syncError`, `pendingChanges`, `isOnline`, `overwriteBlocked`
+- `syncStatus`, `syncError`, `isOnline`, `overwriteBlocked`
 
 ### Fluxo de sincronização
 - **Download**: botão “Baixar” faz GET e substitui estado local.
@@ -180,7 +182,8 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
   - Se servidor > local: bloqueia overwrite e orienta baixar.
   - Se igual: envia `sync` com `ifMatchRev`.
 - **Append**: `addChild` / `addRecord` atualizam `dataRev` silenciosamente.
-- **Offline**: grava em `localStorage` e marca `pendingChanges`.
+- **Após baixar**: normalmente não é necessário overwrite; continue operando via append.
+- **Offline**: grava em `localStorage` e marca pendências.
 
 ### Regras de negócio implementadas
 - Apenas `enrollmentStatus === 'matriculado'` entram no registro diário.
@@ -188,7 +191,8 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 - Matrícula exige data de início, dias de participação, quem busca, pode sair sozinho e termo aceito.
 - Se `canLeaveAlone=sim`, exige autorização e confirmação textual.
 - Alertas: sequência de faltas baseada nos últimos 14 dias e `participationDays`.
-- Exclusão remove também registros da criança (ação local + sync).
+- Inativação substitui exclusão: mantém histórico e registros.
+- Registro diário evita duplicidade por criança/dia: se existir, atualiza o registro local e sincroniza via overwrite.
 
 ## 5. MODELO DE DADOS
 
@@ -234,6 +238,7 @@ Campos principais:
 ### Fluxo de registro diário
 - Só crianças matriculadas aparecem no registro.
 - Registro rápido ou detalhado gera um `record` por criança/dia.
+- Se já existir registro no dia, o app atualiza o existente.
 - Dados ficam offline até sincronização.
 
 ### Fluxo de sincronização
@@ -246,7 +251,7 @@ Campos principais:
 ## 7. SEGURANÇA E PERMISSÕES
 
 ### Autenticação com Google Sheets
-- Service account (JSON em variável de ambiente) autoriza a API a ler/escrever a planilha.
+- Service account (JSON em variável de ambiente) autoriza a API a ler/escrever as planilhas principal e de backup.
 
 ### Acesso
 - API exige token Bearer.
@@ -255,7 +260,7 @@ Campos principais:
 
 ### Dados sensíveis
 - Campos sensíveis ficam apenas no detalhe da criança no app.
-- Dados ficam no Sheets institucional + cache local (localStorage).
+- Dados ficam no Sheets institucional + cache local (`localStorage`).
 
 ## 8. PONTOS DE ATENÇÃO
 
@@ -267,7 +272,8 @@ Campos principais:
 
 ### Débitos técnicos
 - Migração futura para renomear `Registros.childId` para `childInternalId`.
-- Automatizar backups adicionais (snapshots/Drive) se necessário.
+- A coluna `childName` (PROCV) é conveniência; pode ficar lenta em volumes altos.
+- Considerar cache de `childName` no record ou XLOOKUP quando disponível.
 
 ### Riscos identificados
 - Overwrite indevido sem treinamento (mitigado por `DATA_REV` e bloqueios).
