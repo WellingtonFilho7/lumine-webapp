@@ -89,6 +89,7 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 | familyContact | select | não | yes/no. |
 | contactReason | select | não | routine/praise/behavior/absence/other. |
 | childName | fórmula | não | Coluna derivada via `PROCV` para identificar a criança. |
+| childPublicId | fórmula | não | Coluna derivada (CRI‑XXXX) via `PROCV`. |
 
 ### Config — Colunas (tipo, obrigatório)
 | Campo | Tipo | Obrigatório | Observação |
@@ -113,6 +114,7 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 - **Registros.childId = ID interno da criança (Criancas.id).**
 - No app, o mesmo valor é chamado de `childInternalId` (nome correto para evitar confusão).
 - `Criancas.childId` (CRI‑XXXX) é o **ID público** exibido no app, não é FK.
+- `Registros.childPublicId` é uma coluna derivada para visualização.
 
 ## 3. API (sync.js)
 **Base**: `https://<lumine-api>.vercel.app/api/sync`
@@ -172,6 +174,7 @@ A service account precisa ter **permissão de Editor** na planilha de backup, ca
 - `dailyRecords` (`localStorage: lumine_records`)
 - `lastSync` (`localStorage: lumine_last_sync`)
 - `dataRev` (`localStorage: lumine_data_rev`)
+- `reviewMode` (`localStorage: lumine_review_mode`)
 - `pendingChanges` (contador local de alterações não sincronizadas)
 - `view`, `selectedChild`, `searchTerm`
 - `syncStatus`, `syncError`, `isOnline`, `overwriteBlocked`
@@ -183,6 +186,7 @@ A service account precisa ter **permissão de Editor** na planilha de backup, ca
   - Se igual: envia `sync` com `ifMatchRev`.
 - **Append**: `addChild` / `addRecord` atualizam `dataRev` silenciosamente.
 - **Após baixar**: normalmente não é necessário overwrite; continue operando via append.
+- **Modo revisão**: desativa overwrite automático (auto‑sync e updates automáticos).
 - **Offline**: grava em `localStorage` e marca pendências.
 
 ### Regras de negócio implementadas

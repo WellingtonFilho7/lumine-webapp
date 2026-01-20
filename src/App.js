@@ -458,6 +458,7 @@ export default function LumineTracker() {
   const [syncError, setSyncError] = useState('');
   const [lastSync, setLastSync] = useLocalStorage('lumine_last_sync', null);
   const [dataRev, setDataRev] = useLocalStorage('lumine_data_rev', 0);
+  const [reviewMode, setReviewMode] = useLocalStorage('lumine_review_mode', false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [overwriteBlocked, setOverwriteBlocked] = useState(false);
   const [syncModal, setSyncModal] = useState(null);
@@ -656,12 +657,12 @@ export default function LumineTracker() {
 
   // Auto-sync a cada 5 min
   useEffect(() => {
-    if (isOnline && pendingChanges > 0 && !overwriteBlocked) {
+    if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {
       const interval = setInterval(() => syncWithServer(), 5 * 60 * 1000);
       return () => clearInterval(interval);
     }
     return undefined;
-  }, [isOnline, pendingChanges, overwriteBlocked, syncWithServer]);
+  }, [isOnline, pendingChanges, overwriteBlocked, reviewMode, syncWithServer]);
 
   // Adicionar criança
   const addChild = async data => {
@@ -773,7 +774,9 @@ export default function LumineTracker() {
 
     if (isOnline) {
       if (existingIndex >= 0) {
-        await syncWithServer({ children, records: nextRecords });
+        if (!reviewMode) {
+          await syncWithServer({ children, records: nextRecords });
+        }
         return;
       }
       try {
@@ -796,38 +799,6 @@ export default function LumineTracker() {
     localStorage.clear();
     window.location.reload();
   }, []);
-
-  // Inativar criança (mantém registros)
-  const inactivateChild = async childId => {
-    const confirmed = window.confirm(
-      'Marcar esta criança como inativa? Os registros serão mantidos.'
-    );
-    if (!confirmed) return;
-
-    const now = new Date().toISOString();
-    let updatedChild = null;
-    const nextChildren = children.map(child => {
-      if (child.id !== childId) return child;
-      const history = Array.isArray(child.enrollmentHistory) ? child.enrollmentHistory : [];
-      updatedChild = {
-        ...child,
-        enrollmentStatus: 'inativo',
-        enrollmentHistory: [
-          ...history,
-          { date: now, action: 'inativo', notes: 'Cadastro inativado' },
-        ],
-      };
-      return updatedChild;
-    });
-
-    setChildren(nextChildren);
-    if (updatedChild) setSelectedChild(updatedChild);
-    setPendingChanges(p => p + 1);
-
-    if (isOnline) {
-      await syncWithServer({ children: nextChildren, records: dailyRecords });
-    }
-  };
 
   // Stats
   const getStats = () => {
@@ -1093,10 +1064,10 @@ export default function LumineTracker() {
         {view === 'child-detail' && selectedChild && (
           <>
             <div className="lg:hidden">
-              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} onDelete={inactivateChild} onUpdateChild={updateChild} />
+              <ChildDetailView child={selectedChild} dailyRecords={dailyRecords} setView={setView} onUpdateChild={updateChild} />
             </div>
             <div className="hidden lg:block">
-              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} onDelete={inactivateChild} onUpdateChild={updateChild} />
+              <ChildDetailDesktop child={selectedChild} dailyRecords={dailyRecords} onUpdateChild={updateChild} />
             </div>
           </>
         )}
@@ -1130,6 +1101,8 @@ export default function LumineTracker() {
             isOnline={isOnline}
             overwriteBlocked={overwriteBlocked}
             clearLocalData={clearLocalData}
+            reviewMode={reviewMode}
+            setReviewMode={setReviewMode}
           />
         )}
       </main>
@@ -2416,7 +2389,7 @@ function AddChildView({ addChild, setView }) {
 // ============================================
 // DETALHES DA CRIANÇA
 // ============================================
-function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
+function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
   const childRecords = dailyRecords
     .filter(r => r.childInternalId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -2848,18 +2821,7 @@ function ChildDetailView({ child, dailyRecords, onDelete, onUpdateChild }) {
         <InfoRow icon={Clock} label="Entrada" value={formatDate(child.entryDate)} />
       </div>
 
-      <div className="rounded-xl bg-white p-4 shadow-sm">
-        <h3 className="font-semibold text-gray-800">Ações</h3>
-        <p className="mt-1 text-xs text-gray-500">Inativar mantém os registros desta criança.</p>
-        <button
-          type="button"
-          onClick={() => onDelete && onDelete(child.id)}
-          className="mt-3 w-full rounded-xl bg-red-50 py-3 text-sm font-semibold text-red-700 hover:bg-red-100"
-        >
-          Inativar cadastro
-        </button>
-      </div>
-
+      
       {/* Histórico de status */}
       <div className="rounded-xl bg-white p-4 shadow-sm">
         <h3 className="mb-3 font-semibold text-gray-800">Histórico da matrícula</h3>
@@ -2956,7 +2918,7 @@ function InfoRow({ icon: Icon, label, value }) {
   );
 }
 
-function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
+function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
   const childRecords = dailyRecords
     .filter(r => r.childInternalId === child.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -3386,18 +3348,7 @@ function ChildDetailDesktop({ child, dailyRecords, onDelete, onUpdateChild }) {
           <InfoRow icon={Clock} label="Entrada" value={formatDate(child.entryDate)} />
         </div>
 
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <h3 className="font-semibold text-gray-800">Ações</h3>
-          <p className="mt-1 text-xs text-gray-500">Inativar mantém os registros desta criança.</p>
-          <button
-            type="button"
-            onClick={() => onDelete && onDelete(child.id)}
-            className="mt-3 w-full rounded-xl bg-red-50 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
-          >
-            Inativar cadastro
-          </button>
-        </div>
-      </div>
+              </div>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
@@ -4118,6 +4069,8 @@ function ConfigView({
   isOnline,
   overwriteBlocked,
   clearLocalData,
+  reviewMode,
+  setReviewMode,
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -4247,6 +4200,24 @@ function ConfigView({
             Baixar
           </button>
         </div>
+      </div>
+
+      {/* Modo revisão */}
+      <div className="space-y-3 rounded-xl bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800">Modo revisão</h3>
+          <label className="inline-flex items-center">
+            <input
+              type="checkbox"
+              checked={reviewMode}
+              onChange={e => setReviewMode(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300 text-indigo-600"
+            />
+          </label>
+        </div>
+        <p className="text-sm text-gray-500">
+          Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
+        </p>
       </div>
 
       {/* Backup */}
@@ -4436,6 +4407,25 @@ function ConfigView({
                 <p className="text-xs text-amber-600">Refeições</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-800">Modo revisão</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
+              </p>
+            </div>
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={reviewMode}
+                onChange={e => setReviewMode(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-indigo-600"
+              />
+            </label>
           </div>
         </div>
 
