@@ -4,6 +4,8 @@
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';
+import * as AlertDialog from '@radix-ui/react-alert-dialog';
+import * as Dialog from '@radix-ui/react-dialog';
 import {
   Calendar,
   Users,
@@ -25,6 +27,7 @@ import {
   School,
   Clock,
 } from 'lucide-react';
+import { cn } from './utils/cn';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -190,14 +193,14 @@ const STATUS_FIELD_LABELS = {
   school: 'Escola',
   schoolShift: 'Turno escolar',
   referralSource: 'Origem do contato',
-  schoolCommuteAlone: 'Vai e volta sozinha da escola',
+  schoolCommuteAlone: 'Vai e volta desacompanhada da escola',
   startDate: 'Data de início',
   participationDays: 'Dias de participação',
-  authorizedPickup: 'Quem pode buscar',
-  canLeaveAlone: 'Pode ir embora sozinha',
-  leaveAloneConsent: 'Autorização de saída sozinha',
+  authorizedPickup: 'Pessoas autorizadas a retirar',
+  canLeaveAlone: 'Pode sair desacompanhada',
+  leaveAloneConsent: 'Autorização de saída desacompanhada',
   leaveAloneConfirmation: 'Confirmação da autorização',
-  termsAccepted: 'Termo de responsabilidade e consentimento',
+  termsAccepted: 'Termo de Responsabilidade e Consentimento',
 };
 
 function buildStatusFormData(child) {
@@ -896,7 +899,7 @@ export default function LumineTracker() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20 lg:flex lg:h-screen lg:overflow-hidden lg:pb-0">
+    <div className="min-h-dvh bg-gray-100 pb-20 lg:flex lg:h-dvh lg:overflow-hidden lg:pb-0">
       <Sidebar view={view} setView={setView} lastSync={lastSync} isOnline={isOnline} />
       <div className="flex-1 lg:flex lg:flex-col lg:overflow-hidden">
       {/* ========== HEADER COMPACTO ========== */}
@@ -907,26 +910,26 @@ export default function LumineTracker() {
               <button
                 onClick={() => setView(view === 'add-child' ? 'children' : 'children')}
                 className="p-1"
+                aria-label="Voltar"
               >
                 <ChevronLeft size={24} />
               </button>
             )}
-            <h1 className="text-lg font-bold">{viewTitles[view]}</h1>
+            <h1 className="text-balance text-lg font-bold">{viewTitles[view]}</h1>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Status Online/Offline */}
             <div
-              className={`h-2 w-2 rounded-full ${
-                isOnline ? 'bg-green-400' : 'bg-red-400'
-              }`}
+              className={cn('size-2 rounded-full', isOnline ? 'bg-green-400' : 'bg-red-400')}
             />
 
             {/* Botão Sync */}
             <button
               onClick={() => syncWithServer()}
               disabled={syncStatus === 'syncing' || overwriteBlocked}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+              className={cn(
+                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
                 syncStatus === 'syncing'
                   ? 'bg-indigo-500'
                   : syncStatus === 'success'
@@ -934,9 +937,9 @@ export default function LumineTracker() {
                   : syncStatus === 'error'
                   ? 'bg-red-500'
                   : 'bg-white/20 hover:bg-white/30'
-              }`}
+              )}
             >
-              <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
+              <RefreshCw size={14} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
               {syncStatus === 'syncing'
                 ? 'Sync...'
                 : syncStatus === 'success'
@@ -962,8 +965,8 @@ export default function LumineTracker() {
       {/* ========== HEADER DESKTOP ========== */}
       <header className="hidden items-center justify-between border-b border-gray-200 bg-white px-8 py-3 lg:flex">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Instituto Lumine</p>
-          <h1 className="text-lg font-semibold text-gray-900">{viewTitles[view]}</h1>
+          <p className="text-xs uppercase text-gray-400">Instituto Lumine</p>
+          <h1 className="text-balance text-lg font-semibold text-gray-900">{viewTitles[view]}</h1>
           <p className="text-xs text-gray-500">
             Última sync:{" "}
             {lastSync ? `${formatDate(lastSync)} às ${formatTime(lastSync)}` : "Nenhuma"}
@@ -975,26 +978,25 @@ export default function LumineTracker() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
             <span
-              className={`h-2 w-2 rounded-full ${
-                isOnline ? "bg-emerald-400" : "bg-rose-400"
-              }`}
+              className={cn('size-2 rounded-full', isOnline ? 'bg-emerald-400' : 'bg-rose-400')}
             />
             {isOnline ? "Online" : "Offline"}
           </div>
           <button
             onClick={() => syncWithServer()}
             disabled={syncStatus === "syncing" || overwriteBlocked}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
-              syncStatus === "syncing"
-                ? "bg-indigo-100 text-indigo-700"
-                : syncStatus === "success"
-                ? "bg-emerald-100 text-emerald-700"
-                : syncStatus === "error"
-                ? "bg-rose-100 text-rose-700"
-                : "bg-gray-900 text-white hover:bg-gray-800"
-            }`}
+            className={cn(
+              'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition',
+              syncStatus === 'syncing'
+                ? 'bg-indigo-100 text-indigo-700'
+                : syncStatus === 'success'
+                ? 'bg-emerald-100 text-emerald-700'
+                : syncStatus === 'error'
+                ? 'bg-rose-100 text-rose-700'
+                : 'bg-gray-900 text-white hover:bg-gray-800'
+            )}
           >
-            <RefreshCw size={14} className={syncStatus === "syncing" ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
             {syncStatus === "syncing"
               ? "Sincronizando"
               : syncStatus === "success"
@@ -1107,38 +1109,57 @@ export default function LumineTracker() {
         )}
       </main>
 
-      {syncModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6">
-            <h3 className="mb-2 text-lg font-bold">Atenção</h3>
-            <p className="mb-6 text-gray-600">{syncModal.message}</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSyncModal(null)}
-                className="flex-1 rounded-xl bg-gray-100 py-3 font-medium"
-              >
-                Cancelar
-              </button>
+      <Dialog.Root
+        open={Boolean(syncModal)}
+        onOpenChange={open => {
+          if (!open) setSyncModal(null);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay
+            className="fixed inset-0 z-50 bg-black/50"
+            style={{
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
+          />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-bold">Atenção</Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-gray-600">
+              {syncModal?.message}
+            </Dialog.Description>
+            <div className="mt-6 flex gap-3">
+              <Dialog.Close asChild>
+                <button className="flex-1 rounded-xl bg-gray-100 py-3 font-medium">
+                  Cancelar
+                </button>
+              </Dialog.Close>
               <button
                 onClick={async () => {
-                  if (syncModal.type === 'revision-mismatch') {
-                    await downloadFromServer();
+                  try {
+                    if (syncModal?.type === 'revision-mismatch') {
+                      await downloadFromServer();
+                    }
+                  } finally {
+                    setSyncModal(null);
                   }
-                  setSyncModal(null);
                 }}
                 className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white"
               >
                 Baixar agora
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
 
       {/* ========== FAB (Floating Action Button) ========== */}
       {(view === 'children' || view === 'daily' || view === 'dashboard') && (
-        <div className="fixed bottom-24 right-4 z-40 lg:hidden">
+        <div
+          className="fixed right-4 z-40 lg:hidden"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}
+        >
           {showFABMenu && (
             <div className="absolute bottom-16 right-0 mb-2 w-48 overflow-hidden rounded-xl border bg-white shadow-xl">
               <button
@@ -1165,9 +1186,11 @@ export default function LumineTracker() {
           )}
           <button
             onClick={() => setShowFABMenu(!showFABMenu)}
-            className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all ${
+            className={cn(
+              'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',
               showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-indigo-600'
-            }`}
+            )}
+            aria-label={showFABMenu ? 'Fechar ações' : 'Abrir ações'}
           >
             <Plus size={28} className="text-white" />
           </button>
@@ -1175,7 +1198,10 @@ export default function LumineTracker() {
       )}
 
       {/* ========== BOTTOM NAVIGATION ========== */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white shadow-lg lg:hidden">
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white shadow-lg lg:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="mx-auto flex h-16 max-w-lg items-center justify-around">
           <NavItem icon={Home} label="Início" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
           <NavItem
@@ -1191,7 +1217,14 @@ export default function LumineTracker() {
 
       {/* Overlay para fechar FAB menu */}
       {showFABMenu && (
-        <div className="fixed inset-0 z-30 lg:hidden" onClick={() => setShowFABMenu(false)} />
+        <div
+          className="fixed inset-0 z-30 lg:hidden"
+          onClick={() => setShowFABMenu(false)}
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        />
       )}
     </div>
   );
@@ -1204,12 +1237,13 @@ function NavItem({ icon: Icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex h-full w-16 flex-col items-center justify-center transition-colors ${
+      className={cn(
+        'flex h-full w-16 flex-col items-center justify-center transition-colors',
         active ? 'text-indigo-600' : 'text-gray-400'
-      }`}
+      )}
     >
       <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-      <span className={`mt-1 text-xs ${active ? 'font-semibold' : ''}`}>{label}</span>
+      <span className={cn('mt-1 text-xs', active && 'font-semibold')}>{label}</span>
     </button>
   );
 }
@@ -1222,8 +1256,8 @@ function Sidebar({ view, setView, lastSync, isOnline }) {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:bg-gray-900 lg:text-white">
       <div className="px-6 py-6">
-        <p className="text-xs uppercase tracking-[0.4em] text-indigo-300">Instituto</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">Lumine</h2>
+        <p className="text-xs uppercase text-indigo-300">Instituto</p>
+        <h2 className="text-balance mt-2 text-2xl font-semibold text-white">Lumine</h2>
         <p className="mt-1 text-xs text-indigo-200">Sistema de Acompanhamento</p>
       </div>
       <nav className="flex-1 space-y-1 px-3">
@@ -1255,7 +1289,7 @@ function Sidebar({ view, setView, lastSync, isOnline }) {
       <div className="border-t border-white/10 px-6 py-4 text-xs text-indigo-200">
         <div className="flex items-center gap-2">
           <span
-            className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-rose-400'}`}
+            className={cn('size-2 rounded-full', isOnline ? 'bg-emerald-400' : 'bg-rose-400')}
           />
           {isOnline ? 'Online' : 'Offline'}
         </div>
@@ -1271,9 +1305,10 @@ function SidebarItem({ icon: Icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl px-4 py-2 text-left text-sm font-medium transition ${
+      className={cn(
+        'flex w-full items-center gap-3 rounded-xl px-4 py-2 text-left text-sm font-medium transition',
         active ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-white/10'
-      }`}
+      )}
     >
       <Icon size={18} />
       {label}
@@ -1366,13 +1401,14 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
               return (
                 <div key={rec.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-2">
                   <div
-                    className={`h-2 w-2 rounded-full ${
+                    className={cn(
+                      'size-2 rounded-full',
                       rec.attendance === 'present'
                         ? 'bg-green-500'
                         : rec.attendance === 'late'
                         ? 'bg-yellow-500'
                         : 'bg-red-500'
-                    }`}
+                    )}
                   />
                   <span className="flex-1 truncate text-sm">{child?.name || 'Criança'}</span>
                   <span className="text-xs text-gray-500">
@@ -1489,13 +1525,14 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
                     <p className="text-xs text-gray-500">{formatDate(record.date)}</p>
                   </div>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                    className={cn(
+                      'rounded-full px-2 py-1 text-xs font-semibold',
                       record.attendance === 'present'
                         ? 'bg-green-100 text-green-700'
                         : record.attendance === 'late'
                         ? 'bg-yellow-100 text-yellow-700'
                         : 'bg-red-100 text-red-700'
-                    }`}
+                    )}
                   >
                     {record.attendance === 'present'
                       ? 'Presente'
@@ -1521,7 +1558,7 @@ function StatCard({ value, label, color, icon: Icon }) {
     amber: 'bg-amber-50 text-amber-600 border-amber-100',
   };
   return (
-    <div className={`rounded-xl border p-4 ${colors[color]}`}>
+    <div className={cn('rounded-xl border p-4', colors[color])}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-2xl font-bold">{value}</p>
@@ -1575,11 +1612,12 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
           <button
             key={option.value}
             onClick={() => setStatusFilter(option.value)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            className={cn(
+              'rounded-full px-3 py-1 text-xs font-semibold',
               statusFilter === option.value
                 ? 'bg-indigo-600 text-white'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+            )}
           >
             {option.label}
           </button>
@@ -1604,7 +1642,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
               }}
               className="flex cursor-pointer items-center gap-4 rounded-xl bg-white p-4 shadow-sm active:bg-gray-50"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
+              <div className="flex size-12 items-center justify-center rounded-full bg-indigo-100">
                 <User size={24} className="text-indigo-600" />
               </div>
               <div className="min-w-0 flex-1">
@@ -1613,7 +1651,10 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
                   {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
                 </p>
                 <span
-                  className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusMeta.className}`}
+                  className={cn(
+                    'mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold',
+                    statusMeta.className
+                  )}
                 >
                   {statusMeta.label}
                 </span>
@@ -1683,11 +1724,12 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
           <button
             key={option.value}
             onClick={() => setStatusFilter(option.value)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            className={cn(
+              'rounded-full px-3 py-1 text-xs font-semibold',
               statusFilter === option.value
                 ? 'bg-indigo-600 text-white'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+            )}
           >
             {option.label}
           </button>
@@ -1730,7 +1772,10 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
                     const statusMeta = getStatusMeta(child);
                     return (
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${statusMeta.className}`}
+                        className={cn(
+                          'rounded-full px-2 py-1 text-xs font-semibold',
+                          statusMeta.className
+                        )}
                       >
                         {statusMeta.label}
                       </span>
@@ -1831,13 +1876,13 @@ function AddChildView({ addChild, setView }) {
       school: 'Escola',
       schoolShift: 'Turno escolar',
       referralSource: 'Origem do contato',
-      schoolCommuteAlone: 'Vai e volta sozinha da escola',
+      schoolCommuteAlone: 'Vai e volta desacompanhada da escola',
       triageResult: 'Resultado da triagem',
       startDate: 'Data de início',
       participationDays: 'Dias de participação',
-      authorizedPickup: 'Quem pode buscar',
-      canLeaveAlone: 'Pode ir embora sozinha',
-      termsAccepted: 'Termo de responsabilidade e consentimento',
+      authorizedPickup: 'Pessoas autorizadas a retirar',
+      canLeaveAlone: 'Pode sair desacompanhada',
+      termsAccepted: 'Termo de Responsabilidade e Consentimento',
     };
     const missingLabels = missing.map(field => labels[field] || field).join(', ');
     alert(`Preencha os campos obrigatórios: ${missingLabels}`);
@@ -1877,7 +1922,7 @@ function AddChildView({ addChild, setView }) {
     }
     if (form.canLeaveAlone === 'sim') {
       if (!form.leaveAloneConsent) {
-        alert('Confirme a autorização para saída sozinha.');
+        alert('Confirme a autorização de saída desacompanhada.');
         return false;
       }
       if (!form.leaveAloneConfirmation.trim()) {
@@ -1955,7 +2000,10 @@ function AddChildView({ addChild, setView }) {
         {[1, 2].map(s => (
           <div
             key={s}
-            className={`h-1 flex-1 rounded-full ${step >= s ? 'bg-indigo-600' : 'bg-gray-200'}`}
+            className={cn(
+              'h-1 flex-1 rounded-full',
+              step >= s ? 'bg-indigo-600' : 'bg-gray-200'
+            )}
           />
         ))}
       </div>
@@ -2067,7 +2115,7 @@ function AddChildView({ addChild, setView }) {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                A criança vai e volta sozinha da escola? *
+                A criança vai e volta desacompanhada da escola? *
               </label>
               <select
                 value={form.schoolCommuteAlone}
@@ -2228,11 +2276,12 @@ function AddChildView({ addChild, setView }) {
                     key={day.value}
                     type="button"
                     onClick={() => toggleParticipationDay(day.value)}
-                    className={`rounded-full px-3 py-1 text-sm font-medium transition-all ${
+                    className={cn(
+                      'rounded-full px-3 py-1 text-sm font-medium transition-all',
                       form.participationDays.includes(day.value)
                         ? 'bg-indigo-600 text-white'
                         : 'bg-gray-100 text-gray-600'
-                    }`}
+                    )}
                   >
                     {day.label}
                   </button>
@@ -2240,18 +2289,20 @@ function AddChildView({ addChild, setView }) {
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Quem normalmente pode buscar *</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Pessoas autorizadas a retirar a criança *
+              </label>
               <input
                 type="text"
                 value={form.authorizedPickup}
                 onChange={e => updateField('authorizedPickup', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                placeholder="Nome(s) do responsável"
+                placeholder="Nome(s) autorizados"
               />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                A criança pode ir embora sozinha ao sair do Lumine? *
+                A criança pode sair desacompanhada ao deixar o Lumine? *
               </label>
               <select
                 value={form.canLeaveAlone}
@@ -2272,18 +2323,18 @@ function AddChildView({ addChild, setView }) {
                     onChange={e => updateField('leaveAloneConsent', e.target.checked)}
                     className="h-4 w-4 rounded"
                   />
-                  Autorizo saída sozinha
+                  Autorizo a saída desacompanhada
                 </label>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Confirmação simples *
+                    Confirmação do responsável legal *
                   </label>
                   <input
                     type="text"
                     value={form.leaveAloneConfirmation}
                     onChange={e => updateField('leaveAloneConfirmation', e.target.value)}
                     className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Ex: Autorizo que Maria saia sozinha"
+                    placeholder="Ex: Autorizo que Maria saia desacompanhada"
                   />
                 </div>
               </div>
@@ -2295,7 +2346,7 @@ function AddChildView({ addChild, setView }) {
                 onChange={e => updateField('termsAccepted', e.target.checked)}
                 className="h-4 w-4 rounded"
               />
-              Termo único de responsabilidade e consentimento *
+              Declaro ciência e concordo com o Termo de Responsabilidade e Consentimento *
             </label>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Turma/Grupo</label>
@@ -2312,15 +2363,17 @@ function AddChildView({ addChild, setView }) {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Autoriza uso de imagem</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Autorização de uso de imagem (opcional)
+              </label>
               <select
                 value={form.imageConsent}
                 onChange={e => updateField('imageConsent', e.target.value)}
                 className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="">Não autoriza</option>
-                <option value="interno">Apenas uso interno</option>
-                <option value="comunicacao">Pode usar em comunicação</option>
+                <option value="">Não autorizo</option>
+                <option value="interno">Uso interno (sem divulgação)</option>
+                <option value="comunicacao">Uso institucional e comunicação</option>
               </select>
             </div>
             <div>
@@ -2419,7 +2472,10 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
 
   const missingSet = new Set([...missingTriage, ...missingMatricula]);
   const fieldClass = field =>
-    `w-full rounded-lg border px-3 py-2 text-sm ${missingSet.has(field) ? 'border-rose-300 focus:ring-rose-300' : 'border-gray-200'}`;
+    cn(
+      'w-full rounded-lg border px-3 py-2 text-sm',
+      missingSet.has(field) ? 'border-rose-300 focus:ring-rose-300' : 'border-gray-200'
+    );
 
   const updateStatusField = (field, value) => {
     setStatusFormData(prev => ({ ...prev, [field]: value }));
@@ -2507,7 +2563,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
     <div className="space-y-4">
       {/* Avatar e nome */}
       <div className="rounded-xl bg-white p-6 text-center shadow-sm">
-        <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
+        <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-indigo-100">
           <User size={40} className="text-indigo-600" />
         </div>
         <h2 className="text-xl font-bold text-gray-800">{child.name}</h2>
@@ -2520,7 +2576,10 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
           <div>
             <p className="text-xs uppercase text-gray-400">Status da matrícula</p>
             <span
-              className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.className}`}
+              className={cn(
+                'mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold',
+                statusMeta.className
+              )}
             >
               {statusMeta.label}
             </span>
@@ -2658,7 +2717,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-gray-700">
-                        Vai e volta sozinha da escola?
+                        Vai e volta desacompanhada da escola?
                       </label>
                       <select
                         value={statusFormData.schoolCommuteAlone}
@@ -2700,13 +2759,14 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                                   : [...statusFormData.participationDays, day.value]
                               )
                             }
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                            className={cn(
+                              'rounded-full px-3 py-1 text-xs font-medium',
                               statusFormData.participationDays.includes(day.value)
                                 ? 'bg-indigo-600 text-white'
                                 : missingSet.has('participationDays')
                                 ? 'bg-rose-100 text-rose-700'
                                 : 'bg-gray-200 text-gray-600'
-                            }`}
+                            )}
                           >
                             {day.label}
                           </button>
@@ -2714,7 +2774,9 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                       </div>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        Pessoas autorizadas a retirar
+                      </label>
                       <input
                         type="text"
                         value={statusFormData.authorizedPickup}
@@ -2724,7 +2786,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-gray-700">
-                        Pode ir embora sozinha?
+                        Pode sair desacompanhada?
                       </label>
                       <select
                         value={statusFormData.canLeaveAlone}
@@ -2745,7 +2807,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                             onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
                             className="h-4 w-4 rounded"
                           />
-                          Autorizo saída sozinha
+                          Autorizo a saída desacompanhada
                         </label>
                         <input
                           type="text"
@@ -2763,7 +2825,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                         onChange={e => updateStatusField('termsAccepted', e.target.checked)}
                         className="h-4 w-4 rounded"
                       />
-                      Termo de responsabilidade e consentimento
+                      Termo de Responsabilidade e Consentimento
                     </label>
                   </div>
                 )}
@@ -2838,7 +2900,12 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                 return (
                   <div key={`${entry.date}-${index}`} className="rounded-xl border border-gray-100 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.className}`}>
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-xs font-semibold',
+                          meta.className
+                        )}
+                      >
                         {meta.label}
                       </span>
                       <span className="text-xs text-gray-500">{formatDate(entry.date)}</span>
@@ -2861,24 +2928,26 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
             {childRecords.slice(0, 10).map(rec => (
               <div
                 key={rec.id}
-                className={`rounded-lg border-l-4 p-3 ${
+                className={cn(
+                  'rounded-lg border-l-4 p-3',
                   rec.attendance === 'present'
                     ? 'border-green-500 bg-green-50'
                     : rec.attendance === 'late'
                     ? 'border-yellow-500 bg-yellow-50'
                     : 'border-red-500 bg-red-50'
-                }`}
+                )}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{formatDate(rec.date)}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs ${
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-xs',
                       rec.attendance === 'present'
                         ? 'bg-green-200 text-green-800'
                         : rec.attendance === 'late'
                         ? 'bg-yellow-200 text-yellow-800'
                         : 'bg-red-200 text-red-800'
-                    }`}
+                    )}
                   >
                     {rec.attendance === 'present'
                       ? 'Presente'
@@ -2948,7 +3017,10 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
 
   const missingSet = new Set([...missingTriage, ...missingMatricula]);
   const fieldClass = field =>
-    `w-full rounded-lg border px-3 py-2 text-sm ${missingSet.has(field) ? 'border-rose-300 focus:ring-rose-300' : 'border-gray-200'}`;
+    cn(
+      'w-full rounded-lg border px-3 py-2 text-sm',
+      missingSet.has(field) ? 'border-rose-300 focus:ring-rose-300' : 'border-gray-200'
+    );
 
   const updateStatusField = (field, value) => {
     setStatusFormData(prev => ({ ...prev, [field]: value }));
@@ -3036,7 +3108,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
     <div className="grid grid-cols-[minmax(0,360px)_1fr] gap-6">
       <div className="space-y-4">
         <div className="rounded-2xl bg-white p-6 text-center shadow-sm">
-          <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
+          <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-indigo-100">
             <User size={40} className="text-indigo-600" />
           </div>
           <h2 className="text-xl font-bold text-gray-800">{child.name}</h2>
@@ -3064,7 +3136,11 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase text-gray-400">Status da matrícula</p>
-              <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.className}`}
+              <span
+                className={cn(
+                  'mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold',
+                  statusMeta.className
+                )}
               >
                 {statusMeta.label}
               </span>
@@ -3202,7 +3278,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                       </div>
                       <div>
                         <label className="mb-1 block text-xs font-medium text-gray-700">
-                          Vai e volta sozinha da escola?
+                          Vai e volta desacompanhada da escola?
                         </label>
                         <select
                           value={statusFormData.schoolCommuteAlone}
@@ -3244,13 +3320,14 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                                     : [...statusFormData.participationDays, day.value]
                                 )
                               }
-                              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              className={cn(
+                                'rounded-full px-3 py-1 text-xs font-medium',
                                 statusFormData.participationDays.includes(day.value)
                                   ? 'bg-indigo-600 text-white'
                                   : missingSet.has('participationDays')
                                   ? 'bg-rose-100 text-rose-700'
                                   : 'bg-gray-200 text-gray-600'
-                              }`}
+                              )}
                             >
                               {day.label}
                             </button>
@@ -3258,7 +3335,9 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                         </div>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-700">Quem pode buscar</label>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">
+                          Pessoas autorizadas a retirar
+                        </label>
                         <input
                           type="text"
                           value={statusFormData.authorizedPickup}
@@ -3268,7 +3347,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                       </div>
                       <div>
                         <label className="mb-1 block text-xs font-medium text-gray-700">
-                          Pode ir embora sozinha?
+                          Pode sair desacompanhada?
                         </label>
                         <select
                           value={statusFormData.canLeaveAlone}
@@ -3289,7 +3368,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                               onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
                               className="h-4 w-4 rounded"
                             />
-                            Autorizo saída sozinha
+                            Autorizo a saída desacompanhada
                           </label>
                           <input
                             type="text"
@@ -3307,7 +3386,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                           onChange={e => updateStatusField('termsAccepted', e.target.checked)}
                           className="h-4 w-4 rounded"
                         />
-                        Termo de responsabilidade e consentimento
+                        Termo de Responsabilidade e Consentimento
                       </label>
                     </div>
                   )}
@@ -3372,7 +3451,12 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
               return (
                 <div key={`${entry.date}-${index}`} className="rounded-xl border border-gray-100 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.className}`}>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-xs font-semibold',
+                        meta.className
+                      )}
+                    >
                       {meta.label}
                     </span>
                     <span className="text-xs text-gray-500">{formatDate(entry.date)}</span>
@@ -3405,13 +3489,14 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                   <td className="px-3 py-2 text-gray-700">{formatDate(record.date)}</td>
                   <td className="px-3 py-2">
                     <span
-                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                      className={cn(
+                        'rounded-full px-2 py-1 text-xs font-semibold',
                         record.attendance === 'present'
                           ? 'bg-green-100 text-green-700'
                           : record.attendance === 'late'
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
-                      }`}
+                      )}
                     >
                       {record.attendance === 'present'
                         ? 'Presente'
@@ -3512,7 +3597,10 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
     <div className="space-y-4">
       {/* Toast de sucesso */}
       {showSuccess && (
-        <div className="fixed top-20 left-4 right-4 z-50 flex items-center gap-2 rounded-xl bg-green-500 px-4 py-3 text-white shadow-lg animate-pulse">
+        <div
+          className="fixed left-4 right-4 z-50 flex items-center gap-2 rounded-xl bg-green-500 px-4 py-3 text-white shadow-lg"
+          style={{ top: 'calc(env(safe-area-inset-top) + 5rem)' }}
+        >
           <CheckCircle size={20} />
           <span className="font-medium">Registro salvo!</span>
         </div>
@@ -3606,7 +3694,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                 {activeChildren.find(c => c.id === selectedChildId)?.name}
               </p>
             </div>
-            <button onClick={() => setStep('select')} className="text-indigo-600">
+            <button onClick={() => setStep('select')} className="text-indigo-600" aria-label="Voltar">
               <X size={24} />
             </button>
           </div>
@@ -3623,7 +3711,8 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                 <button
                   key={opt.value}
                   onClick={() => setForm({ ...form, attendance: opt.value })}
-                  className={`rounded-xl py-3 text-sm font-medium transition-all ${
+                  className={cn(
+                    'rounded-xl py-3 text-sm font-medium transition-all',
                     form.attendance === opt.value
                       ? opt.color === 'green'
                         ? 'bg-green-500 text-white'
@@ -3631,7 +3720,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                         ? 'bg-yellow-500 text-white'
                         : 'bg-red-500 text-white'
                       : 'bg-gray-100 text-gray-600'
-                  }`}
+                  )}
                 >
                   {opt.label}
                 </button>
@@ -3655,11 +3744,12 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                     <button
                       key={opt.value}
                       onClick={() => setForm({ ...form, mood: opt.value })}
-                      className={`rounded-xl py-3 text-2xl transition-all ${
+                      className={cn(
+                        'rounded-xl py-3 text-2xl transition-all',
                         form.mood === opt.value
                           ? 'bg-indigo-100 ring-2 ring-indigo-500'
                           : 'bg-gray-100'
-                      }`}
+                      )}
                     >
                       {opt.label}
                     </button>
@@ -3822,14 +3912,17 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
   return (
     <div className="space-y-6">
       {showSuccess && (
-        <div className="fixed right-10 top-24 z-50 rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+        <div
+          className="fixed right-10 z-50 rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+          style={{ top: 'calc(env(safe-area-inset-top) + 6rem)' }}
+        >
           Registro salvo!
         </div>
       )}
 
       <div className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 shadow-sm">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Registro diário</p>
+          <p className="text-xs uppercase text-gray-400">Registro diário</p>
           <p className="text-sm text-gray-600">
             {todayRecords.length}/{activeChildren.length} registrados
           </p>
@@ -3862,9 +3955,10 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
             {pending.map(child => (
               <div
                 key={child.id}
-                className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
+                className={cn(
+                  'flex items-center gap-3 rounded-xl border px-3 py-2',
                   selectedChildId === child.id ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100'
-                }`}
+                )}
               >
                 <button
                   onClick={() => setSelectedChildId(child.id)}
@@ -3892,7 +3986,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Detalhes</p>
+              <p className="text-xs uppercase text-gray-400">Detalhes</p>
               <h3 className="text-lg font-semibold text-gray-800">
                 {selectedChild ? selectedChild.name : 'Selecione uma criança'}
               </h3>
@@ -3923,7 +4017,8 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
                   <button
                     key={option.value}
                     onClick={() => setForm({ ...form, attendance: option.value })}
-                    className={`rounded-xl py-2 text-xs font-semibold ${
+                    className={cn(
+                      'rounded-xl py-2 text-xs font-semibold',
                       form.attendance === option.value
                         ? option.color === 'green'
                           ? 'bg-green-500 text-white'
@@ -3931,7 +4026,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
                           ? 'bg-yellow-500 text-white'
                           : 'bg-red-500 text-white'
                         : 'bg-gray-100 text-gray-600'
-                    }`}
+                    )}
                   >
                     {option.label}
                   </button>
@@ -4144,35 +4239,42 @@ function ConfigView({
 
   return (
     <div className="space-y-4">
-      {/* Modal confirmação */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6">
-            <h3 className="mb-2 text-lg font-bold">Confirmar</h3>
-            <p className="mb-6 text-gray-600">Substituir dados atuais pelos importados?</p>
-            <div className="flex gap-3">
+      <Dialog.Root open={showConfirm} onOpenChange={setShowConfirm}>
+        <Dialog.Portal>
+          <Dialog.Overlay
+            className="fixed inset-0 z-50 bg-black/50"
+            style={{
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
+          />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-lg font-bold">Confirmar</Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-gray-600">
+              Substituir dados atuais pelos importados?
+            </Dialog.Description>
+            <div className="mt-6 flex gap-3">
+              <Dialog.Close asChild>
+                <button className="flex-1 rounded-xl bg-gray-100 py-3 font-medium">
+                  Cancelar
+                </button>
+              </Dialog.Close>
               <button
-                onClick={() => setShowConfirm(false)}
-                className="flex-1 rounded-xl bg-gray-100 py-3 font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmAction}
+                onClick={() => confirmAction?.()}
                 className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white"
               >
                 Confirmar
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       <div className="space-y-4 lg:hidden">
         {/* Sincronização */}
       <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className={`h-3 w-3 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+          <div className={cn('size-3 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
           <h3 className="font-semibold text-gray-800">Sincronização</h3>
         </div>
 
@@ -4243,16 +4345,10 @@ function ConfigView({
       <div className="space-y-3 rounded-xl bg-rose-50 p-4 shadow-sm">
         <h3 className="font-semibold text-rose-700">Segurança</h3>
         <p className="text-sm text-rose-600">Remove todas as crianças e registros deste dispositivo.</p>
-        <button
-          onClick={() => {
-            if (window.confirm('Isso vai apagar todos os dados locais. Os dados no servidor não serão afetados. Continuar?')) {
-              clearLocalData();
-            }
-          }}
-          className="w-full rounded-xl bg-rose-600 py-3 text-sm font-semibold text-white"
-        >
-          Sair e limpar dados deste dispositivo
-        </button>
+        <ClearLocalDataDialog
+          onConfirm={clearLocalData}
+          triggerClassName="w-full rounded-xl bg-rose-600 py-3 text-sm font-semibold text-white"
+        />
       </div>
 
       {/* Relatório Mensal em Cards */}
@@ -4297,24 +4393,26 @@ function ConfigView({
               <div className="flex items-center gap-2">
                 <div className="h-2 w-12 overflow-hidden rounded-full bg-gray-200">
                   <div
-                    className={`h-full rounded-full ${
+                    className={cn(
+                      'h-full rounded-full',
                       child.rate >= 80
                         ? 'bg-green-500'
                         : child.rate >= 60
                         ? 'bg-yellow-500'
                         : 'bg-red-500'
-                    }`}
+                    )}
                     style={{ width: `${child.rate}%` }}
                   />
                 </div>
                 <span
-                  className={`w-10 text-right text-sm font-bold ${
+                  className={cn(
+                    'w-10 text-right text-sm font-bold',
                     child.rate >= 80
                       ? 'text-green-600'
                       : child.rate >= 60
                       ? 'text-yellow-600'
                       : 'text-red-600'
-                  }`}
+                  )}
                 >
                   {child.rate}%
                 </span>
@@ -4338,7 +4436,7 @@ function ConfigView({
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className={cn('size-2 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
                 <h3 className="font-semibold text-gray-800">Sincronização</h3>
               </div>
               <span className="text-xs text-gray-400">
@@ -4437,16 +4535,10 @@ function ConfigView({
                 Remove todas as crianças e registros deste dispositivo.
               </p>
             </div>
-            <button
-              onClick={() => {
-                if (window.confirm('Isso vai apagar todos os dados locais. Os dados no servidor não serão afetados. Continuar?')) {
-                  clearLocalData();
-                }
-              }}
-              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
-            >
-              Sair e limpar dados deste dispositivo
-            </button>
+            <ClearLocalDataDialog
+              onConfirm={clearLocalData}
+              triggerClassName="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+            />
           </div>
         </div>
 
@@ -4468,13 +4560,14 @@ function ConfigView({
                   <td className="px-4 py-3 text-gray-600">{child.total}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                      className={cn(
+                        'rounded-full px-2 py-1 text-xs font-semibold',
                         child.rate >= 80
                           ? 'bg-green-100 text-green-700'
                           : child.rate >= 60
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
-                      }`}
+                      )}
                     >
                       {child.rate}%
                     </span>
@@ -4498,5 +4591,45 @@ function ConfigView({
         </div>
       </div>
     </div>
+  );
+}
+
+function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
+  return (
+    <AlertDialog.Root>
+      <AlertDialog.Trigger asChild>
+        <button className={triggerClassName}>Sair e limpar dados deste dispositivo</button>
+      </AlertDialog.Trigger>
+      <AlertDialog.Portal>
+        <AlertDialog.Overlay
+          className="fixed inset-0 z-50 bg-black/50"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        />
+        <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
+          <AlertDialog.Title className="text-lg font-bold">Confirmar</AlertDialog.Title>
+          <AlertDialog.Description className="mt-2 text-sm text-gray-600">
+            Isso vai apagar todos os dados locais. Os dados no servidor não serão afetados.
+          </AlertDialog.Description>
+          <div className="mt-6 flex gap-3">
+            <AlertDialog.Cancel asChild>
+              <button className="flex-1 rounded-xl bg-gray-100 py-3 font-medium">
+                Cancelar
+              </button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action asChild>
+              <button
+                onClick={onConfirm}
+                className="flex-1 rounded-xl bg-rose-600 py-3 font-medium text-white"
+              >
+                Confirmar e limpar
+              </button>
+            </AlertDialog.Action>
+          </div>
+        </AlertDialog.Content>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   );
 }
