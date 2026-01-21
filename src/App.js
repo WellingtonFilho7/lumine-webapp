@@ -38,7 +38,7 @@ import {
   isTriageDraft,
   buildChecklist,
 } from './utils/enrollment';
-import { upsertDailyRecord } from './utils/records';
+import { buildRecordForm, getRecordFormDefaults, upsertDailyRecord } from './utils/records';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -214,9 +214,6 @@ function buildStatusFormData(child) {
     leaveAloneConfirmation: child?.leaveAloneConfirmation || '',
     termsAccepted: Boolean(child?.responsibilityTerm || child?.consentTerm),
   };
-}
-
-  return missing;
 }
 
 function getMissingFieldsForStatus(status, data) {
@@ -1375,9 +1372,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
                 </div>
               );
             })}
-          {matriculaError && (
-            <p className="text-pretty text-xs text-rose-600">{matriculaError}</p>
-          )}
+          </div>
         </div>
       )}
     </div>
@@ -3555,24 +3550,41 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
 function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedChildId, setSelectedChildId] = useState('');
-  const [step, setStep] = useState('select'); // select, details
-  const [form, setForm] = useState({
-    attendance: 'present',
-    mood: 'neutral',
-    participation: 'medium',
-    interaction: 'medium',
-    activity: '',
-    performance: 'medium',
-    notes: '',
-    familyContact: 'no',
-    contactReason: '',
-  });
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [step, setStep] = useState('select');
+  const [editingRecordId, setEditingRecordId] = useState('');
+  const [form, setForm] = useState(getRecordFormDefaults());
+  const [toastMessage, setToastMessage] = useState('');
 
   const activeChildren = children.filter(isMatriculated);
-  const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
-  const recordedIds = todayRecords.map(r => r.childInternalId);
+  const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
+  const recordedIds = dateRecords.map(r => r.childInternalId);
   const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
+  const selectedChild =
+    children.find(c => c.id === selectedChildId) ||
+    activeChildren.find(c => c.id === selectedChildId);
+
+  const showToast = message => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(''), 1500);
+  };
+
+  const clearEditing = () => {
+    setEditingRecordId('');
+    setSelectedChildId('');
+    setStep('select');
+    setForm(getRecordFormDefaults());
+  };
+
+  useEffect(() => {
+    clearEditing();
+  }, [date]);
+
+  const handleEditRecord = record => {
+    setEditingRecordId(record.id);
+    setSelectedChildId(record.childInternalId);
+    setForm(buildRecordForm(record));
+    setStep('details');
+  };
 
   const quickRecord = (childId, attendance) => {
     addDailyRecord({
@@ -3588,42 +3600,29 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
       familyContact: 'no',
       contactReason: '',
     });
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 1500);
+    showToast('Registro salvo!');
   };
 
   const handleDetailedRecord = () => {
     if (!selectedChildId) return;
+    const isEditing = Boolean(editingRecordId);
     addDailyRecord({ childInternalId: selectedChildId, date, ...form });
-    setShowSuccess(true);
+    showToast(isEditing ? 'Registro atualizado!' : 'Registro salvo!');
     setTimeout(() => {
-      setShowSuccess(false);
-      setStep('select');
-      setSelectedChildId('');
-      setForm({
-        attendance: 'present',
-        mood: 'neutral',
-        participation: 'medium',
-        interaction: 'medium',
-        activity: '',
-        performance: 'medium',
-        notes: '',
-        familyContact: 'no',
-        contactReason: '',
-      });
+      clearEditing();
     }, 1500);
   };
 
   return (
     <div className="space-y-4">
       {/* Toast de sucesso */}
-      {showSuccess && (
+      {toastMessage && (
         <div
           className="fixed left-4 right-4 z-50 flex items-center gap-2 rounded-xl bg-green-500 px-4 py-3 text-white shadow-lg"
           style={{ top: 'calc(env(safe-area-inset-top) + 5rem)' }}
         >
           <CheckCircle size={20} />
-          <span className="font-medium">Registro salvo!</span>
+          <span className="font-medium">{toastMessage}</span>
         </div>
       )}
 
@@ -3643,7 +3642,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
         <div>
           <p className="text-sm font-medium text-indigo-800">Registros hoje</p>
           <p className="text-2xl font-bold text-indigo-600">
-            {todayRecords.length}/{activeChildren.length}
+            {dateRecords.length}/{activeChildren.length}
           </p>
         </div>
         <div className="text-right">
@@ -3653,6 +3652,48 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 
       {step === 'select' && (
         <>
+          {dateRecords.length > 0 && (
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800">Registros do dia</h3>
+                <span className="text-xs text-gray-500">{dateRecords.length} registros</span>
+              </div>
+              <div className="space-y-2">
+                {dateRecords.map(record => {
+                  const child = children.find(c => c.id === record.childInternalId);
+                  const label = child?.name || 'Criança';
+                  return (
+                    <button
+                      key={record.id}
+                      type="button"
+                      onClick={() => handleEditRecord(record)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3 text-left"
+                    >
+                      <span
+                        className={cn(
+                          'size-2 rounded-full',
+                          record.attendance === 'present'
+                            ? 'bg-green-500'
+                            : record.attendance === 'late'
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
+                        )}
+                      />
+                      <span className="flex-1 truncate text-sm font-medium text-gray-800">{label}</span>
+                      <span className="text-xs text-gray-500">
+                        {record.attendance === 'present'
+                          ? 'Presente'
+                          : record.attendance === 'late'
+                          ? 'Atrasado'
+                          : 'Ausente'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Registro rápido */}
           {pending.length > 0 && (
             <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -3711,11 +3752,24 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
           <div className="flex items-center justify-between rounded-xl bg-indigo-100 p-4">
             <div>
               <p className="text-sm text-indigo-600">Registrando para</p>
-              <p className="font-bold text-indigo-800">
-                {activeChildren.find(c => c.id === selectedChildId)?.name}
-              </p>
+              <p className="font-bold text-indigo-800">{selectedChild?.name || 'Criança'}</p>
+              {editingRecordId && (
+                <span className="mt-1 inline-flex rounded-full bg-indigo-200 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                  Editando registro
+                </span>
+              )}
             </div>
-            <button onClick={() => setStep('select')} className="text-indigo-600" aria-label="Voltar">
+            <button
+              onClick={() => {
+                if (editingRecordId) {
+                  clearEditing();
+                } else {
+                  setStep('select');
+                }
+              }}
+              className="text-indigo-600"
+              aria-label="Voltar"
+            >
               <X size={24} />
             </button>
           </div>
@@ -3875,7 +3929,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
             onClick={handleDetailedRecord}
             className="w-full rounded-xl bg-green-600 py-4 font-semibold text-white shadow-lg"
           >
-            Salvar Registro
+            {editingRecordId ? 'Atualizar registro' : 'Salvar Registro'}
           </button>
         </div>
       )}
@@ -4654,3 +4708,5 @@ function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
     </AlertDialog.Root>
   );
 }
+
+export { DailyRecordView, DailyRecordDesktop };
