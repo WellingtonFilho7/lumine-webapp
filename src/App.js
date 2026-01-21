@@ -3940,24 +3940,38 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedChildId, setSelectedChildId] = useState('');
-  const [form, setForm] = useState({
-    attendance: 'present',
-    mood: 'neutral',
-    participation: 'medium',
-    interaction: 'medium',
-    activity: '',
-    performance: 'medium',
-    notes: '',
-    familyContact: 'no',
-    contactReason: '',
-  });
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState('');
+  const [form, setForm] = useState(getRecordFormDefaults());
+  const [toastMessage, setToastMessage] = useState('');
 
   const activeChildren = children.filter(isMatriculated);
-  const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
-  const recordedIds = todayRecords.map(r => r.childInternalId);
+  const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
+  const recordedIds = dateRecords.map(r => r.childInternalId);
   const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
-  const selectedChild = activeChildren.find(c => c.id === selectedChildId);
+  const selectedChild =
+    children.find(c => c.id === selectedChildId) ||
+    activeChildren.find(c => c.id === selectedChildId);
+
+  const showToast = message => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(''), 1200);
+  };
+
+  const clearEditing = () => {
+    setEditingRecordId('');
+    setSelectedChildId('');
+    setForm(getRecordFormDefaults());
+  };
+
+  useEffect(() => {
+    clearEditing();
+  }, [date]);
+
+  const handleEditRecord = record => {
+    setEditingRecordId(record.id);
+    setSelectedChildId(record.childInternalId);
+    setForm(buildRecordForm(record));
+  };
 
   const quickRecord = (childId, attendance) => {
     addDailyRecord({
@@ -3973,25 +3987,27 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
       familyContact: 'no',
       contactReason: '',
     });
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 1200);
+    showToast('Registro salvo!');
   };
 
   const handleDetailedRecord = () => {
     if (!selectedChildId) return;
+    const isEditing = Boolean(editingRecordId);
     addDailyRecord({ childInternalId: selectedChildId, date, ...form });
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 1200);
+    showToast(isEditing ? 'Registro atualizado!' : 'Registro salvo!');
+    setTimeout(() => {
+      clearEditing();
+    }, 1200);
   };
 
   return (
     <div className="space-y-6">
-      {showSuccess && (
+      {toastMessage && (
         <div
           className="fixed right-10 z-50 rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-lg"
           style={{ top: 'calc(env(safe-area-inset-top) + 6rem)' }}
         >
-          Registro salvo!
+          {toastMessage}
         </div>
       )}
 
@@ -3999,7 +4015,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
         <div>
           <p className="text-xs uppercase text-gray-400">Registro diário</p>
           <p className="text-sm text-gray-600">
-            {todayRecords.length}/{activeChildren.length} registrados
+            {dateRecords.length}/{activeChildren.length} registrados
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -4021,7 +4037,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
               {pending.length} pendentes
             </span>
           </div>
-          <div className="mt-4 max-h-[520px] space-y-2 overflow-auto">
+          <div className="mt-4 max-h-[360px] space-y-2 overflow-auto">
             {pending.length === 0 && (
               <div className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
                 Nenhuma pendência para esta data.
@@ -4056,6 +4072,48 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
               </div>
             ))}
           </div>
+
+          {dateRecords.length > 0 && (
+            <div className="mt-6 border-t border-gray-100 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-800">Registros do dia</h4>
+                <span className="text-xs text-gray-500">{dateRecords.length} registros</span>
+              </div>
+              <div className="max-h-[260px] space-y-2 overflow-auto">
+                {dateRecords.map(record => {
+                  const child = children.find(c => c.id === record.childInternalId);
+                  const label = child?.name || 'Criança';
+                  return (
+                    <button
+                      key={record.id}
+                      type="button"
+                      onClick={() => handleEditRecord(record)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-left"
+                    >
+                      <span
+                        className={cn(
+                          'size-2 rounded-full',
+                          record.attendance === 'present'
+                            ? 'bg-green-500'
+                            : record.attendance === 'late'
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
+                        )}
+                      />
+                      <span className="flex-1 truncate text-sm font-medium text-gray-800">{label}</span>
+                      <span className="text-xs text-gray-500">
+                        {record.attendance === 'present'
+                          ? 'Presente'
+                          : record.attendance === 'late'
+                          ? 'Atrasado'
+                          : 'Ausente'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white p-5 shadow-sm">
@@ -4065,19 +4123,35 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
               <h3 className="text-lg font-semibold text-gray-800">
                 {selectedChild ? selectedChild.name : 'Selecione uma criança'}
               </h3>
+              {editingRecordId && (
+                <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-600">
+                  Editando registro
+                </span>
+              )}
             </div>
-            <select
-              value={selectedChildId}
-              onChange={e => setSelectedChildId(e.target.value)}
-              className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
-            >
-              <option value="">Selecionar</option>
-              {activeChildren.map(child => (
-                <option key={child.id} value={child.id}>
-                  {child.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-3">
+              {editingRecordId && (
+                <button
+                  type="button"
+                  onClick={clearEditing}
+                  className="text-xs font-semibold text-indigo-600"
+                >
+                  Cancelar edição
+                </button>
+              )}
+              <select
+                value={selectedChildId}
+                onChange={e => setSelectedChildId(e.target.value)}
+                className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+              >
+                <option value="">Selecionar</option>
+                {activeChildren.map(child => (
+                  <option key={child.id} value={child.id} disabled={recordedIds.includes(child.id)}>
+                    {child.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="mt-6 space-y-5">
@@ -4178,6 +4252,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
                   value={form.notes}
                   onChange={e => setForm({ ...form, notes: e.target.value })}
                   rows={3}
+                  placeholder="Algo importante..."
                   className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
                 />
               </div>
@@ -4216,7 +4291,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
               disabled={!selectedChildId}
               className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white disabled:bg-gray-300"
             >
-              Salvar registro
+              {editingRecordId ? 'Atualizar registro' : 'Salvar registro'}
             </button>
           </div>
         </div>
