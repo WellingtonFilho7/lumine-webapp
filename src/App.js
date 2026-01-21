@@ -28,6 +28,16 @@ import {
   Clock,
 } from 'lucide-react';
 import { cn } from './utils/cn';
+import {
+  TRIAGE_REQUIRED_FIELDS,
+  MATRICULA_REQUIRED_FIELDS,
+  getMissingTriageFields,
+  getMissingMatriculaFields,
+  isTriageComplete,
+  isMatriculaComplete,
+  isTriageDraft,
+  buildChecklist,
+} from './utils/enrollment';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -164,26 +174,6 @@ function normalizeImageConsent(value) {
   return normalized;
 }
 
-const TRIAGE_REQUIRED_FIELDS = [
-  'name',
-  'birthDate',
-  'guardianName',
-  'guardianPhone',
-  'neighborhood',
-  'school',
-  'schoolShift',
-  'referralSource',
-  'schoolCommuteAlone',
-];
-
-const MATRICULA_REQUIRED_FIELDS = [
-  'startDate',
-  'participationDays',
-  'authorizedPickup',
-  'canLeaveAlone',
-  'termsAccepted',
-];
-
 const STATUS_FIELD_LABELS = {
   name: 'Nome completo',
   birthDate: 'Data de nascimento',
@@ -194,6 +184,7 @@ const STATUS_FIELD_LABELS = {
   schoolShift: 'Turno escolar',
   referralSource: 'Origem do contato',
   schoolCommuteAlone: 'Vai e volta desacompanhada da escola',
+  healthNotes: 'Cuidado de saude informado',
   startDate: 'Data de início',
   participationDays: 'Dias de participação',
   authorizedPickup: 'Pessoas autorizadas a retirar',
@@ -224,19 +215,6 @@ function buildStatusFormData(child) {
   };
 }
 
-function getMissingTriageFields(data) {
-  return TRIAGE_REQUIRED_FIELDS.filter(field => !data[field]);
-}
-
-function getMissingMatriculaFields(data) {
-  const missing = MATRICULA_REQUIRED_FIELDS.filter(field => {
-    if (field === 'participationDays') return !data.participationDays?.length;
-    return !data[field];
-  });
-  if (data.canLeaveAlone === 'sim') {
-    if (!data.leaveAloneConsent) missing.push('leaveAloneConsent');
-    if (!data.leaveAloneConfirmation?.trim()) missing.push('leaveAloneConfirmation');
-  }
   return missing;
 }
 
@@ -972,7 +950,7 @@ export default function LumineTracker() {
             {lastSync ? `${formatDate(lastSync)} às ${formatTime(lastSync)}` : "Nenhuma"}
           </p>
           {syncStatus === 'error' && syncError && (
-            <p className="text-xs text-rose-600">Sync: {syncError}</p>
+            <p className="text-pretty text-xs text-rose-600">Sync: {syncError}</p>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -1388,6 +1366,9 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
               </button>
             )}
           </div>
+          {triageError && (
+            <p className="text-pretty text-xs text-rose-600">{triageError}</p>
+          )}
         </div>
       )}
 
@@ -1421,7 +1402,9 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
                 </div>
               );
             })}
-          </div>
+          {matriculaError && (
+            <p className="text-pretty text-xs text-rose-600">{matriculaError}</p>
+          )}
         </div>
       )}
     </div>
@@ -1580,6 +1563,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
     const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesName) return false;
     if (statusFilter === 'all') return true;
+    if (statusFilter === 'draft') return isTriageDraft(child);
     return getEnrollmentStatus(child) === statusFilter;
   });
 
@@ -1602,6 +1586,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
         {[
           { value: 'all', label: 'Todas' },
                     { value: 'em_triagem', label: 'Triagem' },
+          { value: 'draft', label: 'Rascunhos' },
           { value: 'aprovado', label: 'Aprovado' },
           { value: 'lista_espera', label: 'Lista de espera' },
           { value: 'matriculado', label: 'Matriculado' },
@@ -1633,6 +1618,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
       <div className="space-y-2">
         {filtered.map(child => {
           const statusMeta = getStatusMeta(child);
+          const isDraft = isTriageDraft(child);
           return (
             <div
               key={child.id}
@@ -1650,14 +1636,21 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
                 <p className="text-sm text-gray-500">
                   {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
                 </p>
-                <span
-                  className={cn(
-                    'mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold',
-                    statusMeta.className
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span
+                    className={cn(
+                      'inline-flex rounded-full px-2 py-0.5 text-xs font-semibold',
+                      statusMeta.className
+                    )}
+                  >
+                    {statusMeta.label}
+                  </span>
+                  {isDraft && (
+                    <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                      Rascunho
+                    </span>
                   )}
-                >
-                  {statusMeta.label}
-                </span>
+                </div>
               </div>
               <ChevronRight size={20} className="text-gray-400" />
             </div>
@@ -1685,6 +1678,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
     const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesName) return false;
     if (statusFilter === 'all') return true;
+    if (statusFilter === 'draft') return isTriageDraft(child);
     return getEnrollmentStatus(child) === statusFilter;
   });
 
@@ -1714,6 +1708,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
         {[
           { value: 'all', label: 'Todas' },
                     { value: 'em_triagem', label: 'Triagem' },
+          { value: 'draft', label: 'Rascunhos' },
           { value: 'aprovado', label: 'Aprovado' },
           { value: 'lista_espera', label: 'Lista de espera' },
           { value: 'matriculado', label: 'Matriculado' },
@@ -1770,15 +1765,23 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
                 <td className="px-4 py-3">
                   {(() => {
                     const statusMeta = getStatusMeta(child);
+                    const isDraft = isTriageDraft(child);
                     return (
-                      <span
-                        className={cn(
-                          'rounded-full px-2 py-1 text-xs font-semibold',
-                          statusMeta.className
+                      <div className="flex flex-wrap gap-2">
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-1 text-xs font-semibold',
+                            statusMeta.className
+                          )}
+                        >
+                          {statusMeta.label}
+                        </span>
+                        {isDraft && (
+                          <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+                            Rascunho
+                          </span>
                         )}
-                      >
-                        {statusMeta.label}
-                      </span>
+                      </div>
                     );
                   })()}
                 </td>
@@ -1836,6 +1839,9 @@ function AddChildView({ addChild, setView }) {
     initialObservations: '',
   });
 
+  const [triageError, setTriageError] = useState('');
+  const [matriculaError, setMatriculaError] = useState('');
+
   const updateField = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
@@ -1860,82 +1866,37 @@ function AddChildView({ addChild, setView }) {
     });
   };
 
-  const validateRequired = fields => {
-    const missing = fields.filter(field => {
-      const value = form[field];
-      if (Array.isArray(value)) return value.length === 0;
-      return !value;
-    });
-    if (missing.length === 0) return true;
-    const labels = {
-      name: 'Nome completo',
-      birthDate: 'Data de nascimento',
-      guardianName: 'Nome do responsável',
-      guardianPhone: 'Telefone (WhatsApp)',
-      neighborhood: 'Bairro/Comunidade',
-      school: 'Escola',
-      schoolShift: 'Turno escolar',
-      referralSource: 'Origem do contato',
-      schoolCommuteAlone: 'Vai e volta desacompanhada da escola',
-      triageResult: 'Resultado da triagem',
-      startDate: 'Data de início',
-      participationDays: 'Dias de participação',
-      authorizedPickup: 'Pessoas autorizadas a retirar',
-      canLeaveAlone: 'Pode sair desacompanhada',
-      termsAccepted: 'Termo de Responsabilidade e Consentimento',
-    };
-    const missingLabels = missing.map(field => labels[field] || field).join(', ');
-    alert(`Preencha os campos obrigatórios: ${missingLabels}`);
-    return false;
-  };
+  const triageChecklistFields = [
+    ...TRIAGE_REQUIRED_FIELDS,
+    ...(form.healthCareNeeded === 'sim' ? ['healthNotes'] : []),
+  ];
+  const triageChecklistItems = buildChecklist(
+    triageChecklistFields,
+    form,
+    STATUS_FIELD_LABELS
+  );
+  const triageComplete = isTriageComplete(form);
+  const triageMissingCount = triageChecklistItems.filter(item => !item.complete).length;
 
-  const validateStep1 = () => {
-    if (
-      !validateRequired([
-        'name',
-        'birthDate',
-        'guardianName',
-        'guardianPhone',
-        'neighborhood',
-        'school',
-        'schoolShift',
-        'referralSource',
-        'schoolCommuteAlone',
-      ])
-    ) {
-      return false;
-    }
-    if (form.healthCareNeeded === 'sim' && !form.healthNotes.trim()) {
-      alert('Descreva o cuidado de saúde informado.');
-      return false;
-    }
-    return true;
-  };
+  const matriculaChecklistFields = [
+    ...MATRICULA_REQUIRED_FIELDS,
+    ...(form.canLeaveAlone === 'sim' ? ['leaveAloneConsent', 'leaveAloneConfirmation'] : []),
+  ];
+  const matriculaChecklistItems = buildChecklist(
+    matriculaChecklistFields,
+    form,
+    STATUS_FIELD_LABELS
+  );
+  const matriculaComplete = isMatriculaComplete(form);
+  const matriculaMissingCount = matriculaChecklistItems.filter(item => !item.complete).length;
 
-  const validateStep2 = () => {
-    if (!validateRequired(['startDate', 'authorizedPickup', 'canLeaveAlone', 'termsAccepted'])) {
-      return false;
-    }
-    if (!form.participationDays.length) {
-      alert('Selecione os dias de participação.');
-      return false;
-    }
-    if (form.canLeaveAlone === 'sim') {
-      if (!form.leaveAloneConsent) {
-        alert('Confirme a autorização de saída desacompanhada.');
-        return false;
-      }
-      if (!form.leaveAloneConfirmation.trim()) {
-        alert('Preencha a confirmação textual da autorização.');
-        return false;
-      }
-    }
-    return true;
-  };
 
-  const buildPayload = status => {
+
+
+  const buildPayload = (status, triageIsComplete) => {
     const now = new Date().toISOString();
     const enrollmentHistory = [];
+    const triageCompleteFlag = Boolean(triageIsComplete);
 
     if (status === 'matriculado') {
       enrollmentHistory.push({
@@ -1952,7 +1913,7 @@ function AddChildView({ addChild, setView }) {
       enrollmentHistory.push({
         date: now,
         action: status,
-        notes: 'Triagem registrada',
+        notes: triageCompleteFlag ? 'Triagem registrada' : 'Rascunho salvo',
       });
     }
 
@@ -1970,7 +1931,7 @@ function AddChildView({ addChild, setView }) {
       leaveAloneConfirmation: form.canLeaveAlone === 'sim' ? leaveAloneConfirmation : '',
       enrollmentStatus: status,
       enrollmentDate: now,
-      triageDate: now,
+      triageDate: triageCompleteFlag ? now : '',
       matriculationDate: status === 'matriculado' ? now : '',
       startDate: status === 'matriculado' ? form.startDate : '',
       entryDate: status === 'matriculado' ? form.startDate : '',
@@ -1981,16 +1942,28 @@ function AddChildView({ addChild, setView }) {
   };
 
   const handleSaveTriagem = () => {
-    if (!validateStep1()) return;
+    setTriageError('');
+    if (form.triageResult && !triageComplete) {
+      setTriageError('Complete os itens obrigatórios da triagem para definir o resultado.');
+      return;
+    }
     const status = form.triageResult || 'em_triagem';
-    addChild(buildPayload(status));
+    addChild(buildPayload(status, triageComplete));
     setView('children');
   };
 
   const handleMatricular = () => {
-    if (!validateStep1()) return;
-    if (!validateStep2()) return;
-    addChild(buildPayload('matriculado'));
+    setTriageError('');
+    setMatriculaError('');
+    if (!triageComplete) {
+      setTriageError('Complete os itens obrigatórios da triagem para concluir.');
+      return;
+    }
+    if (!matriculaComplete) {
+      setMatriculaError('Complete os itens obrigatórios da matrícula para concluir.');
+      return;
+    }
+    addChild(buildPayload('matriculado', true));
     setView('children');
   };
 
@@ -2011,8 +1984,38 @@ function AddChildView({ addChild, setView }) {
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Triagem</h2>
-            <p className="text-sm text-gray-500">Coleta inicial em um único momento.</p>
+            <h2 className="text-balance text-lg font-semibold text-gray-800">Triagem</h2>
+            <p className="text-pretty text-sm text-gray-500">Coleta inicial em um único momento.</p>
+          </div>
+
+          <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-pretty text-xs font-semibold text-gray-500">Obrigatórios da triagem</p>
+              <span className="text-xs text-gray-500 tabular-nums">
+                {triageComplete
+                  ? 'Completa'
+                  : `${triageMissingCount} pendente${triageMissingCount === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {triageChecklistItems.map(item => (
+                <span
+                  key={item.field}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold',
+                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'size-2 rounded-full',
+                      item.complete ? 'bg-emerald-500' : 'bg-gray-300'
+                    )}
+                  />
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
@@ -2233,29 +2236,67 @@ function AddChildView({ addChild, setView }) {
               onClick={handleSaveTriagem}
               className="flex-1 rounded-xl bg-gray-100 py-4 font-semibold text-gray-700"
             >
-              Salvar triagem
+              {triageComplete ? 'Concluir triagem' : 'Salvar rascunho'}
             </button>
             <button
               onClick={() => {
+                setTriageError('');
                 if (form.triageResult !== 'aprovado') {
-                  alert('Apenas triagens aprovadas seguem para matrícula.');
+                  setTriageError("Selecione 'Aprovada para matrícula' para continuar.");
                   return;
                 }
-                if (validateStep1()) setStep(2);
+                if (!triageComplete) {
+                  setTriageError('Complete os itens obrigatórios da triagem para continuar.');
+                  return;
+                }
+                setStep(2);
               }}
               className="flex-1 rounded-xl bg-indigo-600 py-4 font-semibold text-white"
             >
               Continuar para matrícula
             </button>
           </div>
+          {triageError && (
+            <p className="text-pretty text-xs text-rose-600">{triageError}</p>
+          )}
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Matrícula</h2>
-            <p className="text-sm text-gray-500">Somente para crianças aprovadas na triagem.</p>
+            <h2 className="text-balance text-lg font-semibold text-gray-800">Matrícula</h2>
+            <p className="text-pretty text-sm text-gray-500">Somente para crianças aprovadas na triagem.</p>
+          </div>
+
+          <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-pretty text-xs font-semibold text-gray-500">Obrigatórios da matrícula</p>
+              <span className="text-xs text-gray-500 tabular-nums">
+                {matriculaComplete
+                  ? 'Completa'
+                  : `${matriculaMissingCount} pendente${matriculaMissingCount === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {matriculaChecklistItems.map(item => (
+                <span
+                  key={item.field}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold',
+                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'size-2 rounded-full',
+                      item.complete ? 'bg-emerald-500' : 'bg-gray-300'
+                    )}
+                  />
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
@@ -2428,11 +2469,18 @@ function AddChildView({ addChild, setView }) {
             </button>
             <button
               onClick={handleMatricular}
-              className="flex-1 rounded-xl bg-green-600 py-4 font-semibold text-white"
+              disabled={!matriculaComplete}
+              className={cn(
+                'flex-1 rounded-xl bg-green-600 py-4 font-semibold text-white',
+                !matriculaComplete && 'opacity-50'
+              )}
             >
               Matricular
             </button>
           </div>
+          {matriculaError && (
+            <p className="text-pretty text-xs text-rose-600">{matriculaError}</p>
+          )}
         </div>
       )}
     </div>
@@ -2831,7 +2879,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                 )}
               </div>
             )}
-            {statusError && <p className="text-xs text-rose-600">{statusError}</p>}
+            {statusError && <p className="text-pretty text-xs text-rose-600">{statusError}</p>}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -3392,7 +3440,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                   )}
                 </div>
               )}
-              {statusError && <p className="text-xs text-rose-600">{statusError}</p>}
+              {statusError && <p className="text-pretty text-xs text-rose-600">{statusError}</p>}
               <div className="flex gap-2">
                 <button
                   type="button"

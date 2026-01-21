@@ -35,7 +35,9 @@ export function getMissingMatriculaFields(data) {
 }
 
 export function isTriageComplete(data) {
-  return getMissingTriageFields(data).length === 0;
+  if (getMissingTriageFields(data).length) return false;
+  if (data?.healthCareNeeded === 'sim' && !data?.healthNotes?.trim()) return false;
+  return true;
 }
 
 export function isMatriculaComplete(data) {
@@ -45,4 +47,24 @@ export function isMatriculaComplete(data) {
 export function isTriageDraft(child) {
   if (!child || child.enrollmentStatus !== 'em_triagem') return false;
   return !isTriageComplete(child);
+}
+
+export function buildChecklist(fields, data, labels = {}) {
+  return fields.map(field => {
+    let complete = false;
+    if (field === 'participationDays') {
+      complete = Boolean(data?.participationDays?.length);
+    } else if (field === 'leaveAloneConsent') {
+      complete = Boolean(data?.leaveAloneConsent);
+    } else if (field === 'leaveAloneConfirmation') {
+      complete = Boolean(data?.leaveAloneConfirmation?.trim());
+    } else {
+      complete = Boolean(data?.[field]);
+    }
+    return {
+      field,
+      label: labels[field] || field,
+      complete,
+    };
+  });
 }
