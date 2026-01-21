@@ -38,6 +38,7 @@ import {
   isTriageDraft,
   buildChecklist,
 } from './utils/enrollment';
+import { upsertDailyRecord } from './utils/records';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -719,42 +720,14 @@ export default function LumineTracker() {
 
   // Adicionar registro (evita duplicidade por criança/dia)
   const addDailyRecord = async data => {
-    const internalId = data.childInternalId || data.childId || '';
-    const dateKey = data.date ? data.date.split('T')[0] : '';
     const now = new Date().toISOString();
-    const existingIndex = dailyRecords.findIndex(
-      record => record.childInternalId === internalId && record.date?.split('T')[0] === dateKey
-    );
-
-    let recordPayload = null;
-    let nextRecords = [];
-
-    if (existingIndex >= 0) {
-      const existing = dailyRecords[existingIndex];
-      recordPayload = {
-        ...existing,
-        ...data,
-        childInternalId: internalId,
-        childId: internalId,
-      };
-      nextRecords = [...dailyRecords];
-      nextRecords[existingIndex] = recordPayload;
-    } else {
-      recordPayload = {
-        ...data,
-        childInternalId: internalId,
-        childId: internalId,
-        id: Date.now().toString(),
-        createdAt: now,
-      };
-      nextRecords = [...dailyRecords, recordPayload];
-    }
+    const { recordPayload, nextRecords, existed } = upsertDailyRecord(dailyRecords, data, now);
 
     setDailyRecords(nextRecords);
     setPendingChanges(p => p + 1);
 
     if (isOnline) {
-      if (existingIndex >= 0) {
+      if (existed) {
         if (!reviewMode) {
           await syncWithServer({ children, records: nextRecords });
         }
