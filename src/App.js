@@ -69,14 +69,14 @@ const BASE_HEADERS = { ...AUTH_HEADERS, ...META_HEADERS };
 const JSON_HEADERS = { 'Content-Type': 'application/json', ...BASE_HEADERS };
 
 const ENROLLMENT_STATUS_META = {
-  pre_inscrito: { label: 'Pré-inscrito', className: 'bg-gray-100 text-gray-600' },
+  pre_inscrito: { label: 'Pré-inscrito', className: 'bg-teal-50 text-gray-600' },
   em_triagem: { label: 'Em triagem', className: 'bg-yellow-100 text-yellow-700' },
   aprovado: { label: 'Aprovado', className: 'bg-cyan-100 text-cyan-700' },
   lista_espera: { label: 'Lista de espera', className: 'bg-orange-100 text-orange-700' },
   matriculado: { label: 'Matriculado', className: 'bg-emerald-100 text-emerald-700' },
   recusado: { label: 'Não atendida', className: 'bg-rose-100 text-rose-700' },
-  desistente: { label: 'Desistente', className: 'bg-gray-100 text-gray-600' },
-  inativo: { label: 'Inativo', className: 'bg-gray-100 text-gray-600' },
+  desistente: { label: 'Desistente', className: 'bg-teal-50 text-gray-600' },
+  inativo: { label: 'Inativo', className: 'bg-teal-50 text-gray-600' },
 };
 
 const TRIAGE_RESULT_OPTIONS = [
@@ -111,7 +111,7 @@ function getStatusMeta(child) {
     status,
     ...(ENROLLMENT_STATUS_META[status] || {
       label: 'Sem status',
-      className: 'bg-gray-100 text-gray-600',
+      className: 'bg-teal-50 text-gray-600',
     }),
   };
 }
@@ -903,7 +903,7 @@ export default function LumineTracker() {
             <div className="mt-6 flex gap-3">
               <button
                 onClick={handleOnboardingLater}
-                className="flex-1 rounded-xl bg-gray-100 py-3 text-sm font-semibold text-gray-700"
+                className="flex-1 rounded-xl bg-teal-50 py-3 text-sm font-semibold text-gray-700"
               >
                 Ver depois
               </button>
@@ -918,7 +918,7 @@ export default function LumineTracker() {
         </Dialog.Portal>
       </Dialog.Root>
 
-    <div className="min-h-dvh bg-gray-100 pb-20 lg:flex lg:h-dvh lg:overflow-hidden lg:pb-0">
+    <div className="min-h-dvh bg-teal-50 pb-20 lg:flex lg:h-dvh lg:overflow-hidden lg:pb-0">
       <Sidebar view={view} setView={setView} lastSync={lastSync} isOnline={isOnline} />
       <div className="flex-1 lg:flex lg:flex-col lg:overflow-hidden">
       {/* ========== HEADER COMPACTO ========== */}
@@ -1150,7 +1150,7 @@ export default function LumineTracker() {
             </Dialog.Description>
             <div className="mt-6 flex gap-3">
               <Dialog.Close asChild>
-                <button className="flex-1 rounded-xl bg-gray-100 py-3 font-medium">
+                <button className="flex-1 rounded-xl bg-teal-50 py-3 font-medium">
                   Cancelar
                 </button>
               </Dialog.Close>
@@ -1386,7 +1386,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-balance font-semibold text-gray-800">Registrar hoje</h3>
-            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500 tabular-nums">
+            <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
               {pendingToday.length} pendentes
             </span>
           </div>
@@ -1498,7 +1498,7 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-balance font-semibold text-gray-800">Pendências de hoje</h3>
-              <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500 tabular-nums">
+              <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
                 {pendingToday.length} pendentes
               </span>
             </div>
@@ -1645,7 +1645,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
               'rounded-full px-3 py-1 text-xs font-semibold',
               statusFilter === option.value
                 ? 'bg-cyan-700 text-white'
-                : 'bg-gray-100 text-gray-600'
+                : 'bg-teal-50 text-gray-600'
             )}
           >
             {option.label}
@@ -1773,7 +1773,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
               'rounded-full px-3 py-1 text-xs font-semibold',
               statusFilter === option.value
                 ? 'bg-cyan-700 text-white'
-                : 'bg-gray-100 text-gray-600'
+                : 'bg-teal-50 text-gray-600'
             )}
           >
             {option.label}
@@ -2061,7 +2061,7 @@ function AddChildView({ addChild, setView }) {
                   key={item.field}
                   className={cn(
                     'inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold',
-                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-teal-50 text-gray-600'
                   )}
                 >
                   <span
@@ -2292,7 +2292,7 @@ function AddChildView({ addChild, setView }) {
           <div className="flex gap-3">
             <button
               onClick={handleSaveTriagem}
-              className="flex-1 rounded-xl bg-gray-100 py-4 font-semibold text-gray-700"
+              className="flex-1 rounded-xl bg-teal-50 py-4 font-semibold text-gray-700"
             >
               {triageComplete ? 'Concluir triagem' : 'Salvar rascunho'}
             </button>
@@ -2342,7 +2342,7 @@ function AddChildView({ addChild, setView }) {
                   key={item.field}
                   className={cn(
                     'inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold',
-                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-teal-50 text-gray-600'
                   )}
                 >
                   <span
@@ -2379,7 +2379,7 @@ function AddChildView({ addChild, setView }) {
                       'rounded-full px-3 py-1 text-sm font-medium transition-all',
                       form.participationDays.includes(day.value)
                         ? 'bg-cyan-700 text-white'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-teal-50 text-gray-600'
                     )}
                   >
                     {day.label}
@@ -2521,7 +2521,7 @@ function AddChildView({ addChild, setView }) {
           <div className="flex gap-3">
             <button
               onClick={() => setStep(1)}
-              className="flex-1 rounded-xl bg-gray-100 py-4 font-semibold text-gray-700"
+              className="flex-1 rounded-xl bg-teal-50 py-4 font-semibold text-gray-700"
             >
               Voltar
             </button>
@@ -2942,7 +2942,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
               <button
                 type="button"
                 onClick={() => setShowStatusForm(false)}
-                className="flex-1 rounded-xl bg-gray-100 py-2 text-sm font-semibold text-gray-700"
+                className="flex-1 rounded-xl bg-teal-50 py-2 text-sm font-semibold text-gray-700"
               >
                 Cancelar
               </button>
@@ -3001,7 +3001,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
               .map((entry, index) => {
                 const meta = ENROLLMENT_STATUS_META[entry.action] || {
                   label: entry.action || 'Status',
-                  className: 'bg-gray-100 text-gray-600',
+                  className: 'bg-teal-50 text-gray-600',
                 };
                 return (
                   <div key={`${entry.date}-${index}`} className="rounded-xl border border-gray-100 p-3">
@@ -3503,7 +3503,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                 <button
                   type="button"
                   onClick={() => setShowStatusForm(false)}
-                  className="flex-1 rounded-xl bg-gray-100 py-2 text-sm font-semibold text-gray-700"
+                  className="flex-1 rounded-xl bg-teal-50 py-2 text-sm font-semibold text-gray-700"
                 >
                   Cancelar
                 </button>
@@ -3552,7 +3552,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
             .map((entry, index) => {
               const meta = ENROLLMENT_STATUS_META[entry.action] || {
                 label: entry.action || 'Status',
-                className: 'bg-gray-100 text-gray-600',
+                className: 'bg-teal-50 text-gray-600',
               };
               return (
                 <div key={`${entry.date}-${index}`} className="rounded-xl border border-gray-100 p-3">
@@ -3884,7 +3884,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                         : opt.color === 'yellow'
                         ? 'bg-yellow-500 text-white'
                         : 'bg-red-500 text-white'
-                      : 'bg-gray-100 text-gray-600'
+                      : 'bg-teal-50 text-gray-600'
                   )}
                 >
                   {opt.label}
@@ -3913,7 +3913,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                         'rounded-xl py-3 text-2xl transition-all',
                         form.mood === opt.value
                           ? 'bg-cyan-100 ring-2 ring-cyan-500'
-                          : 'bg-gray-100'
+                          : 'bg-teal-50'
                       )}
                     >
                       {opt.label}
@@ -4123,7 +4123,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="text-balance font-semibold text-gray-800">Pendentes</h3>
-            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500 tabular-nums">
+            <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
               {pending.length} pendentes
             </span>
           </div>
@@ -4270,7 +4270,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
                           : option.color === 'yellow'
                           ? 'bg-yellow-500 text-white'
                           : 'bg-red-500 text-white'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-teal-50 text-gray-600'
                     )}
                   >
                     {option.label}
@@ -4543,7 +4543,7 @@ function ConfigView({
             </Dialog.Description>
             <div className="mt-6 flex gap-3">
               <Dialog.Close asChild>
-                <button className="flex-1 rounded-xl bg-gray-100 py-3 font-medium">
+                <button className="flex-1 rounded-xl bg-teal-50 py-3 font-medium">
                   Cancelar
                 </button>
               </Dialog.Close>
@@ -4623,7 +4623,7 @@ function ConfigView({
             <Download size={18} />
             Exportar
           </button>
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-100 py-3 font-medium text-gray-700">
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-teal-50 py-3 font-medium text-gray-700">
             <Upload size={18} />
             Importar
             <input type="file" accept=".json" onChange={importJSON} className="hidden" />
@@ -4713,7 +4713,7 @@ function ConfigView({
       </div>
 
       {/* Stats */}
-      <div className="rounded-xl bg-gray-100 p-4 text-center">
+      <div className="rounded-xl bg-teal-50 p-4 text-center">
         <p className="text-sm text-gray-500 tabular-nums">
           {children.length} crianças • {dailyRecords.length} registros
         </p>
@@ -4765,7 +4765,7 @@ function ConfigView({
                 <Download size={16} />
                 Exportar
               </button>
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-100 py-2 text-sm font-semibold text-gray-700">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-teal-50 py-2 text-sm font-semibold text-gray-700">
                 <Upload size={16} />
                 Importar
                 <input type="file" accept=".json" onChange={importJSON} className="hidden" />
@@ -4883,7 +4883,7 @@ function ConfigView({
           </table>
         </div>
 
-        <div className="rounded-2xl bg-gray-100 p-4 text-center text-sm text-gray-500">
+        <div className="rounded-2xl bg-teal-50 p-4 text-center text-sm text-gray-500">
           {children.length} crianças • {dailyRecords.length} registros
           <p className="mt-1 text-xs text-gray-400">Instituto Lumine v3.0</p>
         </div>
@@ -4913,7 +4913,7 @@ function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
           </AlertDialog.Description>
           <div className="mt-6 flex gap-3">
             <AlertDialog.Cancel asChild>
-              <button className="flex-1 rounded-xl bg-gray-100 py-3 font-medium">
+              <button className="flex-1 rounded-xl bg-teal-50 py-3 font-medium">
                 Cancelar
               </button>
             </AlertDialog.Cancel>
