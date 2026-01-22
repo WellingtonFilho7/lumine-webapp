@@ -3731,12 +3731,12 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
       <div className="flex items-center justify-between rounded-xl bg-indigo-50 p-4">
         <div>
           <p className="text-sm font-medium text-indigo-800">Registros hoje</p>
-          <p className="text-2xl font-bold text-indigo-600">
+          <p className="text-2xl font-bold text-indigo-600 tabular-nums">
             {dateRecords.length}/{activeChildren.length}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-indigo-600">{pending.length} pendentes</p>
+          <p className="text-sm text-indigo-600 tabular-nums">{pending.length} pendentes</p>
         </div>
       </div>
 
@@ -3745,8 +3745,8 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
           {dateRecords.length > 0 && (
             <div className="rounded-xl bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800">Registros do dia</h3>
-                <span className="text-xs text-gray-500">{dateRecords.length} registros</span>
+                <h3 className="text-balance font-semibold text-gray-800">Registros do dia</h3>
+                <span className="text-xs text-gray-500 tabular-nums">{dateRecords.length} registros</span>
               </div>
               <div className="space-y-2">
                 {dateRecords.map(record => {
@@ -3787,7 +3787,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
           {/* Registro rápido */}
           {pending.length > 0 && (
             <div className="rounded-xl bg-white p-4 shadow-sm">
-              <h3 className="mb-3 font-semibold text-gray-800">Registro rápido</h3>
+              <h3 className="text-balance mb-3 font-semibold text-gray-800">Registro rápido</h3>
               <div className="max-h-60 space-y-2 overflow-y-auto">
                 {pending.map(child => (
                   <div key={child.id} className="flex items-center gap-3 rounded-xl bg-gray-50 p-3">
@@ -3812,7 +3812,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 
           {/* Registro detalhado */}
           <div className="rounded-xl bg-white p-4 shadow-sm">
-            <h3 className="mb-3 font-semibold text-gray-800">Registro detalhado</h3>
+            <h3 className="text-balance mb-3 font-semibold text-gray-800">Registro detalhado</h3>
             <select
               value={selectedChildId}
               onChange={e => setSelectedChildId(e.target.value)}
@@ -3866,7 +3866,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 
           {/* Bloco 1: Presença */}
           <div className="rounded-xl bg-white p-4 shadow-sm">
-            <h4 className="mb-3 font-medium text-gray-800">Presença</h4>
+            <h4 className="text-balance mb-3 font-medium text-gray-800">Presença</h4>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { value: 'present', label: 'Presente', color: 'green' },
@@ -3896,7 +3896,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
           {/* Bloco 2: Detalhes (só se presente/atrasado) */}
           {form.attendance !== 'absent' && (
             <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
-              <h4 className="font-medium text-gray-800">Detalhes</h4>
+              <h4 className="text-balance font-medium text-gray-800">Detalhes</h4>
 
               <div>
                 <label className="mb-2 block text-sm text-gray-600">Humor</label>
@@ -3975,7 +3975,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 
           {/* Bloco 3: Observações */}
           <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
-            <h4 className="font-medium text-gray-800">Observações</h4>
+            <h4 className="text-balance font-medium text-gray-800">Observações</h4>
             <textarea
               value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
@@ -4103,8 +4103,8 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
 
       <div className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 shadow-sm">
         <div>
-          <p className="text-xs uppercase text-gray-400">Registro diário</p>
-          <p className="text-sm text-gray-600">
+          <p className="text-balance text-xs uppercase text-gray-400">Registro diário</p>
+          <p className="text-sm text-gray-600 tabular-nums">
             {dateRecords.length}/{activeChildren.length} registrados
           </p>
         </div>
@@ -4122,15 +4122,21 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
       <div className="grid grid-cols-[minmax(0,360px)_1fr] gap-6">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800">Pendentes</h3>
-            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">
+            <h3 className="text-balance font-semibold text-gray-800">Pendentes</h3>
+            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500 tabular-nums">
               {pending.length} pendentes
             </span>
           </div>
           <div className="mt-4 max-h-[360px] space-y-2 overflow-auto">
             {pending.length === 0 && (
               <div className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
-                Nenhuma pendência para esta data.
+                <p className="text-pretty">Nenhuma pendência para esta data.</p>
+                <button
+                  onClick={() => setSelectedChildId('')}
+                  className="mt-3 w-full rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Registrar agora
+                </button>
               </div>
             )}
             {pending.map(child => (
@@ -4166,8 +4172,8 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
           {dateRecords.length > 0 && (
             <div className="mt-6 border-t border-gray-100 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-800">Registros do dia</h4>
-                <span className="text-xs text-gray-500">{dateRecords.length} registros</span>
+                <h4 className="text-balance text-sm font-semibold text-gray-800">Registros do dia</h4>
+                <span className="text-xs text-gray-500 tabular-nums">{dateRecords.length} registros</span>
               </div>
               <div className="max-h-[260px] space-y-2 overflow-auto">
                 {dateRecords.map(record => {
@@ -4209,7 +4215,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase text-gray-400">Detalhes</p>
+              <p className="text-balance text-xs uppercase text-gray-400">Detalhes</p>
               <h3 className="text-lg font-semibold text-gray-800">
                 {selectedChild ? selectedChild.name : 'Selecione uma criança'}
               </h3>
@@ -4246,7 +4252,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
 
           <div className="mt-6 space-y-5">
             <div>
-              <label className="text-xs font-semibold text-gray-500">Presença</label>
+              <label className="text-balance text-xs font-semibold text-gray-500">Presença</label>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {[
                   { value: 'present', label: 'Presente', color: 'green' },
