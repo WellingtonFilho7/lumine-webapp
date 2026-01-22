@@ -1361,7 +1361,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="mb-2 flex items-center gap-2">
             <AlertTriangle size={18} className="text-amber-600" />
-            <span className="text-sm font-semibold text-amber-800">Alertas</span>
+            <span className="text-balance text-sm font-semibold text-amber-800">Alertas</span>
           </div>
           {alerts.map((a, i) => (
             <div
@@ -1385,8 +1385,8 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
       {pendingToday.length > 0 && (
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800">Registrar hoje</h3>
-            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">
+            <h3 className="text-balance font-semibold text-gray-800">Registrar hoje</h3>
+            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500 tabular-nums">
               {pendingToday.length} pendentes
             </span>
           </div>
@@ -1415,7 +1415,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
       {/* Atividade recente */}
       {todayRecords.length > 0 && (
         <div className="rounded-xl bg-white p-4 shadow-sm">
-          <h3 className="mb-3 font-semibold text-gray-800">Registros de hoje</h3>
+          <h3 className="text-balance mb-3 font-semibold text-gray-800">Registros de hoje</h3>
           <div className="space-y-2">
             {todayRecords.slice(0, 5).map(rec => {
               const child = children.find(c => c.id === rec.childInternalId);
@@ -1470,7 +1470,7 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
               <div className="mb-3 flex items-center gap-2">
                 <AlertTriangle size={18} className="text-amber-600" />
-                <span className="text-sm font-semibold text-amber-800">Alertas recentes</span>
+                <span className="text-balance text-sm font-semibold text-amber-800">Alertas recentes</span>
               </div>
               <div className="space-y-2">
                 {alerts.map((alert, index) => (
@@ -1497,8 +1497,8 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
 
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800">Pendências de hoje</h3>
-              <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">
+              <h3 className="text-balance font-semibold text-gray-800">Pendências de hoje</h3>
+              <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500 tabular-nums">
                 {pendingToday.length} pendentes
               </span>
             </div>
@@ -1528,13 +1528,19 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
 
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800">Registros de hoje</h3>
-            <span className="text-xs text-gray-500">{todayRecords.length} registros</span>
+            <h3 className="text-balance font-semibold text-gray-800">Registros de hoje</h3>
+            <span className="text-xs text-gray-500 tabular-nums">{todayRecords.length} registros</span>
           </div>
           <div className="mt-4 max-h-[420px] space-y-2 overflow-auto">
             {todayRecords.length === 0 && (
               <div className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
-                Nenhum registro feito hoje.
+                <p className="text-pretty">Nenhum registro feito hoje.</p>
+                <button
+                  onClick={() => setView('daily')}
+                  className="mt-3 w-full rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Ir para registro
+                </button>
               </div>
             )}
             {todayRecords.map(record => {
@@ -1582,7 +1588,7 @@ function StatCard({ value, label, color, icon: Icon }) {
     <div className={cn('rounded-xl border p-4', colors[color])}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-2xl font-bold tabular-nums">{value}</p>
           <p className="text-xs opacity-80">{label}</p>
         </div>
         <Icon size={24} className="opacity-50" />
