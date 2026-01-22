@@ -1654,7 +1654,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
       </div>
 
       {/* Contador */}
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-gray-500 tabular-nums">
         {filtered.length} criança{filtered.length !== 1 ? 's' : ''}
       </p>
 
@@ -1677,7 +1677,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-semibold text-gray-800">{child.name}</h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 tabular-nums">
                   {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -1705,9 +1705,15 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
       {filtered.length === 0 && (
         <div className="py-12 text-center">
           <Users size={48} className="mx-auto mb-3 text-gray-300" />
-          <p className="text-gray-500">
+          <p className="text-pretty text-gray-500">
             {searchTerm ? 'Nenhuma criança encontrada' : 'Nenhuma criança cadastrada'}
           </p>
+          <button
+            onClick={() => setView('add-child')}
+            className="mt-4 w-full rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Cadastrar criança
+          </button>
         </div>
       )}
     </div>
@@ -1779,12 +1785,12 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">Idade</th>
-              <th className="px-4 py-3">Responsável</th>
-              <th className="px-4 py-3">Telefone</th>
-              <th className="px-4 py-3">Escola</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-balance">Nome</th>
+              <th className="px-4 py-3 text-balance">Idade</th>
+              <th className="px-4 py-3 text-balance">Responsável</th>
+              <th className="px-4 py-3 text-balance">Telefone</th>
+              <th className="px-4 py-3 text-balance">Escola</th>
+              <th className="px-4 py-3 text-balance">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -1798,7 +1804,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
                 className="cursor-pointer border-t border-gray-100 hover:bg-gray-50"
               >
                 <td className="px-4 py-3 font-medium text-gray-800">{child.name}</td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-gray-600 tabular-nums">
                   {child.birthDate ? `${calculateAge(child.birthDate)} anos` : '-'}
                 </td>
                 <td className="px-4 py-3 text-gray-600">{child.guardianName || '-'}</td>
@@ -1834,7 +1840,15 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
             {filtered.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={6}>
-                  {searchTerm ? 'Nenhuma criança encontrada' : 'Nenhuma criança cadastrada'}
+                  <p className="text-pretty">
+                    {searchTerm ? 'Nenhuma criança encontrada' : 'Nenhuma criança cadastrada'}
+                  </p>
+                  <button
+                    onClick={() => setView('add-child')}
+                    className="mt-4 w-full rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Cadastrar criança
+                  </button>
                 </td>
               </tr>
             )}
