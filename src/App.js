@@ -1336,9 +1336,6 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
               </button>
             )}
           </div>
-          {triageError && (
-            <p className="text-pretty text-xs text-rose-600">{triageError}</p>
-          )}
         </div>
       )}
 
