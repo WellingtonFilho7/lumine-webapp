@@ -4563,7 +4563,7 @@ function ConfigView({
       <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
         <div className="flex items-center gap-3">
           <div className={cn('size-3 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
-          <h3 className="font-semibold text-gray-800">Sincronização</h3>
+          <h3 className="text-balance font-semibold text-gray-800">Sincronização</h3>
         </div>
 
         {lastSync && (
@@ -4595,7 +4595,7 @@ function ConfigView({
       {/* Modo revisão */}
       <div className="space-y-3 rounded-xl bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-800">Modo revisão</h3>
+          <h3 className="text-balance font-semibold text-gray-800">Modo revisão</h3>
           <label className="inline-flex items-center">
             <input
               type="checkbox"
@@ -4614,7 +4614,7 @@ function ConfigView({
 
       {/* Backup */}
       <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
-        <h3 className="font-semibold text-gray-800">Backup Local</h3>
+        <h3 className="text-balance font-semibold text-gray-800">Backup Local</h3>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={exportJSON}
@@ -4633,7 +4633,7 @@ function ConfigView({
 
       {/* Segurança */}
       <div className="space-y-3 rounded-xl bg-rose-50 p-4 shadow-sm">
-        <h3 className="font-semibold text-rose-700">Segurança</h3>
+        <h3 className="text-balance font-semibold text-rose-700">Segurança</h3>
         <p className="text-sm text-rose-600">Remove todas as crianças e registros deste dispositivo.</p>
         <ClearLocalDataDialog
           onConfirm={clearLocalData}
@@ -4643,7 +4643,7 @@ function ConfigView({
 
       {/* Relatório Mensal em Cards */}
       <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
-        <h3 className="font-semibold text-gray-800">Relatório Mensal</h3>
+        <h3 className="text-balance font-semibold text-gray-800">Relatório Mensal</h3>
         <input
           type="month"
           value={selectedMonth}
@@ -4653,7 +4653,7 @@ function ConfigView({
 
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-xl bg-indigo-50 p-3">
-            <p className="text-lg font-bold text-indigo-600">{activeChildren.length}</p>
+            <p className="text-lg font-bold text-indigo-600 tabular-nums">{activeChildren.length}</p>
             <p className="text-xs text-indigo-600">Crianças</p>
           </div>
           <div className="rounded-xl bg-green-50 p-3">
@@ -4714,7 +4714,7 @@ function ConfigView({
 
       {/* Stats */}
       <div className="rounded-xl bg-gray-100 p-4 text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 tabular-nums">
           {children.length} crianças • {dailyRecords.length} registros
         </p>
         <p className="mt-1 text-xs text-gray-400">Instituto Lumine v3.0</p>
@@ -4727,7 +4727,7 @@ function ConfigView({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className={cn('size-2 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
-                <h3 className="font-semibold text-gray-800">Sincronização</h3>
+                <h3 className="text-balance font-semibold text-gray-800">Sincronização</h3>
               </div>
               <span className="text-xs text-gray-400">
                 {lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : 'Sem sync'}
@@ -4755,7 +4755,7 @@ function ConfigView({
           </div>
 
           <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <h3 className="font-semibold text-gray-800">Backup Local</h3>
+            <h3 className="text-balance font-semibold text-gray-800">Backup Local</h3>
             <p className="mt-2 text-sm text-gray-500">Exporte ou restaure um arquivo JSON.</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
@@ -4774,7 +4774,7 @@ function ConfigView({
           </div>
 
           <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <h3 className="font-semibold text-gray-800">Relatório Mensal</h3>
+            <h3 className="text-balance font-semibold text-gray-800">Relatório Mensal</h3>
             <input
               type="month"
               value={selectedMonth}
@@ -4783,15 +4783,15 @@ function ConfigView({
             />
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl bg-indigo-50 p-3">
-                <p className="text-lg font-bold text-indigo-600">{activeChildren.length}</p>
+                <p className="text-lg font-bold text-indigo-600 tabular-nums">{activeChildren.length}</p>
                 <p className="text-xs text-indigo-600">Crianças</p>
               </div>
               <div className="rounded-xl bg-green-50 p-3">
-                <p className="text-lg font-bold text-green-600">{monthDays}</p>
+                <p className="text-lg font-bold text-green-600 tabular-nums">{monthDays}</p>
                 <p className="text-xs text-green-600">Dias</p>
               </div>
               <div className="rounded-xl bg-amber-50 p-3">
-                <p className="text-lg font-bold text-amber-600">{monthMeals}</p>
+                <p className="text-lg font-bold text-amber-600 tabular-nums">{monthMeals}</p>
                 <p className="text-xs text-amber-600">Refeições</p>
               </div>
             </div>
@@ -4803,7 +4803,7 @@ function ConfigView({
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-gray-800">Modo revisão</h3>
+              <h3 className="text-balance font-semibold text-gray-800">Modo revisão</h3>
               <p className="mt-1 text-sm text-gray-500">
                 Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
               </p>
@@ -4822,7 +4822,7 @@ function ConfigView({
         <div className="rounded-2xl bg-rose-50 p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-rose-700">Segurança</h3>
+              <h3 className="text-balance font-semibold text-rose-700">Segurança</h3>
               <p className="mt-1 text-sm text-rose-600">
                 Remove todas as crianças e registros deste dispositivo.
               </p>
@@ -4869,7 +4869,13 @@ function ConfigView({
               {childStats.length === 0 && (
                 <tr>
                   <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={4}>
-                    Nenhum dado disponível para este mês.
+                    <p className="text-pretty">Nenhum dado disponível para este mês.</p>
+                    <button
+                      onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))}
+                      className="mt-4 w-full rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Selecionar outro mês
+                    </button>
                   </td>
                 </tr>
               )}
