@@ -882,19 +882,19 @@ export default function LumineTracker() {
             </Dialog.Description>
             <ol className="mt-4 space-y-3 text-pretty text-sm text-gray-700">
               <li className="flex gap-3">
-                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold tabular-nums text-blue-800">
                   1
                 </span>
                 <span className="text-pretty">Cadastre a criança na triagem e finalize a matrícula quando estiver aprovada.</span>
               </li>
               <li className="flex gap-3">
-                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold tabular-nums text-blue-800">
                   2
                 </span>
                 <span className="text-pretty">No registro diário, escolha presença e detalhe apenas quando necessário.</span>
               </li>
               <li className="flex gap-3">
-                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold tabular-nums text-blue-800">
                   3
                 </span>
                 <span className="text-pretty">Ao sincronizar, sempre baixe antes se houver dados novos no servidor.</span>
@@ -909,7 +909,7 @@ export default function LumineTracker() {
               </button>
               <button
                 onClick={handleOnboardingDone}
-                className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white"
+                className="flex-1 rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white"
               >
                 Entendi
               </button>
@@ -922,7 +922,7 @@ export default function LumineTracker() {
       <Sidebar view={view} setView={setView} lastSync={lastSync} isOnline={isOnline} />
       <div className="flex-1 lg:flex lg:flex-col lg:overflow-hidden">
       {/* ========== HEADER COMPACTO ========== */}
-      <header className="sticky top-0 z-30 bg-indigo-600 px-4 py-3 text-white shadow-lg lg:hidden">
+      <header className="sticky top-0 z-30 bg-blue-700 px-4 py-3 text-white shadow-lg lg:hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {(view === 'add-child' || view === 'child-detail') && (
@@ -950,7 +950,7 @@ export default function LumineTracker() {
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
                 syncStatus === 'syncing'
-                  ? 'bg-indigo-500'
+                  ? 'bg-blue-500'
                   : syncStatus === 'success'
                   ? 'bg-green-500'
                   : syncStatus === 'error'
@@ -974,7 +974,7 @@ export default function LumineTracker() {
 
         {/* Última sync - só mostra se tiver */}
         {lastSync && syncStatus === 'idle' && (
-          <p className="mt-1 text-xs text-indigo-200">Última sync: {formatTime(lastSync)}</p>
+          <p className="mt-1 text-xs text-blue-200">Última sync: {formatTime(lastSync)}</p>
         )}
         {syncStatus === 'error' && syncError && (
           <p className="mt-1 text-xs text-rose-100">Sync: {syncError}</p>
@@ -1007,7 +1007,7 @@ export default function LumineTracker() {
             className={cn(
               'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition',
               syncStatus === 'syncing'
-                ? 'bg-indigo-100 text-indigo-700'
+                ? 'bg-blue-100 text-blue-800'
                 : syncStatus === 'success'
                 ? 'bg-emerald-100 text-emerald-700'
                 : syncStatus === 'error'
@@ -1164,7 +1164,7 @@ export default function LumineTracker() {
                     setSyncModal(null);
                   }
                 }}
-                className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white"
+                className="flex-1 rounded-xl bg-blue-700 py-3 font-medium text-white"
               >
                 Baixar agora
               </button>
@@ -1189,7 +1189,7 @@ export default function LumineTracker() {
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
               >
-                <Users size={18} className="text-indigo-600" />
+                <Users size={18} className="text-blue-700" />
                 <span className="text-sm font-medium">Nova Criança</span>
               </button>
               <button
@@ -1208,7 +1208,7 @@ export default function LumineTracker() {
             onClick={() => setShowFABMenu(!showFABMenu)}
             className={cn(
               'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',
-              showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-indigo-600'
+              showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-blue-700'
             )}
             aria-label={showFABMenu ? 'Fechar ações' : 'Abrir ações'}
           >
@@ -1260,7 +1260,7 @@ function NavItem({ icon: Icon, label, active, onClick }) {
       onClick={onClick}
       className={cn(
         'flex h-full w-16 flex-col items-center justify-center transition-colors',
-        active ? 'text-indigo-600' : 'text-gray-400'
+        active ? 'text-blue-700' : 'text-gray-400'
       )}
     >
       <Icon size={22} strokeWidth={active ? 2.5 : 2} />
@@ -1277,9 +1277,9 @@ function Sidebar({ view, setView, lastSync, isOnline }) {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:bg-gray-900 lg:text-white">
       <div className="px-6 py-6">
-        <p className="text-xs uppercase text-indigo-300">Instituto</p>
+        <p className="text-xs uppercase text-blue-300">Instituto</p>
         <h2 className="text-balance mt-2 text-2xl font-semibold text-white">Lumine</h2>
-        <p className="mt-1 text-xs text-indigo-200">Sistema de Acompanhamento</p>
+        <p className="mt-1 text-xs text-blue-200">Sistema de Acompanhamento</p>
       </div>
       <nav className="flex-1 space-y-1 px-3">
         <SidebarItem
@@ -1307,7 +1307,7 @@ function Sidebar({ view, setView, lastSync, isOnline }) {
           onClick={() => setView('config')}
         />
       </nav>
-      <div className="border-t border-white/10 px-6 py-4 text-xs text-indigo-200">
+      <div className="border-t border-white/10 px-6 py-4 text-xs text-blue-200">
         <div className="flex items-center gap-2">
           <span
             className={cn('size-2 rounded-full', isOnline ? 'bg-emerald-400' : 'bg-rose-400')}
@@ -1328,7 +1328,7 @@ function SidebarItem({ icon: Icon, label, active, onClick }) {
       onClick={onClick}
       className={cn(
         'flex w-full items-center gap-3 rounded-xl px-4 py-2 text-left text-sm font-medium transition',
-        active ? 'bg-indigo-600 text-white' : 'text-indigo-100 hover:bg-white/10'
+        active ? 'bg-blue-700 text-white' : 'text-blue-100 hover:bg-white/10'
       )}
     >
       <Icon size={18} />
@@ -1403,7 +1403,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
             {pendingToday.length > 5 && (
               <button
                 onClick={() => setView('daily')}
-                className="w-full py-2 text-center text-sm font-medium text-indigo-600"
+                className="w-full py-2 text-center text-sm font-medium text-blue-700"
               >
                 Ver todos ({pendingToday.length})
               </button>
@@ -1581,7 +1581,7 @@ function StatCard({ value, label, color, icon: Icon }) {
   const colors = {
     green: 'bg-green-50 text-green-600 border-green-100',
     red: 'bg-red-50 text-red-600 border-red-100',
-    indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+    indigo: 'bg-blue-50 text-blue-700 border-blue-100',
     amber: 'bg-amber-50 text-amber-600 border-amber-100',
   };
   return (
@@ -1621,7 +1621,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
           placeholder="Buscar criança..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-full rounded-xl border-0 bg-white py-3 pl-10 pr-4 shadow-sm focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-xl border-0 bg-white py-3 pl-10 pr-4 shadow-sm focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -1644,7 +1644,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
             className={cn(
               'rounded-full px-3 py-1 text-xs font-semibold',
               statusFilter === option.value
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-blue-700 text-white'
                 : 'bg-gray-100 text-gray-600'
             )}
           >
@@ -1672,8 +1672,8 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
               }}
               className="flex cursor-pointer items-center gap-4 rounded-xl bg-white p-4 shadow-sm active:bg-gray-50"
             >
-              <div className="flex size-12 items-center justify-center rounded-full bg-indigo-100">
-                <User size={24} className="text-indigo-600" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-blue-100">
+                <User size={24} className="text-blue-700" />
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-semibold text-gray-800">{child.name}</h3>
@@ -1742,12 +1742,12 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
             placeholder="Buscar criança..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm shadow-sm focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm shadow-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <button
           onClick={() => setView('add-child')}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+          className="flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
         >
           <Plus size={16} />
           Nova criança
@@ -1772,7 +1772,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
             className={cn(
               'rounded-full px-3 py-1 text-xs font-semibold',
               statusFilter === option.value
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-blue-700 text-white'
                 : 'bg-gray-100 text-gray-600'
             )}
           >
@@ -2033,7 +2033,7 @@ function AddChildView({ addChild, setView }) {
             key={s}
             className={cn(
               'h-1 flex-1 rounded-full',
-              step >= s ? 'bg-indigo-600' : 'bg-gray-200'
+              step >= s ? 'bg-blue-700' : 'bg-gray-200'
             )}
           />
         ))}
@@ -2083,7 +2083,7 @@ function AddChildView({ addChild, setView }) {
                 type="text"
                 value={form.name}
                 onChange={e => updateField('name', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                 placeholder="Nome da criança"
               />
             </div>
@@ -2093,7 +2093,7 @@ function AddChildView({ addChild, setView }) {
                 type="date"
                 value={form.birthDate}
                 onChange={e => updateField('birthDate', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2102,7 +2102,7 @@ function AddChildView({ addChild, setView }) {
                 type="text"
                 value={form.guardianName}
                 onChange={e => updateField('guardianName', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2111,7 +2111,7 @@ function AddChildView({ addChild, setView }) {
                 type="tel"
                 value={form.guardianPhone}
                 onChange={e => updateField('guardianPhone', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
                 placeholder="(83) 99999-9999"
               />
             </div>
@@ -2122,7 +2122,7 @@ function AddChildView({ addChild, setView }) {
                   type="text"
                   value={form.school}
                   onChange={e => updateField('school', e.target.value)}
-                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -2131,7 +2131,7 @@ function AddChildView({ addChild, setView }) {
                   type="text"
                   value={form.grade}
                   onChange={e => updateField('grade', e.target.value)}
-                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
                   placeholder="2º ano"
                 />
               </div>
@@ -2141,7 +2141,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.schoolShift}
                 onChange={e => updateField('schoolShift', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="manhã">Manhã</option>
@@ -2155,7 +2155,7 @@ function AddChildView({ addChild, setView }) {
                 type="text"
                 value={form.neighborhood}
                 onChange={e => updateField('neighborhood', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2163,7 +2163,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.referralSource}
                 onChange={e => updateField('referralSource', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="igreja">Igreja</option>
@@ -2181,7 +2181,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.schoolCommuteAlone}
                 onChange={e => updateField('schoolCommuteAlone', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="sim">Sim</option>
@@ -2194,7 +2194,7 @@ function AddChildView({ addChild, setView }) {
                 type="tel"
                 value={form.guardianPhoneAlt}
                 onChange={e => updateField('guardianPhoneAlt', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2202,7 +2202,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.healthCareNeeded}
                 onChange={e => updateField('healthCareNeeded', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="sim">Sim</option>
@@ -2216,7 +2216,7 @@ function AddChildView({ addChild, setView }) {
                   type="text"
                   value={form.healthNotes}
                   onChange={e => updateField('healthNotes', e.target.value)}
-                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             )}
@@ -2225,7 +2225,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.dietaryRestriction}
                 onChange={e => updateField('dietaryRestriction', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="sim">Sim</option>
@@ -2238,7 +2238,7 @@ function AddChildView({ addChild, setView }) {
                 type="text"
                 value={form.specialNeeds}
                 onChange={e => updateField('specialNeeds', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2247,7 +2247,7 @@ function AddChildView({ addChild, setView }) {
                 value={form.triageNotes}
                 onChange={e => updateField('triageNotes', e.target.value)}
                 rows={3}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2255,7 +2255,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.priority}
                 onChange={e => updateField('priority', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="alta">Alta</option>
@@ -2269,7 +2269,7 @@ function AddChildView({ addChild, setView }) {
                 type="text"
                 value={form.priorityReason}
                 onChange={e => updateField('priorityReason', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2277,7 +2277,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.triageResult}
                 onChange={e => updateField('triageResult', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 {TRIAGE_RESULT_OPTIONS.map(option => (
@@ -2309,7 +2309,7 @@ function AddChildView({ addChild, setView }) {
                 }
                 setStep(2);
               }}
-              className="flex-1 rounded-xl bg-indigo-600 py-4 font-semibold text-white"
+              className="flex-1 rounded-xl bg-blue-700 py-4 font-semibold text-white"
             >
               Continuar para matrícula
             </button>
@@ -2364,7 +2364,7 @@ function AddChildView({ addChild, setView }) {
                 type="date"
                 value={form.startDate}
                 onChange={e => updateField('startDate', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -2378,7 +2378,7 @@ function AddChildView({ addChild, setView }) {
                     className={cn(
                       'rounded-full px-3 py-1 text-sm font-medium transition-all',
                       form.participationDays.includes(day.value)
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-blue-700 text-white'
                         : 'bg-gray-100 text-gray-600'
                     )}
                   >
@@ -2395,7 +2395,7 @@ function AddChildView({ addChild, setView }) {
                 type="text"
                 value={form.authorizedPickup}
                 onChange={e => updateField('authorizedPickup', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
                 placeholder="Nome(s) autorizados"
               />
             </div>
@@ -2406,7 +2406,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.canLeaveAlone}
                 onChange={e => updateField('canLeaveAlone', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="sim">Sim</option>
@@ -2414,7 +2414,7 @@ function AddChildView({ addChild, setView }) {
               </select>
             </div>
             {form.canLeaveAlone === 'sim' && (
-              <div className="space-y-3 rounded-xl bg-indigo-50 p-4">
+              <div className="space-y-3 rounded-xl bg-blue-50 p-4">
                 <label className="flex items-center gap-3 text-sm text-gray-700">
                   <input
                     type="checkbox"
@@ -2432,7 +2432,7 @@ function AddChildView({ addChild, setView }) {
                     type="text"
                     value={form.leaveAloneConfirmation}
                     onChange={e => updateField('leaveAloneConfirmation', e.target.value)}
-                    className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
                     placeholder="Ex: Autorizo que Maria saia desacompanhada"
                   />
                 </div>
@@ -2452,7 +2452,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.classGroup}
                 onChange={e => updateField('classGroup', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione</option>
                 <option value="pré_alfabetização">Pré-alfabetização</option>
@@ -2468,7 +2468,7 @@ function AddChildView({ addChild, setView }) {
               <select
                 value={form.imageConsent}
                 onChange={e => updateField('imageConsent', e.target.value)}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Não autorizo</option>
                 <option value="interno">Uso interno (sem divulgação)</option>
@@ -2513,7 +2513,7 @@ function AddChildView({ addChild, setView }) {
                 value={form.initialObservations}
                 onChange={e => updateField('initialObservations', e.target.value)}
                 rows={3}
-                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -2669,8 +2669,8 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
     <div className="space-y-4">
       {/* Avatar e nome */}
       <div className="rounded-xl bg-white p-6 text-center shadow-sm">
-        <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-indigo-100">
-          <User size={40} className="text-indigo-600" />
+        <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-blue-100">
+          <User size={40} className="text-blue-700" />
         </div>
         <h2 className="text-xl font-bold text-gray-800">{child.name}</h2>
         <p className="text-gray-500">
@@ -2698,7 +2698,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
               setNextStatus(statusMeta.status);
               setStatusFormData(buildStatusFormData(child));
             }}
-            className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700"
+            className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800"
           >
             Alterar status
           </button>
@@ -2868,7 +2868,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                             className={cn(
                               'rounded-full px-3 py-1 text-xs font-medium',
                               statusFormData.participationDays.includes(day.value)
-                                ? 'bg-indigo-600 text-white'
+                                ? 'bg-blue-700 text-white'
                                 : missingSet.has('participationDays')
                                 ? 'bg-rose-100 text-rose-700'
                                 : 'bg-gray-200 text-gray-600'
@@ -2949,7 +2949,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
               <button
                 type="button"
                 onClick={applyStatusChange}
-                className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white"
+                className="flex-1 rounded-xl bg-blue-700 py-2 text-sm font-semibold text-white"
               >
                 Salvar
               </button>
@@ -2960,9 +2960,9 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-indigo-50 p-3 text-center">
-          <p className="text-xl font-bold text-indigo-600">{rate}%</p>
-          <p className="text-xs text-indigo-600">Frequência</p>
+        <div className="rounded-xl bg-blue-50 p-3 text-center">
+          <p className="text-xl font-bold text-blue-700">{rate}%</p>
+          <p className="text-xs text-blue-700">Frequência</p>
         </div>
         <div className="rounded-xl bg-green-50 p-3 text-center">
           <p className="text-xl font-bold text-green-600">{present}</p>
@@ -3214,8 +3214,8 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
     <div className="grid grid-cols-[minmax(0,360px)_1fr] gap-6">
       <div className="space-y-4">
         <div className="rounded-2xl bg-white p-6 text-center shadow-sm">
-          <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-indigo-100">
-            <User size={40} className="text-indigo-600" />
+          <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-blue-100">
+            <User size={40} className="text-blue-700" />
           </div>
           <h2 className="text-xl font-bold text-gray-800">{child.name}</h2>
           <p className="text-gray-500">
@@ -3224,9 +3224,9 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl bg-indigo-50 p-3 text-center">
-            <p className="text-xl font-bold text-indigo-600">{rate}%</p>
-            <p className="text-xs text-indigo-600">Frequência</p>
+          <div className="rounded-xl bg-blue-50 p-3 text-center">
+            <p className="text-xl font-bold text-blue-700">{rate}%</p>
+            <p className="text-xs text-blue-700">Frequência</p>
           </div>
           <div className="rounded-xl bg-green-50 p-3 text-center">
             <p className="text-xl font-bold text-green-600">{present}</p>
@@ -3259,7 +3259,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                 setNextStatus(statusMeta.status);
                 setStatusFormData(buildStatusFormData(child));
               }}
-              className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700"
+              className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800"
             >
               Alterar status
             </button>
@@ -3429,7 +3429,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                               className={cn(
                                 'rounded-full px-3 py-1 text-xs font-medium',
                                 statusFormData.participationDays.includes(day.value)
-                                  ? 'bg-indigo-600 text-white'
+                                  ? 'bg-blue-700 text-white'
                                   : missingSet.has('participationDays')
                                   ? 'bg-rose-100 text-rose-700'
                                   : 'bg-gray-200 text-gray-600'
@@ -3510,7 +3510,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                 <button
                   type="button"
                   onClick={applyStatusChange}
-                  className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white"
+                  className="flex-1 rounded-xl bg-blue-700 py-2 text-sm font-semibold text-white"
                 >
                   Salvar
                 </button>
@@ -3723,20 +3723,20 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
           type="date"
           value={date}
           onChange={e => setDate(e.target.value)}
-          className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       {/* Status do dia */}
-      <div className="flex items-center justify-between rounded-xl bg-indigo-50 p-4">
+      <div className="flex items-center justify-between rounded-xl bg-blue-50 p-4">
         <div>
-          <p className="text-sm font-medium text-indigo-800">Registros hoje</p>
-          <p className="text-2xl font-bold text-indigo-600 tabular-nums">
+          <p className="text-sm font-medium text-blue-900">Registros hoje</p>
+          <p className="text-2xl font-bold text-blue-700 tabular-nums">
             {dateRecords.length}/{activeChildren.length}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-indigo-600 tabular-nums">{pending.length} pendentes</p>
+          <p className="text-sm text-blue-700 tabular-nums">{pending.length} pendentes</p>
         </div>
       </div>
 
@@ -3816,7 +3816,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
             <select
               value={selectedChildId}
               onChange={e => setSelectedChildId(e.target.value)}
-              className="mb-3 w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+              className="mb-3 w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Selecione uma criança</option>
               {activeChildren.map(c => (
@@ -3828,7 +3828,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
             <button
               onClick={() => selectedChildId && setStep('details')}
               disabled={!selectedChildId}
-              className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white disabled:bg-gray-300"
+              className="w-full rounded-xl bg-blue-700 py-3 font-semibold text-white disabled:bg-gray-300"
             >
               Continuar
             </button>
@@ -3839,12 +3839,12 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
       {step === 'details' && (
         <div className="space-y-4">
           {/* Criança selecionada */}
-          <div className="flex items-center justify-between rounded-xl bg-indigo-100 p-4">
+          <div className="flex items-center justify-between rounded-xl bg-blue-100 p-4">
             <div>
-              <p className="text-sm text-indigo-600">Registrando para</p>
-              <p className="font-bold text-indigo-800">{selectedChild?.name || 'Criança'}</p>
+              <p className="text-sm text-blue-700">Registrando para</p>
+              <p className="font-bold text-blue-900">{selectedChild?.name || 'Criança'}</p>
               {editingRecordId && (
-                <span className="mt-1 inline-flex rounded-full bg-indigo-200 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                <span className="mt-1 inline-flex rounded-full bg-blue-200 px-2 py-0.5 text-xs font-semibold text-blue-800">
                   Editando registro
                 </span>
               )}
@@ -3857,7 +3857,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                   setStep('select');
                 }
               }}
-              className="text-indigo-600"
+              className="text-blue-700"
               aria-label="Voltar"
             >
               <X size={24} />
@@ -3912,7 +3912,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
                       className={cn(
                         'rounded-xl py-3 text-2xl transition-all',
                         form.mood === opt.value
-                          ? 'bg-indigo-100 ring-2 ring-indigo-500'
+                          ? 'bg-blue-100 ring-2 ring-blue-500'
                           : 'bg-gray-100'
                       )}
                     >
@@ -4144,7 +4144,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
                 key={child.id}
                 className={cn(
                   'flex items-center gap-3 rounded-xl border px-3 py-2',
-                  selectedChildId === child.id ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100'
+                  selectedChildId === child.id ? 'border-blue-200 bg-blue-50' : 'border-gray-100'
                 )}
               >
                 <button
@@ -4220,7 +4220,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
                 {selectedChild ? selectedChild.name : 'Selecione uma criança'}
               </h3>
               {editingRecordId && (
-                <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-600">
+                <span className="mt-1 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
                   Editando registro
                 </span>
               )}
@@ -4230,7 +4230,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
                 <button
                   type="button"
                   onClick={clearEditing}
-                  className="text-xs font-semibold text-indigo-600"
+                  className="text-xs font-semibold text-blue-700"
                 >
                   Cancelar edição
                 </button>
@@ -4385,7 +4385,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
             <button
               onClick={handleDetailedRecord}
               disabled={!selectedChildId}
-              className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white disabled:bg-gray-300"
+              className="w-full rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white disabled:bg-gray-300"
             >
               {editingRecordId ? 'Atualizar registro' : 'Salvar registro'}
             </button>
@@ -4498,19 +4498,19 @@ function ConfigView({
       </div>
       <ol className="space-y-2 text-pretty text-sm text-gray-600">
         <li className="flex gap-2">
-          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold tabular-nums text-blue-800">
             1
           </span>
           <span className="text-pretty">Triagem: cadastre o básico e defina o status da criança.</span>
         </li>
         <li className="flex gap-2">
-          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold tabular-nums text-blue-800">
             2
           </span>
           <span className="text-pretty">Matrícula: preencha início, dias de participação e responsável.</span>
         </li>
         <li className="flex gap-2">
-          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold tabular-nums text-blue-800">
             3
           </span>
           <span className="text-pretty">Sincronização: baixe antes se o servidor estiver mais recente.</span>
@@ -4518,7 +4518,7 @@ function ConfigView({
       </ol>
       <button
         onClick={handleOnboardingOpen}
-        className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white"
+        className="w-full rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white"
       >
         Reabrir guia rápida
       </button>
@@ -4549,7 +4549,7 @@ function ConfigView({
               </Dialog.Close>
               <button
                 onClick={() => confirmAction?.()}
-                className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white"
+                className="flex-1 rounded-xl bg-blue-700 py-3 font-medium text-white"
               >
                 Confirmar
               </button>
@@ -4601,7 +4601,7 @@ function ConfigView({
               type="checkbox"
               checked={reviewMode}
               onChange={e => setReviewMode(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300 text-indigo-600"
+              className="h-5 w-5 rounded border-gray-300 text-blue-700"
             />
           </label>
         </div>
@@ -4618,7 +4618,7 @@ function ConfigView({
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={exportJSON}
-            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-100 py-3 font-medium text-indigo-700"
+            className="flex items-center justify-center gap-2 rounded-xl bg-blue-100 py-3 font-medium text-blue-800"
           >
             <Download size={18} />
             Exportar
@@ -4652,9 +4652,9 @@ function ConfigView({
         />
 
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl bg-indigo-50 p-3">
-            <p className="text-lg font-bold text-indigo-600 tabular-nums">{activeChildren.length}</p>
-            <p className="text-xs text-indigo-600">Crianças</p>
+          <div className="rounded-xl bg-blue-50 p-3">
+            <p className="text-lg font-bold text-blue-700 tabular-nums">{activeChildren.length}</p>
+            <p className="text-xs text-blue-700">Crianças</p>
           </div>
           <div className="rounded-xl bg-green-50 p-3">
             <p className="text-lg font-bold text-green-600">
@@ -4760,7 +4760,7 @@ function ConfigView({
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
                 onClick={exportJSON}
-                className="flex items-center justify-center gap-2 rounded-xl bg-indigo-100 py-2 text-sm font-semibold text-indigo-700"
+                className="flex items-center justify-center gap-2 rounded-xl bg-blue-100 py-2 text-sm font-semibold text-blue-800"
               >
                 <Download size={16} />
                 Exportar
@@ -4782,9 +4782,9 @@ function ConfigView({
               className="mt-3 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
             />
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-indigo-50 p-3">
-                <p className="text-lg font-bold text-indigo-600 tabular-nums">{activeChildren.length}</p>
-                <p className="text-xs text-indigo-600">Crianças</p>
+              <div className="rounded-xl bg-blue-50 p-3">
+                <p className="text-lg font-bold text-blue-700 tabular-nums">{activeChildren.length}</p>
+                <p className="text-xs text-blue-700">Crianças</p>
               </div>
               <div className="rounded-xl bg-green-50 p-3">
                 <p className="text-lg font-bold text-green-600 tabular-nums">{monthDays}</p>
@@ -4813,7 +4813,7 @@ function ConfigView({
                 type="checkbox"
                 checked={reviewMode}
                 onChange={e => setReviewMode(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-indigo-600"
+                className="h-5 w-5 rounded border-gray-300 text-blue-700"
               />
             </label>
           </div>
