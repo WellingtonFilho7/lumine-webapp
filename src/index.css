@@ -6,6 +6,16 @@
   box-sizing: border-box;
 }
 
+:root {
+  --color-primary: #0891b2;
+  --color-accent: #f97316;
+  --color-secondary: #14b8a6;
+  --color-background: #f0fdfa;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
 body {
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
