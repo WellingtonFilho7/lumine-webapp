@@ -909,7 +909,7 @@ export default function LumineTracker() {
               </button>
               <button
                 onClick={handleOnboardingDone}
-                className="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-semibold text-gray-900 hover:bg-amber-400"
+                className="flex-1 rounded-xl bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400"
               >
                 Entendi
               </button>
@@ -1164,7 +1164,7 @@ export default function LumineTracker() {
                     setSyncModal(null);
                   }
                 }}
-                className="flex-1 rounded-xl bg-amber-500 py-3 font-medium text-gray-900 hover:bg-amber-400"
+                className="flex-1 rounded-xl bg-orange-500 py-3 font-medium text-gray-900 hover:bg-orange-400"
               >
                 Baixar agora
               </button>
@@ -1208,7 +1208,7 @@ export default function LumineTracker() {
             onClick={() => setShowFABMenu(!showFABMenu)}
             className={cn(
               'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',
-              showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-amber-500 hover:bg-amber-400'
+              showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-orange-500 hover:bg-orange-400'
             )}
             aria-label={showFABMenu ? 'Fechar ações' : 'Abrir ações'}
           >
@@ -1358,10 +1358,10 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
 
       {/* Alertas */}
       {alerts.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
           <div className="mb-2 flex items-center gap-2">
-            <AlertTriangle size={18} className="text-amber-600" />
-            <span className="text-balance text-sm font-semibold text-amber-800">Alertas</span>
+            <AlertTriangle size={18} className="text-orange-600" />
+            <span className="text-balance text-sm font-semibold text-orange-800">Alertas</span>
           </div>
           {alerts.map((a, i) => (
             <div
@@ -1373,7 +1373,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
                   setView('child-detail');
                 }
               }}
-              className="cursor-pointer py-1 text-sm text-amber-700 hover:underline"
+              className="cursor-pointer py-1 text-sm text-orange-700 hover:underline"
             >
               <strong>{a.childName}:</strong> {a.msg}
             </div>
@@ -1467,10 +1467,10 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-4">
           {alerts.length > 0 && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5">
               <div className="mb-3 flex items-center gap-2">
-                <AlertTriangle size={18} className="text-amber-600" />
-                <span className="text-balance text-sm font-semibold text-amber-800">Alertas recentes</span>
+                <AlertTriangle size={18} className="text-orange-600" />
+                <span className="text-balance text-sm font-semibold text-orange-800">Alertas recentes</span>
               </div>
               <div className="space-y-2">
                 {alerts.map((alert, index) => (
@@ -1483,12 +1483,12 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
                         setView('child-detail');
                       }
                     }}
-                    className="flex w-full items-center justify-between rounded-xl bg-white/70 px-3 py-2 text-left text-sm text-amber-900 hover:bg-white"
+                    className="flex w-full items-center justify-between rounded-xl bg-white/70 px-3 py-2 text-left text-sm text-orange-900 hover:bg-white"
                   >
                     <span>
                       <strong>{alert.childName}:</strong> {alert.msg}
                     </span>
-                    <ChevronRight size={16} className="text-amber-500" />
+                    <ChevronRight size={16} className="text-orange-500" />
                   </button>
                 ))}
               </div>
@@ -1582,7 +1582,7 @@ function StatCard({ value, label, color, icon: Icon }) {
     green: 'bg-green-50 text-green-600 border-green-100',
     red: 'bg-red-50 text-red-600 border-red-100',
     indigo: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    amber: 'bg-orange-50 text-orange-600 border-orange-100',
   };
   return (
     <div className={cn('rounded-xl border p-4', colors[color])}>
@@ -1690,7 +1690,7 @@ function ChildrenView({ children, setSelectedChild, setView, searchTerm, setSear
                     {statusMeta.label}
                   </span>
                   {isDraft && (
-                    <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                    <span className="inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">
                       Rascunho
                     </span>
                   )}
@@ -1747,7 +1747,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
         </div>
         <button
           onClick={() => setView('add-child')}
-          className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-400"
+          className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-orange-400"
         >
           <Plus size={16} />
           Nova criança
@@ -1827,7 +1827,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
                           {statusMeta.label}
                         </span>
                         {isDraft && (
-                          <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+                          <span className="rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700">
                             Rascunho
                           </span>
                         )}
@@ -2309,7 +2309,7 @@ function AddChildView({ addChild, setView }) {
                 }
                 setStep(2);
               }}
-              className="flex-1 rounded-xl bg-amber-500 py-4 font-semibold text-gray-900 hover:bg-amber-400"
+              className="flex-1 rounded-xl bg-orange-500 py-4 font-semibold text-gray-900 hover:bg-orange-400"
             >
               Continuar para matrícula
             </button>
@@ -2949,7 +2949,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
               <button
                 type="button"
                 onClick={applyStatusChange}
-                className="flex-1 rounded-xl bg-amber-500 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-400"
+                className="flex-1 rounded-xl bg-orange-500 py-2 text-sm font-semibold text-gray-900 hover:bg-orange-400"
               >
                 Salvar
               </button>
@@ -3510,7 +3510,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                 <button
                   type="button"
                   onClick={applyStatusChange}
-                  className="flex-1 rounded-xl bg-amber-500 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-400"
+                  className="flex-1 rounded-xl bg-orange-500 py-2 text-sm font-semibold text-gray-900 hover:bg-orange-400"
                 >
                   Salvar
                 </button>
@@ -3828,7 +3828,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
             <button
               onClick={() => selectedChildId && setStep('details')}
               disabled={!selectedChildId}
-              className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-gray-900 hover:bg-amber-400 disabled:bg-gray-300 disabled:text-gray-500"
+              className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-gray-900 hover:bg-orange-400 disabled:bg-gray-300 disabled:text-gray-500"
             >
               Continuar
             </button>
@@ -4385,7 +4385,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
             <button
               onClick={handleDetailedRecord}
               disabled={!selectedChildId}
-              className="w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-gray-900 hover:bg-amber-400 disabled:bg-gray-300 disabled:text-gray-500"
+              className="w-full rounded-xl bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400 disabled:bg-gray-300 disabled:text-gray-500"
             >
               {editingRecordId ? 'Atualizar registro' : 'Salvar registro'}
             </button>
@@ -4518,7 +4518,7 @@ function ConfigView({
       </ol>
       <button
         onClick={handleOnboardingOpen}
-        className="w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-gray-900 hover:bg-amber-400"
+        className="w-full rounded-xl bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400"
       >
         Reabrir guia rápida
       </button>
@@ -4549,7 +4549,7 @@ function ConfigView({
               </Dialog.Close>
               <button
                 onClick={() => confirmAction?.()}
-                className="flex-1 rounded-xl bg-amber-500 py-3 font-medium text-gray-900 hover:bg-amber-400"
+                className="flex-1 rounded-xl bg-orange-500 py-3 font-medium text-gray-900 hover:bg-orange-400"
               >
                 Confirmar
               </button>
@@ -4662,11 +4662,11 @@ function ConfigView({
             </p>
             <p className="text-xs text-green-600">Dias</p>
           </div>
-          <div className="rounded-xl bg-amber-50 p-3">
-            <p className="text-lg font-bold text-amber-600">
+          <div className="rounded-xl bg-orange-50 p-3">
+            <p className="text-lg font-bold text-orange-600">
               {monthRecords.filter(r => r.attendance !== 'absent').length}
             </p>
-            <p className="text-xs text-amber-600">Refeições</p>
+            <p className="text-xs text-orange-600">Refeições</p>
           </div>
         </div>
 
@@ -4790,9 +4790,9 @@ function ConfigView({
                 <p className="text-lg font-bold text-green-600 tabular-nums">{monthDays}</p>
                 <p className="text-xs text-green-600">Dias</p>
               </div>
-              <div className="rounded-xl bg-amber-50 p-3">
-                <p className="text-lg font-bold text-amber-600 tabular-nums">{monthMeals}</p>
-                <p className="text-xs text-amber-600">Refeições</p>
+              <div className="rounded-xl bg-orange-50 p-3">
+                <p className="text-lg font-bold text-orange-600 tabular-nums">{monthMeals}</p>
+                <p className="text-xs text-orange-600">Refeições</p>
               </div>
             </div>
           </div>
