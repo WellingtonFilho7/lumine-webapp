@@ -909,7 +909,7 @@ export default function LumineTracker() {
               </button>
               <button
                 onClick={handleOnboardingDone}
-                className="flex-1 rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white"
+                className="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-semibold text-gray-900 hover:bg-amber-400"
               >
                 Entendi
               </button>
@@ -1164,7 +1164,7 @@ export default function LumineTracker() {
                     setSyncModal(null);
                   }
                 }}
-                className="flex-1 rounded-xl bg-blue-700 py-3 font-medium text-white"
+                className="flex-1 rounded-xl bg-amber-500 py-3 font-medium text-gray-900 hover:bg-amber-400"
               >
                 Baixar agora
               </button>
@@ -1208,7 +1208,7 @@ export default function LumineTracker() {
             onClick={() => setShowFABMenu(!showFABMenu)}
             className={cn(
               'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',
-              showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-blue-700'
+              showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-amber-500 hover:bg-amber-400'
             )}
             aria-label={showFABMenu ? 'Fechar ações' : 'Abrir ações'}
           >
@@ -1747,7 +1747,7 @@ function ChildrenTable({ children, setSelectedChild, setView, searchTerm, setSea
         </div>
         <button
           onClick={() => setView('add-child')}
-          className="flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+          className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-400"
         >
           <Plus size={16} />
           Nova criança
@@ -2309,7 +2309,7 @@ function AddChildView({ addChild, setView }) {
                 }
                 setStep(2);
               }}
-              className="flex-1 rounded-xl bg-blue-700 py-4 font-semibold text-white"
+              className="flex-1 rounded-xl bg-amber-500 py-4 font-semibold text-gray-900 hover:bg-amber-400"
             >
               Continuar para matrícula
             </button>
@@ -2949,7 +2949,7 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
               <button
                 type="button"
                 onClick={applyStatusChange}
-                className="flex-1 rounded-xl bg-blue-700 py-2 text-sm font-semibold text-white"
+                className="flex-1 rounded-xl bg-amber-500 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-400"
               >
                 Salvar
               </button>
@@ -3510,7 +3510,7 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                 <button
                   type="button"
                   onClick={applyStatusChange}
-                  className="flex-1 rounded-xl bg-blue-700 py-2 text-sm font-semibold text-white"
+                  className="flex-1 rounded-xl bg-amber-500 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-400"
                 >
                   Salvar
                 </button>
@@ -3828,7 +3828,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
             <button
               onClick={() => selectedChildId && setStep('details')}
               disabled={!selectedChildId}
-              className="w-full rounded-xl bg-blue-700 py-3 font-semibold text-white disabled:bg-gray-300"
+              className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-gray-900 hover:bg-amber-400 disabled:bg-gray-300 disabled:text-gray-500"
             >
               Continuar
             </button>
@@ -4385,7 +4385,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
             <button
               onClick={handleDetailedRecord}
               disabled={!selectedChildId}
-              className="w-full rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white disabled:bg-gray-300"
+              className="w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-gray-900 hover:bg-amber-400 disabled:bg-gray-300 disabled:text-gray-500"
             >
               {editingRecordId ? 'Atualizar registro' : 'Salvar registro'}
             </button>
@@ -4518,7 +4518,7 @@ function ConfigView({
       </ol>
       <button
         onClick={handleOnboardingOpen}
-        className="w-full rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white"
+        className="w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-gray-900 hover:bg-amber-400"
       >
         Reabrir guia rápida
       </button>
@@ -4549,7 +4549,7 @@ function ConfigView({
               </Dialog.Close>
               <button
                 onClick={() => confirmAction?.()}
-                className="flex-1 rounded-xl bg-blue-700 py-3 font-medium text-white"
+                className="flex-1 rounded-xl bg-amber-500 py-3 font-medium text-gray-900 hover:bg-amber-400"
               >
                 Confirmar
               </button>
