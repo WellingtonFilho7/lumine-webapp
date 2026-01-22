@@ -38,6 +38,7 @@ import {
   isTriageDraft,
   buildChecklist,
 } from './utils/enrollment';
+import { clearOnboardingFlag, getOnboardingFlag, setOnboardingFlag } from './utils/onboarding';
 import { buildRecordForm, getRecordFormDefaults, upsertDailyRecord } from './utils/records';
 
 function getDeviceId() {
@@ -438,11 +439,26 @@ export default function LumineTracker() {
   const [lastSync, setLastSync] = useLocalStorage('lumine_last_sync', null);
   const [dataRev, setDataRev] = useLocalStorage('lumine_data_rev', 0);
   const [reviewMode, setReviewMode] = useLocalStorage('lumine_review_mode', false);
+  const [onboardingOpen, setOnboardingOpen] = useState(() => !getOnboardingFlag());
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [overwriteBlocked, setOverwriteBlocked] = useState(false);
   const [syncModal, setSyncModal] = useState(null);
   const [pendingChanges, setPendingChanges] = useState(0);
   const [showFABMenu, setShowFABMenu] = useState(false);
+
+  const handleOnboardingDone = useCallback(() => {
+    setOnboardingFlag(true);
+    setOnboardingOpen(false);
+  }, []);
+
+  const handleOnboardingLater = useCallback(() => {
+    setOnboardingOpen(false);
+  }, []);
+
+  const handleOnboardingReopen = useCallback(() => {
+    clearOnboardingFlag();
+    setOnboardingOpen(true);
+  }, []);
 
   // Monitor de conexão
   useEffect(() => {
@@ -847,6 +863,61 @@ export default function LumineTracker() {
   };
 
   return (
+    <>
+      <Dialog.Root open={onboardingOpen} onOpenChange={setOnboardingOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay
+            className="fixed inset-0 z-50 bg-black/50"
+            style={{
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
+          />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
+            <Dialog.Title className="text-balance text-lg font-semibold text-gray-900">
+              Guia rápida (3 passos)
+            </Dialog.Title>
+            <Dialog.Description className="text-pretty mt-2 text-sm text-gray-600">
+              Antes de começar, confira o essencial para registrar crianças e presenças sem perder dados.
+            </Dialog.Description>
+            <ol className="mt-4 space-y-3 text-pretty text-sm text-gray-700">
+              <li className="flex gap-3">
+                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+                  1
+                </span>
+                <span className="text-pretty">Cadastre a criança na triagem e finalize a matrícula quando estiver aprovada.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+                  2
+                </span>
+                <span className="text-pretty">No registro diário, escolha presença e detalhe apenas quando necessário.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+                  3
+                </span>
+                <span className="text-pretty">Ao sincronizar, sempre baixe antes se houver dados novos no servidor.</span>
+              </li>
+            </ol>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={handleOnboardingLater}
+                className="flex-1 rounded-xl bg-gray-100 py-3 text-sm font-semibold text-gray-700"
+              >
+                Ver depois
+              </button>
+              <button
+                onClick={handleOnboardingDone}
+                className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white"
+              >
+                Entendi
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
     <div className="min-h-dvh bg-gray-100 pb-20 lg:flex lg:h-dvh lg:overflow-hidden lg:pb-0">
       <Sidebar view={view} setView={setView} lastSync={lastSync} isOnline={isOnline} />
       <div className="flex-1 lg:flex lg:flex-col lg:overflow-hidden">
@@ -1053,6 +1124,7 @@ export default function LumineTracker() {
             clearLocalData={clearLocalData}
             reviewMode={reviewMode}
             setReviewMode={setReviewMode}
+            onOpenOnboarding={handleOnboardingReopen}
           />
         )}
       </main>
@@ -1175,6 +1247,7 @@ export default function LumineTracker() {
         />
       )}
     </div>
+    </>
   );
 }
 
@@ -4313,6 +4386,7 @@ function ConfigView({
   clearLocalData,
   reviewMode,
   setReviewMode,
+  onOpenOnboarding,
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -4383,6 +4457,47 @@ function ConfigView({
       };
     })
     .sort((a, b) => b.rate - a.rate);
+
+  const handleOnboardingOpen = useCallback(() => {
+    onOpenOnboarding?.();
+  }, [onOpenOnboarding]);
+
+  const renderOnboardingCard = className => (
+    <div className={cn('space-y-3 rounded-xl bg-white p-4 shadow-sm', className)}>
+      <div>
+        <h3 className="text-balance text-base font-semibold text-gray-800">Guia rápida (3 passos)</h3>
+        <p className="text-pretty mt-1 text-sm text-gray-500">
+          Reabra o checklist sempre que tiver dúvida.
+        </p>
+      </div>
+      <ol className="space-y-2 text-pretty text-sm text-gray-600">
+        <li className="flex gap-2">
+          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+            1
+          </span>
+          <span className="text-pretty">Triagem: cadastre o básico e defina o status da criança.</span>
+        </li>
+        <li className="flex gap-2">
+          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+            2
+          </span>
+          <span className="text-pretty">Matrícula: preencha início, dias de participação e responsável.</span>
+        </li>
+        <li className="flex gap-2">
+          <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold tabular-nums text-indigo-700">
+            3
+          </span>
+          <span className="text-pretty">Sincronização: baixe antes se o servidor estiver mais recente.</span>
+        </li>
+      </ol>
+      <button
+        onClick={handleOnboardingOpen}
+        className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white"
+      >
+        Reabrir guia rápida
+      </button>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -4468,6 +4583,8 @@ function ConfigView({
           Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
         </p>
       </div>
+
+      {renderOnboardingCard()}
 
       {/* Backup */}
       <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm">
@@ -4655,6 +4772,8 @@ function ConfigView({
           </div>
         </div>
 
+        {renderOnboardingCard('rounded-2xl p-5')}
+
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -4781,4 +4900,4 @@ function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
   );
 }
 
-export { DailyRecordView, DailyRecordDesktop };
+export { DailyRecordView, DailyRecordDesktop, ConfigView };
