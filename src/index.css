@@ -10,6 +10,12 @@
   /* Government Dashboard Palette - Professional & Institutional */
   --color-primary: #003D7A;
   --color-primary-light: #0055A5;
+  --color-primary-900: #0A2540;
+  --color-primary-800: #1E3A5F;
+  --color-primary-300: #B3C4D8;
+  --color-primary-200: #C9D6E5;
+  --color-primary-100: #E6EEF6;
+  --color-primary-50: #F2F6FA;
   --color-accent: #2E7D32;
   --color-accent-light: #43A047;
   --color-secondary: #1565C0;
@@ -24,6 +30,67 @@ body {
   -webkit-font-smoothing: antialiased;
   background-color: var(--color-background);
   font-variant-numeric: tabular-nums;
+}
+
+/* Government palette overrides for Tailwind utility classes */
+.bg-cyan-700 {
+  background-color: var(--color-primary) !important;
+}
+.bg-cyan-500 {
+  background-color: var(--color-primary-light) !important;
+}
+.bg-cyan-100 {
+  background-color: var(--color-primary-100) !important;
+}
+.bg-cyan-50 {
+  background-color: var(--color-primary-50) !important;
+}
+.text-cyan-900 {
+  color: var(--color-primary-900) !important;
+}
+.text-cyan-800 {
+  color: var(--color-primary-800) !important;
+}
+.text-cyan-700 {
+  color: var(--color-primary) !important;
+}
+.text-cyan-300 {
+  color: var(--color-primary-300) !important;
+}
+.text-cyan-200 {
+  color: var(--color-primary-200) !important;
+}
+.border-cyan-100 {
+  border-color: var(--color-primary-100) !important;
+}
+.border-cyan-200 {
+  border-color: var(--color-primary-200) !important;
+}
+.ring-cyan-500 {
+  --tw-ring-color: var(--color-primary-light) !important;
+}
+.focus\:ring-cyan-500:focus {
+  --tw-ring-color: var(--color-primary-light) !important;
+}
+
+.bg-teal-50 {
+  background-color: var(--color-background) !important;
+}
+.text-teal-600 {
+  color: var(--color-accent) !important;
+}
+
+.bg-amber-500 {
+  background-color: var(--color-warning) !important;
+}
+.bg-amber-100 {
+  background-color: #FFF3E0 !important;
+}
+.border-amber-500 {
+  border-color: var(--color-warning) !important;
+}
+.text-amber-900 {
+  color: #8A4B00 !important;
 }
 
 * {
