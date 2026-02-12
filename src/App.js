@@ -214,6 +214,10 @@ function buildStatusFormData(child) {
     leaveAloneConsent: parseBoolean(child?.leaveAloneConsent),
     leaveAloneConfirmation: child?.leaveAloneConfirmation || '',
     termsAccepted: Boolean(child?.responsibilityTerm || child?.consentTerm),
+    classGroup: child?.classGroup || '',
+    imageConsent: normalizeImageConsent(child?.imageConsent),
+    documentsReceived: parseDocumentsReceived(child?.documentsReceived),
+    initialObservations: child?.initialObservations || '',
   };
 }
 
@@ -483,7 +487,7 @@ export default function LumineTracker() {
   }, [dailyRecords, setDailyRecords]);
 
   // Sync com servidor
-  const syncWithServer = useCallback(async (payload = null) => {
+  const syncWithServer = useCallback(async (payload = null, mode = 'manual') => {
     if (!isOnline) {
       setSyncError('Sem conexão');
       setSyncStatus('error');
@@ -521,10 +525,15 @@ export default function LumineTracker() {
           setOverwriteBlocked(false);
 
           if (serverRev > localRevBefore) {
-            setSyncModal({
-              type: 'server-new',
-              message: 'Há dados novos no servidor. Baixe os dados atuais antes de sincronizar.',
-            });
+            if (mode === 'manual') {
+              setSyncModal({
+                type: 'server-new',
+                message: 'Há dados novos no servidor. Baixe os dados atuais antes de sincronizar.',
+              });
+            } else {
+              setOverwriteBlocked(true);
+              setSyncError('Há dados novos no servidor. Toque em Baixar para atualizar.');
+            }
             setSyncStatus('error');
             setTimeout(() => setSyncStatus('idle'), 3000);
             return false;
@@ -649,7 +658,7 @@ export default function LumineTracker() {
   useEffect(() => {
     if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {
       const timer = setTimeout(() => {
-        syncWithServer();
+        syncWithServer(null, 'auto');
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -659,7 +668,7 @@ export default function LumineTracker() {
   // Auto-sync de retentativa periódica enquanto houver pendências.
   useEffect(() => {
     if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {
-      const interval = setInterval(() => syncWithServer(), 45 * 1000);
+      const interval = setInterval(() => syncWithServer(null, 'auto'), 45 * 1000);
       return () => clearInterval(interval);
     }
     return undefined;
@@ -753,7 +762,7 @@ export default function LumineTracker() {
     if (isOnline) {
       if (existed) {
         if (!reviewMode) {
-          await syncWithServer({ children, records: nextRecords });
+          await syncWithServer({ children, records: nextRecords }, 'auto');
         }
         return;
       }
@@ -2653,6 +2662,16 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
     setStatusFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const toggleStatusDocument = doc => {
+    setStatusFormData(prev => {
+      const current = Array.isArray(prev.documentsReceived) ? prev.documentsReceived : [];
+      const next = current.includes(doc)
+        ? current.filter(item => item !== doc)
+        : [...current, doc];
+      return { ...prev, documentsReceived: next };
+    });
+  };
+
   const allowedStatusOptions = [
     { value: 'em_triagem', label: 'Em triagem' },
     { value: 'aprovado', label: 'Aprovado' },
@@ -2723,6 +2742,12 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
         statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConfirmation.trim() : '';
       updates.responsibilityTerm = statusFormData.termsAccepted;
       updates.consentTerm = statusFormData.termsAccepted;
+      updates.classGroup = statusFormData.classGroup || '';
+      updates.imageConsent = normalizeImageConsent(statusFormData.imageConsent);
+      updates.documentsReceived = Array.isArray(statusFormData.documentsReceived)
+        ? statusFormData.documentsReceived
+        : [];
+      updates.initialObservations = statusFormData.initialObservations || '';
       if (!child.matriculationDate) updates.matriculationDate = now;
     }
 
@@ -2999,6 +3024,75 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
                       />
                       Termo de Responsabilidade e Consentimento
                     </label>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Turma/Grupo</label>
+                      <select
+                        value={statusFormData.classGroup}
+                        onChange={e => updateStatusField('classGroup', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="pré_alfabetização">Pré-alfabetização</option>
+                        <option value="alfabetização">Alfabetização</option>
+                        <option value="fundamental_1">Fundamental 1</option>
+                        <option value="fundamental_2">Fundamental 2</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        Autorização de uso de imagem (opcional)
+                      </label>
+                      <select
+                        value={statusFormData.imageConsent}
+                        onChange={e => updateStatusField('imageConsent', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      >
+                        <option value="">Não autorizo</option>
+                        <option value="interno">Uso interno (sem divulgação)</option>
+                        <option value="comunicacao">Uso institucional e comunicação</option>
+                      </select>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-medium text-gray-700">Documentos recebidos</p>
+                      <div className="space-y-2 text-xs text-gray-600">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={statusFormData.documentsReceived.includes('certidão_nascimento')}
+                            onChange={() => toggleStatusDocument('certidão_nascimento')}
+                            className="h-4 w-4 rounded"
+                          />
+                          Certidão de nascimento
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={statusFormData.documentsReceived.includes('documento_responsável')}
+                            onChange={() => toggleStatusDocument('documento_responsável')}
+                            className="h-4 w-4 rounded"
+                          />
+                          Documento do responsável
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={statusFormData.documentsReceived.includes('comprovante_residência')}
+                            onChange={() => toggleStatusDocument('comprovante_residência')}
+                            className="h-4 w-4 rounded"
+                          />
+                          Comprovante de residência
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Observações pedagógicas</label>
+                      <textarea
+                        value={statusFormData.initialObservations}
+                        onChange={e => updateStatusField('initialObservations', e.target.value)}
+                        rows={3}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -3198,6 +3292,16 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
     setStatusFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const toggleStatusDocument = doc => {
+    setStatusFormData(prev => {
+      const current = Array.isArray(prev.documentsReceived) ? prev.documentsReceived : [];
+      const next = current.includes(doc)
+        ? current.filter(item => item !== doc)
+        : [...current, doc];
+      return { ...prev, documentsReceived: next };
+    });
+  };
+
   const allowedStatusOptions = [
         { value: 'em_triagem', label: 'Em triagem' },
     { value: 'aprovado', label: 'Aprovado' },
@@ -3268,6 +3372,12 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
         statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConfirmation.trim() : '';
       updates.responsibilityTerm = statusFormData.termsAccepted;
       updates.consentTerm = statusFormData.termsAccepted;
+      updates.classGroup = statusFormData.classGroup || '';
+      updates.imageConsent = normalizeImageConsent(statusFormData.imageConsent);
+      updates.documentsReceived = Array.isArray(statusFormData.documentsReceived)
+        ? statusFormData.documentsReceived
+        : [];
+      updates.initialObservations = statusFormData.initialObservations || '';
       if (!child.matriculationDate) updates.matriculationDate = now;
     }
 
@@ -3560,6 +3670,75 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
                         />
                         Termo de Responsabilidade e Consentimento
                       </label>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Turma/Grupo</label>
+                        <select
+                          value={statusFormData.classGroup}
+                          onChange={e => updateStatusField('classGroup', e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                        >
+                          <option value="">Selecione</option>
+                          <option value="pré_alfabetização">Pré-alfabetização</option>
+                          <option value="alfabetização">Alfabetização</option>
+                          <option value="fundamental_1">Fundamental 1</option>
+                          <option value="fundamental_2">Fundamental 2</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">
+                          Autorização de uso de imagem (opcional)
+                        </label>
+                        <select
+                          value={statusFormData.imageConsent}
+                          onChange={e => updateStatusField('imageConsent', e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                        >
+                          <option value="">Não autorizo</option>
+                          <option value="interno">Uso interno (sem divulgação)</option>
+                          <option value="comunicacao">Uso institucional e comunicação</option>
+                        </select>
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs font-medium text-gray-700">Documentos recebidos</p>
+                        <div className="space-y-2 text-xs text-gray-600">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={statusFormData.documentsReceived.includes('certidão_nascimento')}
+                              onChange={() => toggleStatusDocument('certidão_nascimento')}
+                              className="h-4 w-4 rounded"
+                            />
+                            Certidão de nascimento
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={statusFormData.documentsReceived.includes('documento_responsável')}
+                              onChange={() => toggleStatusDocument('documento_responsável')}
+                              className="h-4 w-4 rounded"
+                            />
+                            Documento do responsável
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={statusFormData.documentsReceived.includes('comprovante_residência')}
+                              onChange={() => toggleStatusDocument('comprovante_residência')}
+                              className="h-4 w-4 rounded"
+                            />
+                            Comprovante de residência
+                          </label>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Observações pedagógicas</label>
+                        <textarea
+                          value={statusFormData.initialObservations}
+                          onChange={e => updateStatusField('initialObservations', e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
