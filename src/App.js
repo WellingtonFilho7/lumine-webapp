@@ -6,19 +6,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from './utils/cn';
-import {
-  getMissingTriageFields,
-  getMissingMatriculaFields,
-  isTriageDraft,
-} from './utils/enrollment';
+import { isTriageDraft } from './utils/enrollment';
 import { clearOnboardingFlag, getOnboardingFlag, setOnboardingFlag } from './utils/onboarding';
 import {
   getEnrollmentStatus,
   isMatriculated,
   parseEnrollmentHistory,
-  parseDocumentsReceived,
   parseParticipationDays,
-  parseBoolean,
   normalizeImageConsent,
   normalizeChild,
   normalizeChildren,
@@ -38,7 +32,6 @@ import {
   PARTICIPATION_DAYS,
   STATUS_FIELD_LABELS,
   MOOD_LABELS,
-  TRIAGE_REQUIRED_STATUSES,
   WEEKDAY_KEYS,
 } from './constants/enrollment';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -60,6 +53,11 @@ import ChildDetailDesktop from './views/children/ChildDetailDesktop';
 import DailyRecordView from './views/records/DailyRecordView';
 import DailyRecordDesktop from './views/records/DailyRecordDesktop';
 import ConfigView from './views/config/ConfigView';
+import {
+  getStatusMeta,
+  buildStatusFormData,
+  getMissingFieldsForStatus,
+} from './utils/statusWorkflow';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -87,52 +85,6 @@ const META_HEADERS = {
 const AUTH_HEADERS = API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {};
 const BASE_HEADERS = { ...AUTH_HEADERS, ...META_HEADERS };
 const JSON_HEADERS = { 'Content-Type': 'application/json', ...BASE_HEADERS };
-
-function getStatusMeta(child) {
-  const status = getEnrollmentStatus(child);
-  return {
-    status,
-    ...(ENROLLMENT_STATUS_META[status] || {
-      label: 'Sem status',
-      className: 'bg-teal-50 text-gray-600',
-    }),
-  };
-}
-
-function buildStatusFormData(child) {
-  return {
-    name: child?.name || '',
-    birthDate: child?.birthDate || '',
-    guardianName: child?.guardianName || '',
-    guardianPhone: child?.guardianPhone || '',
-    neighborhood: child?.neighborhood || '',
-    school: child?.school || '',
-    schoolShift: child?.schoolShift || '',
-    referralSource: child?.referralSource || '',
-    schoolCommuteAlone: child?.schoolCommuteAlone || '',
-    startDate: child?.startDate || child?.entryDate || '',
-    participationDays: parseParticipationDays(child?.participationDays),
-    authorizedPickup: child?.authorizedPickup || '',
-    canLeaveAlone: child?.canLeaveAlone || '',
-    leaveAloneConsent: parseBoolean(child?.leaveAloneConsent),
-    leaveAloneConfirmation: child?.leaveAloneConfirmation || '',
-    termsAccepted: Boolean(child?.responsibilityTerm || child?.consentTerm),
-    classGroup: child?.classGroup || '',
-    imageConsent: normalizeImageConsent(child?.imageConsent),
-    documentsReceived: parseDocumentsReceived(child?.documentsReceived),
-    initialObservations: child?.initialObservations || '',
-  };
-}
-
-function getMissingFieldsForStatus(status, data) {
-  const requiresTriage = TRIAGE_REQUIRED_STATUSES.includes(status);
-  const requiresMatricula = status === 'matriculado';
-  const missingKeys = [
-    ...(requiresTriage ? getMissingTriageFields(data) : []),
-    ...(requiresMatricula ? getMissingMatriculaFields(data) : []),
-  ];
-  return [...new Set(missingKeys)].map(field => STATUS_FIELD_LABELS[field] || field);
-}
 
 // ============================================
 // FUNÇÕES AUXILIARES
