@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { ChevronRight, Search, User, Users } from 'lucide-react';
+import { ChevronRight, Search, Users } from 'lucide-react';
+import StatusBadge from '../../components/ui/StatusBadge';
+import ChildAvatar from '../../components/ui/ChildAvatar';
 import { cn } from '../../utils/cn';
 
 export default function ChildrenView({
@@ -10,7 +12,6 @@ export default function ChildrenView({
   setSearchTerm,
   isTriageDraft,
   getEnrollmentStatus,
-  getStatusMeta,
   calculateAge,
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -67,8 +68,9 @@ export default function ChildrenView({
 
       <div className="space-y-2">
         {filtered.map(child => {
-          const statusMeta = getStatusMeta(child);
+          const childStatus = getEnrollmentStatus(child);
           const isDraft = isTriageDraft(child);
+
           return (
             <div
               key={child.id}
@@ -78,20 +80,16 @@ export default function ChildrenView({
               }}
               className="flex cursor-pointer items-center gap-4 rounded-lg bg-white p-4 shadow-md active:bg-gray-50"
             >
-              <div className="flex size-12 items-center justify-center rounded-full bg-cyan-100">
-                <User size={24} className="text-cyan-700" />
-              </div>
+              <ChildAvatar name={child.name} status={childStatus} />
               <div className="min-w-0 flex-1">
-                <h3 className="truncate font-semibold text-gray-800">{child.name}</h3>
-                <p className="text-sm text-gray-500 tabular-nums">
+                <h3 className="truncate font-semibold text-gray-900">{child.name}</h3>
+                <p className="text-xs font-normal text-gray-500 tabular-nums">
                   {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-semibold', statusMeta.className)}>
-                    {statusMeta.label}
-                  </span>
+                  <StatusBadge status={childStatus} />
                   {isDraft && (
-                    <span className="inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">
+                    <span className="inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-800">
                       Rascunho
                     </span>
                   )}

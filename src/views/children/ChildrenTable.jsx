@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
+import ChildAvatar from '../../components/ui/ChildAvatar';
+import StatusBadge from '../../components/ui/StatusBadge';
 import { cn } from '../../utils/cn';
 
 export default function ChildrenTable({
@@ -10,7 +12,6 @@ export default function ChildrenTable({
   setSearchTerm,
   isTriageDraft,
   getEnrollmentStatus,
-  getStatusMeta,
   calculateAge,
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -83,44 +84,49 @@ export default function ChildrenTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map(child => (
-              <tr
-                key={child.id}
-                onClick={() => {
-                  setSelectedChild(child);
-                  setView('child-detail');
-                }}
-                className="cursor-pointer border-t border-gray-100 hover:bg-gray-50"
-              >
-                <td className="px-4 py-3 font-medium text-gray-800">{child.name}</td>
-                <td className="px-4 py-3 text-gray-600 tabular-nums">
-                  {child.birthDate ? `${calculateAge(child.birthDate)} anos` : '-'}
-                </td>
-                <td className="px-4 py-3 text-gray-600">{child.guardianName || '-'}</td>
-                <td className="px-4 py-3 text-gray-600">{child.guardianPhone || '-'}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {child.school ? `${child.school}${child.grade ? ` - ${child.grade}` : ''}` : '-'}
-                </td>
-                <td className="px-4 py-3">
-                  {(() => {
-                    const statusMeta = getStatusMeta(child);
-                    const isDraft = isTriageDraft(child);
-                    return (
-                      <div className="flex flex-wrap gap-2">
-                        <span className={cn('rounded-full px-2 py-1 text-xs font-semibold', statusMeta.className)}>
-                          {statusMeta.label}
-                        </span>
-                        {isDraft && (
-                          <span className="rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700">
-                            Rascunho
-                          </span>
-                        )}
+            {filtered.map(child => {
+              const childStatus = getEnrollmentStatus(child);
+              const isDraft = isTriageDraft(child);
+
+              return (
+                <tr
+                  key={child.id}
+                  onClick={() => {
+                    setSelectedChild(child);
+                    setView('child-detail');
+                  }}
+                  className="cursor-pointer border-t border-gray-100 hover:bg-gray-50"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <ChildAvatar name={child.name} status={childStatus} size="sm" />
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-gray-900">{child.name}</p>
+                        <p className="text-xs text-gray-500">{child.childId || 'Sem ID público'}</p>
                       </div>
-                    );
-                  })()}
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 tabular-nums">
+                    {child.birthDate ? `${calculateAge(child.birthDate)} anos` : '-'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{child.guardianName || '-'}</td>
+                  <td className="px-4 py-3 text-gray-600">{child.guardianPhone || '-'}</td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {child.school ? `${child.school}${child.grade ? ` - ${child.grade}` : ''}` : '-'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <StatusBadge status={childStatus} />
+                      {isDraft && (
+                        <span className="rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-800">
+                          Rascunho
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {filtered.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={6}>

@@ -28,11 +28,25 @@ export default function DashboardDesktop({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard value={stats.present} label="Presentes" color="green" icon={CheckCircle} />
-        <StatCard value={stats.absent} label="Ausentes" color="red" icon={XCircle} />
-        <StatCard value={stats.total} label="Total" color="indigo" icon={Users} />
-        <StatCard value={stats.meals} label="Refeições/mês" color="amber" icon={Calendar} />
+      <div className="space-y-4">
+        <StatCard
+          value={stats.present}
+          label="Presentes hoje"
+          color="green"
+          icon={CheckCircle}
+          size="lg"
+        />
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard value={stats.absent} label="Ausentes" color="red" icon={XCircle} size="sm" />
+          <StatCard value={stats.total} label="Total" color="indigo" icon={Users} size="sm" />
+          <StatCard
+            value={stats.meals ?? 0}
+            label="Refeições/mês"
+            color="amber"
+            icon={Calendar}
+            size="sm"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
@@ -68,7 +82,7 @@ export default function DashboardDesktop({
 
           <div className="rounded-2xl bg-white p-5 shadow-md">
             <div className="flex items-center justify-between">
-              <h3 className="text-balance font-semibold text-gray-800">Pendências de hoje</h3>
+              <h3 className="text-balance font-semibold text-gray-900">Pendências de hoje</h3>
               <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
                 {pendingToday.length} pendentes
               </span>
@@ -81,7 +95,7 @@ export default function DashboardDesktop({
               )}
               {pendingToday.slice(0, 6).map(child => (
                 <div key={child.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                  <span className="truncate text-sm font-medium text-gray-800">{child.name}</span>
+                  <span className="truncate text-sm font-semibold text-gray-900">{child.name}</span>
                   <ChevronRight size={16} className="text-gray-400" />
                 </div>
               ))}
@@ -99,7 +113,7 @@ export default function DashboardDesktop({
 
         <div className="rounded-2xl bg-white p-5 shadow-md">
           <div className="flex items-center justify-between">
-            <h3 className="text-balance font-semibold text-gray-800">Registros de hoje</h3>
+            <h3 className="text-balance font-semibold text-gray-900">Registros de hoje</h3>
             <span className="text-xs text-gray-500 tabular-nums">{todayRecords.length} registros</span>
           </div>
           <div className="mt-4 max-h-[420px] space-y-2 overflow-auto">
@@ -117,9 +131,12 @@ export default function DashboardDesktop({
             {todayRecords.map(record => {
               const child = childrenById.get(record.childInternalId);
               return (
-                <div key={record.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
+                <div
+                  key={record.id}
+                  className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2"
+                >
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{child?.name || 'Criança'}</p>
+                    <p className="text-sm font-semibold text-gray-900">{child?.name || 'Criança'}</p>
                     <p className="text-xs text-gray-500">{formatDate(record.date)}</p>
                   </div>
                   <span

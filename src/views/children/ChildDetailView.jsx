@@ -3,6 +3,8 @@ import { Clock, Phone, School, User } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { getMissingMatriculaFields, getMissingTriageFields } from '../../utils/enrollment';
 import InfoRow from '../../components/ui/InfoRow';
+import StatusBadge from '../../components/ui/StatusBadge';
+import ChildAvatar from '../../components/ui/ChildAvatar';
 
 function ChildDetailView({
   child,
@@ -156,11 +158,9 @@ function ChildDetailView({
     <div className="space-y-4">
       {/* Avatar e nome */}
       <div className="rounded-lg bg-white p-6 text-center shadow-md">
-        <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-cyan-100">
-          <User size={40} className="text-cyan-700" />
-        </div>
-        <h2 className="text-xl font-bold text-gray-800">{child.name}</h2>
-        <p className="text-gray-500">
+        <ChildAvatar name={child.name} status={statusMeta.status} size="lg" className="mx-auto mb-3" />
+        <h2 className="text-xl font-bold text-gray-900">{child.name}</h2>
+        <p className="text-xs font-normal text-gray-500">
           {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
         </p>
       </div>
@@ -168,14 +168,7 @@ function ChildDetailView({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase text-gray-400">Status da matrícula</p>
-            <span
-              className={cn(
-                'mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-                statusMeta.className
-              )}
-            >
-              {statusMeta.label}
-            </span>
+            <StatusBadge status={statusMeta.status} size="md" className="mt-2" />
           </div>
           <button
             type="button"

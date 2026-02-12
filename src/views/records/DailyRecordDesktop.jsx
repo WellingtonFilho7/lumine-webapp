@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../../utils/cn';
 import { buildRecordForm, getRecordFormDefaults } from '../../utils/records';
 import RecordsLookupPanel from '../../components/RecordsLookupPanel';
+import { CheckCircle } from 'lucide-react';
+import { WEEKDAY_KEYS } from '../../constants/enrollment';
 
 const defaultIsMatriculated = child => {
   if (!child) return false;
@@ -40,6 +42,18 @@ function DailyRecordDesktop({
   const selectedChild =
     children.find(c => c.id === selectedChildId) ||
     activeChildren.find(c => c.id === selectedChildId);
+
+  const today = new Date().toISOString().split('T')[0];
+  const isTodaySelected = date === today;
+  const selectedWeekdayKey = WEEKDAY_KEYS[new Date(`${date}T12:00:00`).getDay()];
+  const expectedChildren = activeChildren.filter(child => {
+    const days = Array.isArray(child.participationDays) ? child.participationDays : [];
+    return days.length === 0 || days.includes(selectedWeekdayKey);
+  });
+  const expectedChildIds = new Set(expectedChildren.map(child => child.id));
+  const completedExpectedCount = dateRecords.filter(record => expectedChildIds.has(record.childInternalId)).length;
+  const pendingExpectedCount = Math.max(0, expectedChildren.length - completedExpectedCount);
+  const allDoneToday = isTodaySelected && expectedChildren.length > 0 && pendingExpectedCount === 0;
 
   const clearTimers = useCallback(() => {
     if (toastTimerRef.current) {
@@ -136,6 +150,20 @@ function DailyRecordDesktop({
           />
         </div>
       </div>
+
+      {allDoneToday && (
+        <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle className="size-5 text-green-700" />
+          </div>
+          <div>
+            <p className="font-semibold text-green-900">Registros do dia concluídos</p>
+            <p className="text-sm text-green-700 tabular-nums">
+              {expectedChildren.length} crianças registradas
+            </p>
+          </div>
+        </div>
+      )}
 
       <RecordsLookupPanel
         children={children}

@@ -26,11 +26,25 @@ export default function DashboardView({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard value={stats.present} label="Presentes" color="green" icon={CheckCircle} />
-        <StatCard value={stats.absent} label="Ausentes" color="red" icon={XCircle} />
-        <StatCard value={stats.total} label="Total" color="indigo" icon={Users} />
-        <StatCard value={stats.meals} label="Refeições/mês" color="amber" icon={Calendar} />
+      <div className="space-y-3">
+        <StatCard
+          value={stats.present}
+          label="Presentes"
+          color="green"
+          icon={CheckCircle}
+          size="lg"
+        />
+        <div className="grid grid-cols-3 gap-2">
+          <StatCard value={stats.absent} label="Ausentes" color="red" icon={XCircle} size="sm" />
+          <StatCard value={stats.total} label="Total" color="indigo" icon={Users} size="sm" />
+          <StatCard
+            value={stats.meals ?? 0}
+            label="Refeições"
+            color="amber"
+            icon={Calendar}
+            size="sm"
+          />
+        </div>
       </div>
 
       {alerts.length > 0 && (
@@ -60,7 +74,7 @@ export default function DashboardView({
       {pendingToday.length > 0 && (
         <div className="rounded-lg bg-white p-4 shadow-md">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-balance font-semibold text-gray-800">Registrar hoje</h3>
+            <h3 className="text-balance font-semibold text-gray-900">Registrar hoje</h3>
             <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
               {pendingToday.length} pendentes
             </span>
@@ -68,14 +82,14 @@ export default function DashboardView({
           <div className="space-y-2">
             {pendingToday.slice(0, 5).map(child => (
               <div key={child.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-2">
-                <span className="flex-1 truncate text-sm font-medium">{child.name}</span>
+                <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
                 <ChevronRight size={18} className="text-gray-400" />
               </div>
             ))}
             {pendingToday.length > 5 && (
               <button
                 onClick={() => setView('daily')}
-                className="w-full py-2 text-center text-sm font-medium text-cyan-700"
+                className="w-full py-2 text-center text-sm font-semibold text-cyan-700"
               >
                 Ver todos ({pendingToday.length})
               </button>
@@ -86,7 +100,7 @@ export default function DashboardView({
 
       {todayRecords.length > 0 && (
         <div className="rounded-lg bg-white p-4 shadow-md">
-          <h3 className="text-balance mb-3 font-semibold text-gray-800">Registros de hoje</h3>
+          <h3 className="text-balance mb-3 font-semibold text-gray-900">Registros de hoje</h3>
           <div className="space-y-2">
             {todayRecords.slice(0, 5).map(rec => {
               const child = children.find(c => c.id === rec.childInternalId);
@@ -102,7 +116,9 @@ export default function DashboardView({
                         : 'bg-red-500'
                     )}
                   />
-                  <span className="flex-1 truncate text-sm">{child?.name || 'Criança'}</span>
+                  <span className="flex-1 truncate text-sm font-semibold text-gray-900">
+                    {child?.name || 'Criança'}
+                  </span>
                   <span className="text-xs text-gray-500">
                     {rec.attendance === 'present'
                       ? 'Presente'
