@@ -43,6 +43,16 @@ export const STATUS_FIELD_LABELS = {
   termsAccepted: 'Termo de Responsabilidade e Consentimento',
 };
 
+export const TRIAGE_REQUIRED_STATUSES = [
+  'em_triagem',
+  'aprovado',
+  'lista_espera',
+  'recusado',
+  'matriculado',
+];
+
+export const WEEKDAY_KEYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
 export const MOOD_LABELS = {
   happy: '😊 Animada',
   calm: '😌 Tranquila',

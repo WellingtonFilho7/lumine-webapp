@@ -38,6 +38,8 @@ import {
   PARTICIPATION_DAYS,
   STATUS_FIELD_LABELS,
   MOOD_LABELS,
+  TRIAGE_REQUIRED_STATUSES,
+  WEEKDAY_KEYS,
 } from './constants/enrollment';
 import useLocalStorage from './hooks/useLocalStorage';
 import useSync from './hooks/useSync';
@@ -123,8 +125,7 @@ function buildStatusFormData(child) {
 }
 
 function getMissingFieldsForStatus(status, data) {
-  const requiresTriage = ['em_triagem', 'aprovado', 'lista_espera', 'recusado', 'matriculado']
-    .includes(status);
+  const requiresTriage = TRIAGE_REQUIRED_STATUSES.includes(status);
   const requiresMatricula = status === 'matriculado';
   const missingKeys = [
     ...(requiresTriage ? getMissingTriageFields(data) : []),
@@ -271,8 +272,6 @@ export default function LumineTracker() {
   const getAlerts = () => {
     const alerts = [];
     const today = new Date();
-    const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-
     children
       .filter(isMatriculated)
       .forEach(child => {
@@ -286,7 +285,7 @@ export default function LumineTracker() {
           const date = new Date(today);
           date.setHours(0, 0, 0, 0);
           date.setDate(today.getDate() - offset);
-          const dayKey = dayKeys[date.getDay()];
+          const dayKey = WEEKDAY_KEYS[date.getDay()];
           if (!participation.includes(dayKey)) continue;
 
           const dateStr = date.toISOString().split('T')[0];
