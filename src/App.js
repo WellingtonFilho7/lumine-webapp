@@ -44,6 +44,7 @@ import { ATTENDANCE_THRESHOLDS, DEFAULT_API_URL } from './constants';
 import useLocalStorage from './hooks/useLocalStorage';
 import useSync from './hooks/useSync';
 import useChildren from './hooks/useChildren';
+import useRecords from './hooks/useRecords';
 import RecordsLookupPanel from './components/RecordsLookupPanel';
 
 function getDeviceId() {
@@ -462,12 +463,26 @@ export default function LumineTracker() {
     jsonHeaders: JSON_HEADERS,
     isOnline,
     normalizeChild,
-    children,
     setChildren,
     setSelectedChild,
     setPendingChanges,
     setDataRev,
     setLastSync,
+  });
+
+  const { addDailyRecord } = useRecords({
+    apiUrl: API_URL,
+    jsonHeaders: JSON_HEADERS,
+    isOnline,
+    reviewMode,
+    children,
+    dailyRecords,
+    setDailyRecords,
+    setPendingChanges,
+    setDataRev,
+    setLastSync,
+    syncWithServer,
+    upsertDailyRecord,
   });
 
   const handleOnboardingDone = useCallback(() => {
@@ -505,42 +520,6 @@ export default function LumineTracker() {
     const { records: normalized, changed } = normalizeRecords(dailyRecords);
     if (changed) setDailyRecords(normalized);
   }, [dailyRecords, setDailyRecords]);
-
-  // Adicionar registro (evita duplicidade por criança/dia)
-  const addDailyRecord = async data => {
-    const now = new Date().toISOString();
-    const { recordPayload, nextRecords, existed } = upsertDailyRecord(dailyRecords, data, now);
-
-    setDailyRecords(nextRecords);
-    setPendingChanges(p => p + 1);
-
-    if (isOnline) {
-      if (existed) {
-        if (!reviewMode) {
-          await syncWithServer({ children, records: nextRecords }, 'auto');
-        }
-        return;
-      }
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: JSON_HEADERS,
-          body: JSON.stringify({ action: 'addRecord', data: recordPayload }),
-        });
-        const result = await res.json().catch(() => null);
-        if (!res.ok || !result?.success) {
-          throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
-        }
-        if (typeof result?.dataRev === 'number') {
-          setDataRev(result.dataRev);
-        }
-        setPendingChanges(prev => Math.max(0, prev - 1));
-        setLastSync(new Date().toISOString());
-      } catch {
-        return;
-      }
-    }
-  };
 
   const clearLocalData = useCallback(() => {
     localStorage.clear();

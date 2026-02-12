@@ -5,7 +5,6 @@ export default function useChildren({
   jsonHeaders,
   isOnline,
   normalizeChild,
-  children,
   setChildren,
   setSelectedChild,
   setPendingChanges,
