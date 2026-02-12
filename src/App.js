@@ -12,6 +12,24 @@ import {
   isTriageDraft,
 } from './utils/enrollment';
 import { clearOnboardingFlag, getOnboardingFlag, setOnboardingFlag } from './utils/onboarding';
+import {
+  getEnrollmentStatus,
+  isMatriculated,
+  parseEnrollmentHistory,
+  parseDocumentsReceived,
+  parseParticipationDays,
+  parseBoolean,
+  normalizeImageConsent,
+  normalizeChild,
+  normalizeChildren,
+  normalizeRecords,
+} from './utils/childData';
+import {
+  calculateAge,
+  formatDate,
+  formatTime,
+  calculateAttendanceRate,
+} from './utils/dateFormat';
 import { upsertDailyRecord } from './utils/records';
 import { DEFAULT_API_URL } from './constants';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -86,18 +104,6 @@ const PARTICIPATION_DAYS = [
   { value: 'sex', label: 'Sex' },
 ];
 
-const LEGACY_STATUS_MAP = {
-  active: 'matriculado',
-  inactive: 'inativo',
-};
-
-function getEnrollmentStatus(child) {
-  if (!child) return 'matriculado';
-  if (child.enrollmentStatus) return child.enrollmentStatus;
-  const legacy = child.status ? LEGACY_STATUS_MAP[child.status] : '';
-  return legacy || 'matriculado';
-}
-
 function getStatusMeta(child) {
   const status = getEnrollmentStatus(child);
   return {
@@ -107,66 +113,6 @@ function getStatusMeta(child) {
       className: 'bg-teal-50 text-gray-600',
     }),
   };
-}
-
-function isMatriculated(child) {
-  return getEnrollmentStatus(child) === 'matriculado';
-}
-
-function parseEnrollmentHistory(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function parseDocumentsReceived(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  return String(value)
-    .split('|')
-    .map(item => item.trim())
-    .filter(Boolean);
-}
-
-function parseParticipationDays(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  return String(value)
-    .split('|')
-    .map(item => item.trim())
-    .filter(Boolean);
-}
-
-function parseBoolean(value) {
-  if (value === true || value === false) return value;
-  if (value == null) return false;
-  const normalized = String(value).trim().toLowerCase();
-  if (['true', 'sim', 'yes', '1'].includes(normalized)) return true;
-  if (['false', 'nao', 'não', 'no', '0'].includes(normalized)) return false;
-  return false;
-}
-
-function normalizeYesNo(value) {
-  if (value == null) return '';
-  const normalized = String(value).trim().toLowerCase();
-  if (['sim', 'yes', 'true', '1'].includes(normalized)) return 'sim';
-  if (['nao', 'não', 'no', 'false', '0'].includes(normalized)) return 'nao';
-  return normalized;
-}
-
-function normalizeImageConsent(value) {
-  if (value === true) return 'comunicacao';
-  if (value === false || value == null) return '';
-  const normalized = String(value).trim().toLowerCase();
-  if (['interno', 'internal', 'uso_interno'].includes(normalized)) return 'interno';
-  if (['comunicacao', 'communication', 'comunicação'].includes(normalized)) return 'comunicacao';
-  if (['nao', 'não', 'no', 'nenhum'].includes(normalized)) return '';
-  return normalized;
 }
 
 const STATUS_FIELD_LABELS = {
@@ -225,171 +171,9 @@ function getMissingFieldsForStatus(status, data) {
   return [...new Set(missingKeys)].map(field => STATUS_FIELD_LABELS[field] || field);
 }
 
-function normalizeChild(child) {
-  const normalized = { ...child };
-  let changed = false;
-
-  const status = getEnrollmentStatus(normalized);
-  if (normalized.enrollmentStatus !== status) {
-    normalized.enrollmentStatus = status;
-    changed = true;
-  }
-
-  if (normalized.childId == null) {
-    normalized.childId = '';
-    changed = true;
-  }
-
-  const docs = parseDocumentsReceived(normalized.documentsReceived);
-  if (docs !== normalized.documentsReceived) {
-    normalized.documentsReceived = docs;
-    changed = true;
-  }
-
-  const history = parseEnrollmentHistory(normalized.enrollmentHistory);
-  if (history !== normalized.enrollmentHistory) {
-    normalized.enrollmentHistory = history;
-    changed = true;
-  }
-
-  if (!normalized.enrollmentHistory.length) {
-    const baseDate = normalized.createdAt || new Date().toISOString();
-    const notes = normalized.status ? 'Migração do sistema anterior' : 'Cadastro inicial';
-    normalized.enrollmentHistory = [{ date: baseDate, action: status, notes }];
-    changed = true;
-  }
-
-  if (!normalized.enrollmentDate) {
-    normalized.enrollmentDate =
-      normalized.entryDate || normalized.createdAt || new Date().toISOString();
-    changed = true;
-  }
-
-  if (status === 'matriculado' && !normalized.matriculationDate) {
-    normalized.matriculationDate = normalized.entryDate || normalized.enrollmentDate;
-    changed = true;
-  }
-
-  if (!normalized.startDate && normalized.entryDate) {
-    normalized.startDate = normalized.entryDate;
-    changed = true;
-  }
-
-  const participationDays = parseParticipationDays(normalized.participationDays);
-  if (participationDays !== normalized.participationDays) {
-    normalized.participationDays = participationDays;
-    changed = true;
-  }
-
-  const normalizedImageConsent = normalizeImageConsent(normalized.imageConsent);
-  if (normalizedImageConsent !== normalized.imageConsent) {
-    normalized.imageConsent = normalizedImageConsent;
-    changed = true;
-  }
-
-  ['responsibilityTerm', 'consentTerm', 'leaveAloneConsent'].forEach(field => {
-    const parsed = parseBoolean(normalized[field]);
-    if (parsed !== normalized[field]) {
-      normalized[field] = parsed;
-      changed = true;
-    }
-  });
-
-  ['schoolCommuteAlone', 'healthCareNeeded', 'dietaryRestriction', 'canLeaveAlone']
-    .forEach(field => {
-      const normalizedValue = normalizeYesNo(normalized[field]);
-      if (normalizedValue !== normalized[field]) {
-        normalized[field] = normalizedValue;
-        changed = true;
-      }
-    });
-
-  if (normalized.leaveAloneConfirmation == null) {
-    normalized.leaveAloneConfirmation = '';
-    changed = true;
-  }
-
-  return { child: normalized, changed };
-}
-
-function normalizeChildren(childrenList) {
-  if (!Array.isArray(childrenList)) {
-    return { children: [], changed: true };
-  }
-  let changed = false;
-  const normalized = childrenList.map(child => {
-    const result = normalizeChild(child);
-    if (result.changed) changed = true;
-    return result.child;
-  });
-  return { children: normalized, changed };
-}
-
-
-function normalizeRecord(record) {
-  const normalized = { ...record };
-  let changed = false;
-  const internalId = normalized.childInternalId || normalized.childId || '';
-
-  if (normalized.childInternalId !== internalId) {
-    normalized.childInternalId = internalId;
-    changed = true;
-  }
-
-  if (normalized.childId !== internalId) {
-    normalized.childId = internalId;
-    changed = true;
-  }
-
-  return { record: normalized, changed };
-}
-
-function normalizeRecords(recordsList) {
-  if (!Array.isArray(recordsList)) {
-    return { records: [], changed: true };
-  }
-  let changed = false;
-  const normalized = recordsList.map(record => {
-    const result = normalizeRecord(record);
-    if (result.changed) changed = true;
-    return result.record;
-  });
-  return { records: normalized, changed };
-}
-
 // ============================================
 // FUNÇÕES AUXILIARES
 // ============================================
-function calculateAge(birthDate) {
-  if (!birthDate) return 0;
-  const today = new Date();
-  const birth = new Date(birthDate);
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return 'N/A';
-  return new Date(dateStr).toLocaleDateString('pt-BR');
-}
-
-function formatTime(dateStr) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function calculateAttendanceRate(records) {
-  if (records.length === 0) return 0;
-  const present = records.filter(r => r.attendance === 'present' || r.attendance === 'late')
-    .length;
-  return Math.round((present / records.length) * 100);
-}
-
 const moodLabels = {
   happy: '😊 Animada',
   calm: '😌 Tranquila',
@@ -955,8 +739,5 @@ export default function LumineTracker() {
 // ============================================
 // ADICIONAR CRIANÇA
 // ============================================
-
-
-
 
 export { DailyRecordView, DailyRecordDesktop, ConfigView };
