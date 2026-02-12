@@ -488,14 +488,14 @@ export default function LumineTracker() {
       setSyncError('Sem conexão');
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
-      return;
+      return false;
     }
 
     if (overwriteBlocked && !payload) {
       setSyncError('Baixe os dados antes de sincronizar');
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
-      return;
+      return false;
     }
 
     setSyncStatus('syncing');
@@ -514,17 +514,6 @@ export default function LumineTracker() {
           preData = null;
         }
         if (preRes.ok && preData?.success) {
-          if (preData.data) {
-            if (Array.isArray(preData.data.children)) {
-              const normalized = normalizeChildren(preData.data.children).children;
-              setChildren(normalized);
-            }
-            if (Array.isArray(preData.data.records)) {
-              const normalizedRecords = normalizeRecords(preData.data.records).records;
-              setDailyRecords(normalizedRecords);
-            }
-            setPendingChanges(0);
-          }
           if (typeof preData.dataRev === 'number') {
             serverRev = preData.dataRev;
             setDataRev(serverRev);
@@ -538,7 +527,7 @@ export default function LumineTracker() {
             });
             setSyncStatus('error');
             setTimeout(() => setSyncStatus('idle'), 3000);
-            return;
+            return false;
           }
         }
       } catch {
@@ -571,7 +560,7 @@ export default function LumineTracker() {
           });
           setSyncStatus('error');
           setTimeout(() => setSyncStatus('idle'), 3000);
-          return;
+          return false;
         }
 
         if (res.status === 409 && result?.error === 'DATA_LOSS_PREVENTED') {
@@ -585,7 +574,7 @@ export default function LumineTracker() {
           alert(
             `O servidor tem mais dados (Crianças: ${serverCount.children || 0}, Registros: ${serverCount.records || 0}). Baixe antes de sincronizar.`
           );
-          return;
+          return false;
         }
 
         const message = result?.error || result?.details || `Erro HTTP ${res.status}`;
@@ -598,16 +587,22 @@ export default function LumineTracker() {
       setOverwriteBlocked(false);
       setSyncError('');
       setLastSync(new Date().toISOString());
-      setPendingChanges(0);
+      if (payload) {
+        setPendingChanges(prev => Math.max(0, prev - 1));
+      } else {
+        setPendingChanges(0);
+      }
       setSyncStatus('success');
       setTimeout(() => setSyncStatus('idle'), 2000);
+      return true;
     } catch (error) {
       const message = error?.message || 'Erro na sincronização';
       setSyncError(message);
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('idle'), 3000);
+      return false;
     }
-  }, [children, dailyRecords, isOnline, dataRev, overwriteBlocked, setChildren, setDailyRecords, setDataRev, setLastSync, setOverwriteBlocked, setSyncModal, setPendingChanges]);
+  }, [children, dailyRecords, isOnline, dataRev, overwriteBlocked, setDataRev, setLastSync, setOverwriteBlocked, setSyncModal, setPendingChanges]);
 
   // Download do servidor
   const downloadFromServer = useCallback(async () => {
@@ -650,10 +645,21 @@ export default function LumineTracker() {
     }
   }, [isOnline, setChildren, setDailyRecords, setDataRev, setLastSync, setOverwriteBlocked, setPendingChanges]);
 
-  // Auto-sync a cada 5 min
+  // Auto-sync reativo: dispara pouco depois de cada alteração pendente.
   useEffect(() => {
     if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {
-      const interval = setInterval(() => syncWithServer(), 5 * 60 * 1000);
+      const timer = setTimeout(() => {
+        syncWithServer();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [isOnline, pendingChanges, overwriteBlocked, reviewMode, syncWithServer]);
+
+  // Auto-sync de retentativa periódica enquanto houver pendências.
+  useEffect(() => {
+    if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {
+      const interval = setInterval(() => syncWithServer(), 45 * 1000);
       return () => clearInterval(interval);
     }
     return undefined;
@@ -699,6 +705,9 @@ export default function LumineTracker() {
           body: JSON.stringify({ action: 'addChild', data: newChild }),
         });
         const result = await res.json().catch(() => null);
+        if (!res.ok || !result?.success) {
+          throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
+        }
         if (result?.childId) {
           setChildren(prev =>
             prev.map(child =>
@@ -709,6 +718,8 @@ export default function LumineTracker() {
         if (typeof result?.dataRev === 'number') {
           setDataRev(result.dataRev);
         }
+        setPendingChanges(prev => Math.max(0, prev - 1));
+        setLastSync(new Date().toISOString());
       } catch {
         return;
       }
@@ -753,9 +764,14 @@ export default function LumineTracker() {
           body: JSON.stringify({ action: 'addRecord', data: recordPayload }),
         });
         const result = await res.json().catch(() => null);
+        if (!res.ok || !result?.success) {
+          throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
+        }
         if (typeof result?.dataRev === 'number') {
           setDataRev(result.dataRev);
         }
+        setPendingChanges(prev => Math.max(0, prev - 1));
+        setLastSync(new Date().toISOString());
       } catch {
         return;
       }
