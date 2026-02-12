@@ -26,6 +26,7 @@ import {
 import { upsertDailyRecord } from './utils/records';
 import { getDashboardStats, getAttendanceAlerts } from './utils/dashboardMetrics';
 import { DEFAULT_API_URL } from './constants';
+import { VIEW_TITLES } from './constants/ui';
 import {
   ENROLLMENT_STATUS_META,
   TRIAGE_RESULT_OPTIONS,
@@ -206,14 +207,10 @@ export default function LumineTracker() {
   const alerts = getAttendanceAlerts(children, dailyRecords);
 
   // Títulos das views
-  const viewTitles = {
-    dashboard: 'Dashboard',
-    children: 'Crianças',
-    'add-child': 'Nova Criança',
-    daily: 'Registro',
-    'child-detail': selectedChild?.name || 'Detalhes',
-    config: 'Configurações',
-  };
+  const viewTitle =
+    view === 'child-detail'
+      ? selectedChild?.name || VIEW_TITLES['child-detail']
+      : VIEW_TITLES[view] || 'Lumine';
 
   return (
     <>
@@ -240,7 +237,7 @@ export default function LumineTracker() {
                 <ChevronLeft size={24} />
               </button>
             )}
-            <h1 className="text-balance text-lg font-bold">{viewTitles[view]}</h1>
+            <h1 className="text-balance text-lg font-bold">{viewTitle}</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -315,7 +312,7 @@ export default function LumineTracker() {
       <header className="hidden items-center justify-between border-b border-gray-200 bg-white px-8 py-3 lg:flex">
         <div>
           <p className="text-xs uppercase text-gray-400">Instituto Lumine</p>
-          <h1 className="text-balance text-lg font-semibold text-gray-900">{viewTitles[view]}</h1>
+          <h1 className="text-balance text-lg font-semibold text-gray-900">{viewTitle}</h1>
           <p className="text-xs text-gray-500">
             Última sync:{" "}
             {lastSync ? `${formatDate(lastSync)} às ${formatTime(lastSync)}` : "Nenhuma"}
