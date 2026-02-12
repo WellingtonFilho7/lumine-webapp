@@ -26,6 +26,18 @@ export const SYNC_BUTTON_LABEL_DESKTOP = {
   idle: 'Sincronizar',
 };
 
+export function getSyncStateKey(syncStatus) {
+  return ['syncing', 'success', 'error'].includes(syncStatus) ? syncStatus : 'idle';
+}
+
+export function isSyncActionDisabled(syncStatus, overwriteBlocked) {
+  return syncStatus === 'syncing' || overwriteBlocked;
+}
+
+export function shouldShowPendingSyncBadge(pendingChanges, syncStatus) {
+  return pendingChanges > 0 && syncStatus !== 'syncing';
+}
+
 export function getPendingChangesLabel(pendingChanges) {
   const label = pendingChanges > 1 ? 'alterações pendentes' : 'alteração pendente';
   return `${pendingChanges} ${label}`;

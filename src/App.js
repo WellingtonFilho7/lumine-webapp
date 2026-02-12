@@ -32,6 +32,9 @@ import {
   SYNC_BUTTON_LABEL_MOBILE,
   SYNC_BUTTON_THEME_DESKTOP,
   SYNC_BUTTON_LABEL_DESKTOP,
+  getSyncStateKey,
+  isSyncActionDisabled,
+  shouldShowPendingSyncBadge,
   getPendingChangesLabel,
   getPendingSyncBadgeMobileLabel,
   getConnectionIndicatorClass,
@@ -222,9 +225,10 @@ export default function LumineTracker() {
       ? selectedChild?.name || VIEW_TITLES['child-detail']
       : VIEW_TITLES[view] || 'Lumine';
 
-  const syncStateKey = ['syncing', 'success', 'error'].includes(syncStatus)
-    ? syncStatus
-    : 'idle';
+  const syncStateKey = getSyncStateKey(syncStatus);
+  const showPendingSyncBadge = shouldShowPendingSyncBadge(pendingChanges, syncStatus);
+  const syncActionDisabled = isSyncActionDisabled(syncStatus, overwriteBlocked);
+  const isSyncing = syncStateKey === 'syncing';
 
   return (
     <>
@@ -256,7 +260,7 @@ export default function LumineTracker() {
 
           <div className="flex items-center gap-2">
             {/* Indicador de Pendências - Mais Proeminente */}
-            {pendingChanges > 0 && syncStatus !== 'syncing' && (
+            {showPendingSyncBadge && (
               <div className="flex items-center gap-1.5 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white animate-pulse">
                 <AlertTriangle size={12} />
                 {getPendingSyncBadgeMobileLabel(pendingChanges)}
@@ -271,13 +275,13 @@ export default function LumineTracker() {
             {/* Botão Sync */}
             <button
               onClick={() => syncWithServer()}
-              disabled={syncStatus === 'syncing' || overwriteBlocked}
+              disabled={syncActionDisabled}
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
                 SYNC_BUTTON_THEME_MOBILE[syncStateKey]
               )}
             >
-              <RefreshCw size={14} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
+              <RefreshCw size={14} className={cn(isSyncing && 'animate-spin')} />
               {SYNC_BUTTON_LABEL_MOBILE[syncStateKey]}
             </button>
           </div>
@@ -343,7 +347,7 @@ export default function LumineTracker() {
         </div>
         <div className="flex items-center gap-3">
           {/* Indicador de Pendências Desktop - Mais Proeminente */}
-          {pendingChanges > 0 && syncStatus !== 'syncing' && (
+          {showPendingSyncBadge && (
             <div className="flex items-center gap-2 rounded-lg bg-amber-100 border-2 border-amber-500 px-3 py-2 text-sm font-bold text-amber-900 animate-pulse">
               <AlertTriangle size={16} />
               {getPendingChangesLabel(pendingChanges)}
@@ -358,13 +362,13 @@ export default function LumineTracker() {
           </div>
           <button
             onClick={() => syncWithServer()}
-            disabled={syncStatus === "syncing" || overwriteBlocked}
+            disabled={syncActionDisabled}
             className={cn(
               'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition',
               SYNC_BUTTON_THEME_DESKTOP[syncStateKey]
             )}
           >
-            <RefreshCw size={14} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
+            <RefreshCw size={14} className={cn(isSyncing && 'animate-spin')} />
             {SYNC_BUTTON_LABEL_DESKTOP[syncStateKey]}
           </button>
         </div>
