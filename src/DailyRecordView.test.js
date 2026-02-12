@@ -40,7 +40,11 @@ describe('DailyRecordView edit flow', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Ana Clara'));
+    const recordButtons = screen.getAllByRole('button', { name: /Ana Clara/i });
+    const recordButton =
+      recordButtons.find(button => button.textContent.includes('Presente')) || recordButtons[0];
+
+    fireEvent.click(recordButton);
 
     expect(screen.getByText('Atualizar registro')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Algo importante...')).toHaveValue('observacao importante');

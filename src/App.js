@@ -40,6 +40,16 @@ import {
 } from './utils/enrollment';
 import { clearOnboardingFlag, getOnboardingFlag, setOnboardingFlag } from './utils/onboarding';
 import { buildRecordForm, getRecordFormDefaults, upsertDailyRecord } from './utils/records';
+import { classifySyncError } from './utils/syncErrors';
+import {
+  ATTENDANCE_THRESHOLDS,
+  AUTO_SYNC_DELAY_MS,
+  AUTO_SYNC_RETRY_INTERVAL_MS,
+  DEFAULT_API_URL,
+  SYNC_SUCCESS_RESET_TIMEOUT_MS,
+  SYNC_WARNING_RESET_TIMEOUT_MS,
+} from './constants';
+import useLocalStorage from './hooks/useLocalStorage';
 import RecordsLookupPanel from './components/RecordsLookupPanel';
 
 function getDeviceId() {
@@ -57,7 +67,7 @@ function getDeviceId() {
 // ============================================
 // CONFIGURAÇÃO
 // ============================================
-const API_URL = process.env.REACT_APP_API_URL || 'https://lumine-api.vercel.app/api/sync';
+const API_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
 const API_TOKEN = process.env.REACT_APP_API_TOKEN || '';
 const APP_VERSION = process.env.REACT_APP_APP_VERSION || '';
 const DEVICE_ID = getDeviceId();
@@ -407,29 +417,6 @@ const moodLabels = {
   irritated: '😠 Irritada',
 };
 
-function useLocalStorage(key, initialValue) {
-  const [storedValue, setStoredValue] = useState(() => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch {
-      return initialValue;
-    }
-  });
-  const setValue = value => {
-    try {
-      setStoredValue(prevValue => {
-        const valueToStore = value instanceof Function ? value(prevValue) : value;
-        localStorage.setItem(key, JSON.stringify(valueToStore));
-        return valueToStore;
-      });
-    } catch (e) {
-      console.error('Erro:', e);
-    }
-  };
-  return [storedValue, setValue];
-}
-
 // ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
@@ -441,6 +428,7 @@ export default function LumineTracker() {
   const [searchTerm, setSearchTerm] = useState('');
   const [syncStatus, setSyncStatus] = useState('idle');
   const [syncError, setSyncError] = useState('');
+  const [syncErrorLevel, setSyncErrorLevel] = useState('none');
   const [lastSync, setLastSync] = useLocalStorage('lumine_last_sync', null);
   const [dataRev, setDataRev] = useLocalStorage('lumine_data_rev', 0);
   const [reviewMode, setReviewMode] = useLocalStorage('lumine_review_mode', false);
@@ -450,6 +438,53 @@ export default function LumineTracker() {
   const [syncModal, setSyncModal] = useState(null);
   const [pendingChanges, setPendingChanges] = useState(0);
   const [showFABMenu, setShowFABMenu] = useState(false);
+
+  const syncStatusTimerRef = useRef(null);
+
+  const clearSyncStatusTimer = useCallback(() => {
+    if (syncStatusTimerRef.current) {
+      clearTimeout(syncStatusTimerRef.current);
+      syncStatusTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleSyncStatusReset = useCallback(ms => {
+    clearSyncStatusTimer();
+    if (ms > 0) {
+      syncStatusTimerRef.current = setTimeout(() => {
+        setSyncStatus('idle');
+        syncStatusTimerRef.current = null;
+      }, ms);
+    }
+  }, [clearSyncStatusTimer]);
+
+  const clearSyncFeedback = useCallback(() => {
+    clearSyncStatusTimer();
+    setSyncStatus('idle');
+    setSyncError('');
+    setSyncErrorLevel('none');
+  }, [clearSyncStatusTimer]);
+
+  const beginSync = useCallback(() => {
+    clearSyncStatusTimer();
+    setSyncStatus('syncing');
+    setSyncError('');
+    setSyncErrorLevel('none');
+  }, [clearSyncStatusTimer]);
+
+  const applySyncError = useCallback(({ message, level, autoDismissMs }) => {
+    setSyncError(message);
+    setSyncErrorLevel(level || 'warning');
+    setSyncStatus('error');
+    scheduleSyncStatusReset(autoDismissMs || 0);
+  }, [scheduleSyncStatusReset]);
+
+  const applySyncSuccess = useCallback(() => {
+    setSyncError('');
+    setSyncErrorLevel('none');
+    setSyncStatus('success');
+    scheduleSyncStatusReset(SYNC_SUCCESS_RESET_TIMEOUT_MS);
+  }, [scheduleSyncStatusReset]);
 
   const handleOnboardingDone = useCallback(() => {
     setOnboardingFlag(true);
@@ -477,6 +512,8 @@ export default function LumineTracker() {
     };
   }, []);
 
+  useEffect(() => () => clearSyncStatusTimer(), [clearSyncStatusTimer]);
+
   useEffect(() => {
     const { children: normalized, changed } = normalizeChildren(children);
     if (changed) setChildren(normalized);
@@ -490,21 +527,20 @@ export default function LumineTracker() {
   // Sync com servidor
   const syncWithServer = useCallback(async (payload = null, mode = 'manual') => {
     if (!isOnline) {
-      setSyncError('Sem conexão');
-      setSyncStatus('error');
-      setTimeout(() => setSyncStatus('idle'), 3000);
+      applySyncError(classifySyncError({ isOnline: false }));
       return false;
     }
 
     if (overwriteBlocked && !payload) {
-      setSyncError('Baixe os dados antes de sincronizar');
-      setSyncStatus('error');
-      setTimeout(() => setSyncStatus('idle'), 3000);
+      applySyncError({
+        message: 'Baixe os dados antes de sincronizar.',
+        level: 'warning',
+        autoDismissMs: SYNC_WARNING_RESET_TIMEOUT_MS,
+      });
       return false;
     }
 
-    setSyncStatus('syncing');
-    setSyncError('');
+    beginSync();
 
     const localRevBefore = Number(dataRev) || 0;
     let serverRev = localRevBefore;
@@ -532,10 +568,12 @@ export default function LumineTracker() {
             });
           } else {
             setOverwriteBlocked(true);
-            setSyncError('Há dados novos no servidor. Toque em Baixar para atualizar.');
+            applySyncError({
+              message: 'Há dados novos no servidor. Toque em Baixar para atualizar.',
+              level: 'warning',
+              autoDismissMs: SYNC_WARNING_RESET_TIMEOUT_MS,
+            });
           }
-          setSyncStatus('error');
-          setTimeout(() => setSyncStatus('idle'), 3000);
           return false;
         }
       }
@@ -561,6 +599,14 @@ export default function LumineTracker() {
       }
 
       if (!res.ok || !result?.success) {
+        const classifiedError = classifySyncError({
+          isOnline,
+          status: res.status,
+          payloadError: result?.error,
+          details: result?.details,
+          fallbackMessage: result?.message || `Erro HTTP ${res.status}`,
+        });
+
         if (res.status === 409 && result?.error === 'REVISION_MISMATCH') {
           if (mode === 'manual') {
             setSyncModal({
@@ -569,29 +615,23 @@ export default function LumineTracker() {
             });
           } else {
             setOverwriteBlocked(true);
-            setSyncError('Os dados mudaram no servidor. Toque em Baixar para atualizar.');
+            applySyncError(classifiedError);
           }
-          setSyncStatus('error');
-          setTimeout(() => setSyncStatus('idle'), 3000);
           return false;
         }
 
         if (res.status === 409 && result?.error === 'DATA_LOSS_PREVENTED') {
           const serverCount = result?.serverCount || {};
           setOverwriteBlocked(true);
-          setSyncError(
-            `Servidor tem mais dados (Crianças: ${serverCount.children || 0}, Registros: ${serverCount.records || 0}). Baixe antes de sincronizar.`
-          );
-          setSyncStatus('error');
-          setTimeout(() => setSyncStatus('idle'), 3000);
-          alert(
-            `O servidor tem mais dados (Crianças: ${serverCount.children || 0}, Registros: ${serverCount.records || 0}). Baixe antes de sincronizar.`
-          );
+          applySyncError({
+            ...classifiedError,
+            message: `Servidor tem mais dados (Crianças: ${serverCount.children || 0}, Registros: ${serverCount.records || 0}). Baixe antes de sincronizar.`,
+          });
           return false;
         }
 
-        const message = result?.error || result?.details || `Erro HTTP ${res.status}`;
-        throw new Error(message);
+        applySyncError(classifiedError);
+        return false;
       }
 
       if (typeof result?.dataRev === 'number') {
@@ -605,23 +645,26 @@ export default function LumineTracker() {
       } else {
         setPendingChanges(0);
       }
-      setSyncStatus('success');
-      setTimeout(() => setSyncStatus('idle'), 2000);
+      applySyncSuccess();
       return true;
     } catch (error) {
-      const message = error?.message || 'Erro na sincronização';
-      setSyncError(message);
-      setSyncStatus('error');
-      setTimeout(() => setSyncStatus('idle'), 3000);
+      applySyncError(
+        classifySyncError({
+          isOnline,
+          fallbackMessage: error?.message || 'Erro na sincronização',
+        })
+      );
       return false;
     }
-  }, [children, dailyRecords, isOnline, dataRev, overwriteBlocked, setDataRev, setLastSync, setOverwriteBlocked, setSyncModal, setPendingChanges]);
+  }, [children, dailyRecords, isOnline, dataRev, overwriteBlocked, setDataRev, setLastSync, setOverwriteBlocked, setSyncModal, setPendingChanges, beginSync, applySyncError, applySyncSuccess]);
 
   // Download do servidor
   const downloadFromServer = useCallback(async () => {
-    if (!isOnline) return;
-    setSyncStatus('syncing');
-    setSyncError('');
+    if (!isOnline) {
+      applySyncError(classifySyncError({ isOnline: false }));
+      return false;
+    }
+    beginSync();
     try {
       const res = await fetch(API_URL, { headers: BASE_HEADERS });
       let result = null;
@@ -631,8 +674,16 @@ export default function LumineTracker() {
         result = null;
       }
       if (!res.ok || !result?.success) {
-        const message = result?.error || result?.details || `Erro HTTP ${res.status}`;
-        throw new Error(message);
+        applySyncError(
+          classifySyncError({
+            isOnline,
+            status: res.status,
+            payloadError: result?.error,
+            details: result?.details,
+            fallbackMessage: result?.message || `Erro HTTP ${res.status}`,
+          })
+        );
+        return false;
       }
       if (result.data) {
         if (Array.isArray(result.data.children)) {
@@ -648,22 +699,25 @@ export default function LumineTracker() {
       if (typeof result?.dataRev === 'number') setDataRev(result.dataRev);
       setOverwriteBlocked(false);
       setLastSync(new Date().toISOString());
-      setSyncStatus('success');
-      setTimeout(() => setSyncStatus('idle'), 2000);
+      applySyncSuccess();
+      return true;
     } catch (error) {
-      const message = error?.message || 'Erro ao baixar dados';
-      setSyncError(message);
-      setSyncStatus('error');
-      setTimeout(() => setSyncStatus('idle'), 3000);
+      applySyncError(
+        classifySyncError({
+          isOnline,
+          fallbackMessage: error?.message || 'Erro ao baixar dados',
+        })
+      );
+      return false;
     }
-  }, [isOnline, setChildren, setDailyRecords, setDataRev, setLastSync, setOverwriteBlocked, setPendingChanges]);
+  }, [isOnline, setChildren, setDailyRecords, setDataRev, setLastSync, setOverwriteBlocked, setPendingChanges, beginSync, applySyncError, applySyncSuccess]);
 
   // Auto-sync reativo: dispara pouco depois de cada alteração pendente.
   useEffect(() => {
     if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {
       const timer = setTimeout(() => {
         syncWithServer(null, 'auto');
-      }, 3000);
+      }, AUTO_SYNC_DELAY_MS);
       return () => clearTimeout(timer);
     }
     return undefined;
@@ -672,7 +726,7 @@ export default function LumineTracker() {
   // Auto-sync de retentativa periódica enquanto houver pendências.
   useEffect(() => {
     if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {
-      const interval = setInterval(() => syncWithServer(null, 'auto'), 45 * 1000);
+      const interval = setInterval(() => syncWithServer(null, 'auto'), AUTO_SYNC_RETRY_INTERVAL_MS);
       return () => clearInterval(interval);
     }
     return undefined;
@@ -1012,7 +1066,25 @@ export default function LumineTracker() {
           <p className="mt-1 text-xs text-cyan-200">Última sync: {formatTime(lastSync)}</p>
         )}
         {syncStatus === 'error' && syncError && (
-          <p className="mt-1 text-xs text-rose-100">Sync: {syncError}</p>
+          <div className="mt-1 flex items-start justify-between gap-2">
+            <p
+              className={cn(
+                'text-xs',
+                syncErrorLevel === 'critical' ? 'text-rose-100 font-semibold' : 'text-amber-100'
+              )}
+            >
+              Sync: {syncError}
+            </p>
+            {syncErrorLevel === 'critical' && (
+              <button
+                type="button"
+                onClick={clearSyncFeedback}
+                className="rounded border border-white/30 px-2 py-0.5 text-[10px] font-semibold text-white/90"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
         )}
       </header>
 
@@ -1026,7 +1098,25 @@ export default function LumineTracker() {
             {lastSync ? `${formatDate(lastSync)} às ${formatTime(lastSync)}` : "Nenhuma"}
           </p>
           {syncStatus === 'error' && syncError && (
-            <p className="text-pretty text-xs text-rose-600">Sync: {syncError}</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p
+                className={cn(
+                  'text-pretty text-xs',
+                  syncErrorLevel === 'critical' ? 'text-rose-700 font-semibold' : 'text-amber-700'
+                )}
+              >
+                Sync: {syncError}
+              </p>
+              {syncErrorLevel === 'critical' && (
+                <button
+                  type="button"
+                  onClick={clearSyncFeedback}
+                  className="rounded border border-rose-300 px-2 py-0.5 text-[10px] font-semibold text-rose-700"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -4993,9 +5083,9 @@ function ConfigView({
                   <div
                     className={cn(
                       'h-full rounded-full',
-                      child.rate >= 80
+                      child.rate >= ATTENDANCE_THRESHOLDS.GREEN
                         ? 'bg-green-500'
-                        : child.rate >= 60
+                        : child.rate >= ATTENDANCE_THRESHOLDS.YELLOW
                         ? 'bg-yellow-500'
                         : 'bg-red-500'
                     )}
@@ -5005,9 +5095,9 @@ function ConfigView({
                 <span
                   className={cn(
                     'w-10 text-right text-sm font-bold',
-                    child.rate >= 80
+                    child.rate >= ATTENDANCE_THRESHOLDS.GREEN
                       ? 'text-green-600'
-                      : child.rate >= 60
+                      : child.rate >= ATTENDANCE_THRESHOLDS.YELLOW
                       ? 'text-yellow-600'
                       : 'text-red-600'
                   )}
@@ -5162,9 +5252,9 @@ function ConfigView({
                     <span
                       className={cn(
                         'rounded-full px-2 py-1 text-xs font-semibold',
-                        child.rate >= 80
+                        child.rate >= ATTENDANCE_THRESHOLDS.GREEN
                           ? 'bg-green-100 text-green-700'
-                          : child.rate >= 60
+                          : child.rate >= ATTENDANCE_THRESHOLDS.YELLOW
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
                       )}
