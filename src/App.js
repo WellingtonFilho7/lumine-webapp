@@ -49,6 +49,8 @@ import FloatingActions from './components/layout/FloatingActions';
 import OnboardingModal from './components/dialogs/OnboardingModal';
 import SyncConflictDialog from './components/dialogs/SyncConflictDialog';
 import ClearLocalDataDialog from './components/dialogs/ClearLocalDataDialog';
+import StatCard from './components/ui/StatCard';
+import InfoRow from './components/ui/InfoRow';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -1148,26 +1150,6 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
             })}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ value, label, color, icon: Icon }) {
-  const colors = {
-    green: 'bg-green-50 text-green-600 border-green-100',
-    red: 'bg-red-50 text-red-600 border-red-100',
-    indigo: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-    amber: 'bg-orange-50 text-orange-600 border-orange-100',
-  };
-  return (
-    <div className={cn('rounded-lg border p-4', colors[color])}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-2xl font-bold tabular-nums">{value}</p>
-          <p className="text-xs opacity-80">{label}</p>
-        </div>
-        <Icon size={24} className="opacity-50" />
       </div>
     </div>
   );
@@ -2775,18 +2757,6 @@ function ChildDetailView({ child, dailyRecords, onUpdateChild }) {
         ) : (
           <p className="py-4 text-center text-gray-500">Nenhum registro</p>
         )}
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3">
-      <Icon size={18} className="text-gray-400" />
-      <div className="flex-1">
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-medium text-gray-800">{value || 'N/A'}</p>
       </div>
     </div>
   );
