@@ -3,7 +3,7 @@
 // Versão 3.0 - UX/UI Otimizada para Mobile
 // ============================================
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
@@ -40,6 +40,7 @@ import {
 } from './utils/enrollment';
 import { clearOnboardingFlag, getOnboardingFlag, setOnboardingFlag } from './utils/onboarding';
 import { buildRecordForm, getRecordFormDefaults, upsertDailyRecord } from './utils/records';
+import RecordsLookupPanel from './components/RecordsLookupPanel';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -1490,6 +1491,7 @@ function DashboardView({ stats, alerts, children, dailyRecords, setSelectedChild
 }
 
 function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedChild, setView }) {
+  const childrenById = useMemo(() => new Map(children.map(child => [child.id, child])), [children]);
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === today);
   const activeChildren = children.filter(isMatriculated);
@@ -1584,7 +1586,7 @@ function DashboardDesktop({ stats, alerts, children, dailyRecords, setSelectedCh
               </div>
             )}
             {todayRecords.map(record => {
-              const child = children.find(c => c.id === record.childInternalId);
+              const child = childrenById.get(record.childInternalId);
               return (
                 <div key={record.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
                   <div>
@@ -3882,255 +3884,19 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
   );
 }
 
-function getAttendanceMeta(attendance) {
-  if (attendance === 'present') return { label: 'Presente', className: 'bg-green-100 text-green-700' };
-  if (attendance === 'late') return { label: 'Atrasado', className: 'bg-yellow-100 text-yellow-700' };
-  return { label: 'Ausente', className: 'bg-red-100 text-red-700' };
-}
-
-function formatScaleValue(value) {
-  if (value === 'high') return 'Alta';
-  if (value === 'medium') return 'Média';
-  if (value === 'low') return 'Baixa';
-  return '—';
-}
-
-function formatMoodValue(value) {
-  if (!value) return '—';
-  const moodMap = {
-    happy: 'Feliz',
-    neutral: 'Neutro',
-    calm: 'Calma',
-    quiet: 'Quieta',
-    sad: 'Triste',
-    agitated: 'Agitada',
-    irritated: 'Irritada',
-  };
-  return moodMap[value] || value;
-}
-
-function buildRecordShareSummary(record, childName) {
-  const attendance = getAttendanceMeta(record.attendance).label;
-  return [
-    'Resumo de acompanhamento - Instituto Lumine',
-    'Criança: ' + (childName || 'Criança'),
-    'Data: ' + formatDate(record.date),
-    'Presença: ' + attendance,
-    'Atividade: ' + (record.activity || '—'),
-    'Humor: ' + formatMoodValue(record.mood),
-    'Participação: ' + formatScaleValue(record.participation),
-    'Interação: ' + formatScaleValue(record.interaction),
-    'Observações: ' + (record.notes || 'Sem observações'),
-  ].join('\n');
-}
-
-function RecordsLookupPanel({ children, dailyRecords }) {
-  const [lookupChildId, setLookupChildId] = useState('');
-  const [lookupQuery, setLookupQuery] = useState('');
-  const [lookupWindowDays, setLookupWindowDays] = useState('30');
-  const [copiedRecordId, setCopiedRecordId] = useState('');
-  const [copyError, setCopyError] = useState('');
-
-  const activeChildren = children.filter(isMatriculated);
-
-  const filteredRecords = useMemo(() => {
-    const now = new Date();
-    const windowDays = Number(lookupWindowDays) || 0;
-    const minDate = windowDays > 0
-      ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - windowDays)
-      : null;
-
-    return dailyRecords
-      .filter(record => {
-        if (lookupChildId && record.childInternalId !== lookupChildId) return false;
-
-        const recordDate = record.date ? new Date(record.date) : null;
-        if (minDate && recordDate && recordDate < minDate) return false;
-
-        if (!lookupQuery.trim()) return true;
-        const child = children.find(c => c.id === record.childInternalId);
-        const haystack = [
-          child?.name || '',
-          record.notes || '',
-          record.activity || '',
-        ]
-          .join(' ')
-          .toLowerCase();
-
-        return haystack.includes(lookupQuery.trim().toLowerCase());
-      })
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [children, dailyRecords, lookupChildId, lookupQuery, lookupWindowDays]);
-
-  const quickStats = useMemo(() => {
-    const total = filteredRecords.length;
-    const presentes = filteredRecords.filter(r => r.attendance === 'present' || r.attendance === 'late').length;
-    const ausentes = filteredRecords.filter(r => r.attendance === 'absent').length;
-    return { total, presentes, ausentes };
-  }, [filteredRecords]);
-
-  const copyRecordSummary = async (record, childName) => {
-    const summaryText = buildRecordShareSummary(record, childName);
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(summaryText);
-      } else {
-        const fallbackInput = document.createElement('textarea');
-        fallbackInput.value = summaryText;
-        fallbackInput.setAttribute('readonly', '');
-        fallbackInput.style.position = 'fixed';
-        fallbackInput.style.left = '-9999px';
-        document.body.appendChild(fallbackInput);
-        fallbackInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(fallbackInput);
-      }
-      setCopyError('');
-      setCopiedRecordId(record.id);
-      setTimeout(() => {
-        setCopiedRecordId(current => (current === record.id ? '' : current));
-      }, 1500);
-    } catch {
-      setCopyError('Não foi possível copiar. Tente novamente.');
-      setTimeout(() => setCopyError(''), 2000);
-    }
-  };
-
-  return (
-    <div className="rounded-lg bg-white p-4 shadow-md">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-balance font-semibold text-gray-800">Consulta rápida de registros</h3>
-          <p className="text-pretty text-xs text-gray-500">Busque informações sem precisar abrir o Supabase.</p>
-        </div>
-        <div className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 tabular-nums">
-          {quickStats.total} encontrados
-        </div>
-      </div>
-
-      <div className="grid gap-2 md:grid-cols-3">
-        <select
-          value={lookupChildId}
-          onChange={e => setLookupChildId(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-        >
-          <option value="">Todas as crianças</option>
-          {activeChildren.map(child => (
-            <option key={child.id} value={child.id}>
-              {child.name}
-            </option>
-          ))}
-        </select>
-
-        <div className="relative">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={lookupQuery}
-            onChange={e => setLookupQuery(e.target.value)}
-            placeholder="Buscar em notas/atividade"
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm"
-          />
-        </div>
-
-        <select
-          value={lookupWindowDays}
-          onChange={e => setLookupWindowDays(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-        >
-          <option value="7">Últimos 7 dias</option>
-          <option value="30">Últimos 30 dias</option>
-          <option value="90">Últimos 90 dias</option>
-          <option value="0">Todo período</option>
-        </select>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs text-cyan-700 tabular-nums">
-          Presentes: {quickStats.presentes}
-        </span>
-        <span className="rounded-full bg-red-50 px-2 py-1 text-xs text-red-700 tabular-nums">
-          Ausentes: {quickStats.ausentes}
-        </span>
-      </div>
-
-      {copyError && (
-        <p className="mt-2 text-xs font-semibold text-red-600">{copyError}</p>
-      )}
-
-      <div className="mt-4 max-h-72 space-y-2 overflow-auto">
-        {filteredRecords.slice(0, 20).map(record => {
-          const child = children.find(c => c.id === record.childInternalId);
-          const attendance = getAttendanceMeta(record.attendance);
-          return (
-            <div key={record.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="truncate text-sm font-semibold text-gray-800">{child?.name || 'Criança'}</p>
-                <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', attendance.className)}>
-                  {attendance.label}
-                </span>
-              </div>
-
-              <div className="grid gap-1 text-xs text-gray-700">
-                <p>
-                  <span className="font-semibold text-gray-500">Data:</span> {formatDate(record.date)}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-500">Atividade:</span> {record.activity || '—'}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-500">Humor:</span> {formatMoodValue(record.mood)}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-500">Participação:</span> {formatScaleValue(record.participation)}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-500">Interação:</span> {formatScaleValue(record.interaction)}
-                </p>
-              </div>
-
-              <div className="mt-2 rounded-md bg-white px-2 py-1 text-xs text-gray-700">
-                <span className="font-semibold text-gray-500">Observações:</span> {record.notes || 'Sem observações'}
-              </div>
-
-              <div className="mt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => copyRecordSummary(record, child?.name)}
-                  className={cn(
-                    'rounded-lg border px-3 py-1 text-xs font-semibold transition-colors',
-                    copiedRecordId === record.id
-                      ? 'border-green-200 bg-green-50 text-green-700'
-                      : 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
-                  )}
-                >
-                  {copiedRecordId === record.id ? 'Resumo copiado' : 'Copiar resumo'}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-        {filteredRecords.length === 0 && (
-          <div className="rounded-lg border border-dashed border-gray-200 px-3 py-5 text-center text-sm text-gray-500">
-            Nenhum registro encontrado com os filtros atuais.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ============================================
 // REGISTRO DIÁRIO
 // ============================================
 function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const childrenById = useMemo(() => new Map(children.map(child => [child.id, child])), [children]);
   const [selectedChildId, setSelectedChildId] = useState('');
   const [step, setStep] = useState('select');
   const [editingRecordId, setEditingRecordId] = useState('');
   const [form, setForm] = useState(getRecordFormDefaults());
   const [toastMessage, setToastMessage] = useState('');
+  const toastTimerRef = useRef(null);
+  const resetTimerRef = useRef(null);
 
   const activeChildren = children.filter(isMatriculated);
   const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
@@ -4140,10 +3906,25 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
     children.find(c => c.id === selectedChildId) ||
     activeChildren.find(c => c.id === selectedChildId);
 
-  const showToast = message => {
+  const clearTimers = useCallback(() => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
+  }, []);
+
+  const showToast = useCallback(message => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(message);
-    setTimeout(() => setToastMessage(''), 1500);
-  };
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 1500);
+  }, []);
 
   const clearEditing = () => {
     setEditingRecordId('');
@@ -4155,6 +3936,8 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
   useEffect(() => {
     clearEditing();
   }, [date]);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
 
   const handleEditRecord = record => {
     setEditingRecordId(record.id);
@@ -4185,8 +3968,10 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
     const isEditing = Boolean(editingRecordId);
     addDailyRecord({ childInternalId: selectedChildId, date, ...form });
     showToast(isEditing ? 'Registro atualizado!' : 'Registro salvo!');
-    setTimeout(() => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => {
       clearEditing();
+      resetTimerRef.current = null;
     }, 1500);
   };
 
@@ -4227,7 +4012,12 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
         </div>
       </div>
 
-      <RecordsLookupPanel children={children} dailyRecords={dailyRecords} />
+      <RecordsLookupPanel
+        children={children}
+        activeChildren={activeChildren}
+        dailyRecords={dailyRecords}
+        formatDate={formatDate}
+      />
 
       {step === 'select' && (
         <>
@@ -4239,7 +4029,7 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
               </div>
               <div className="space-y-2">
                 {dateRecords.map(record => {
-                  const child = children.find(c => c.id === record.childInternalId);
+                  const child = childrenById.get(record.childInternalId);
                   const label = child?.name || 'Criança';
                   return (
                     <button
@@ -4518,10 +4308,13 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
 
 function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const childrenById = useMemo(() => new Map(children.map(child => [child.id, child])), [children]);
   const [selectedChildId, setSelectedChildId] = useState('');
   const [editingRecordId, setEditingRecordId] = useState('');
   const [form, setForm] = useState(getRecordFormDefaults());
   const [toastMessage, setToastMessage] = useState('');
+  const toastTimerRef = useRef(null);
+  const resetTimerRef = useRef(null);
 
   const activeChildren = children.filter(isMatriculated);
   const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
@@ -4531,10 +4324,25 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
     children.find(c => c.id === selectedChildId) ||
     activeChildren.find(c => c.id === selectedChildId);
 
-  const showToast = message => {
+  const clearTimers = useCallback(() => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
+  }, []);
+
+  const showToast = useCallback(message => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(message);
-    setTimeout(() => setToastMessage(''), 1200);
-  };
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimerRef.current = null;
+    }, 1200);
+  }, []);
 
   const clearEditing = () => {
     setEditingRecordId('');
@@ -4545,6 +4353,8 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
   useEffect(() => {
     clearEditing();
   }, [date]);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
 
   const handleEditRecord = record => {
     setEditingRecordId(record.id);
@@ -4574,8 +4384,10 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
     const isEditing = Boolean(editingRecordId);
     addDailyRecord({ childInternalId: selectedChildId, date, ...form });
     showToast(isEditing ? 'Registro atualizado!' : 'Registro salvo!');
-    setTimeout(() => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => {
       clearEditing();
+      resetTimerRef.current = null;
     }, 1200);
   };
 
@@ -4608,7 +4420,12 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
         </div>
       </div>
 
-      <RecordsLookupPanel children={children} dailyRecords={dailyRecords} />
+      <RecordsLookupPanel
+        children={children}
+        activeChildren={activeChildren}
+        dailyRecords={dailyRecords}
+        formatDate={formatDate}
+      />
 
       <div className="grid grid-cols-[minmax(0,360px)_1fr] gap-6">
         <div className="rounded-2xl bg-white p-5 shadow-md">
@@ -4668,7 +4485,7 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
               </div>
               <div className="max-h-[260px] space-y-2 overflow-auto">
                 {dateRecords.map(record => {
-                  const child = children.find(c => c.id === record.childInternalId);
+                  const child = childrenById.get(record.childInternalId);
                   const label = child?.name || 'Criança';
                   return (
                     <button
