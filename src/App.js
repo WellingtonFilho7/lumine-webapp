@@ -43,6 +43,7 @@ import { buildRecordForm, getRecordFormDefaults, upsertDailyRecord } from './uti
 import { ATTENDANCE_THRESHOLDS, DEFAULT_API_URL } from './constants';
 import useLocalStorage from './hooks/useLocalStorage';
 import useSync from './hooks/useSync';
+import useChildren from './hooks/useChildren';
 import RecordsLookupPanel from './components/RecordsLookupPanel';
 
 function getDeviceId() {
@@ -456,6 +457,19 @@ export default function LumineTracker() {
     reviewMode,
   });
 
+  const { addChild, updateChild } = useChildren({
+    apiUrl: API_URL,
+    jsonHeaders: JSON_HEADERS,
+    isOnline,
+    normalizeChild,
+    children,
+    setChildren,
+    setSelectedChild,
+    setPendingChanges,
+    setDataRev,
+    setLastSync,
+  });
+
   const handleOnboardingDone = useCallback(() => {
     setOnboardingFlag(true);
     setOnboardingOpen(false);
@@ -491,83 +505,6 @@ export default function LumineTracker() {
     const { records: normalized, changed } = normalizeRecords(dailyRecords);
     if (changed) setDailyRecords(normalized);
   }, [dailyRecords, setDailyRecords]);
-
-  // Adicionar criança
-  const addChild = async data => {
-    const now = new Date().toISOString();
-    const enrollmentStatus = data.enrollmentStatus || 'matriculado';
-    const entryDate =
-      enrollmentStatus === 'matriculado'
-        ? data.entryDate || new Date().toISOString().split('T')[0]
-        : data.entryDate || '';
-    const baseChild = {
-      ...data,
-      id: Date.now().toString(),
-      createdAt: now,
-      entryDate,
-      enrollmentStatus,
-      enrollmentDate: data.enrollmentDate || now,
-      matriculationDate:
-        enrollmentStatus === 'matriculado'
-          ? data.matriculationDate || data.enrollmentDate || now
-          : data.matriculationDate || '',
-      startDate:
-        enrollmentStatus === 'matriculado'
-          ? data.startDate || entryDate
-          : data.startDate || '',
-      documentsReceived: data.documentsReceived || [],
-      enrollmentHistory:
-        Array.isArray(data.enrollmentHistory) && data.enrollmentHistory.length
-          ? data.enrollmentHistory
-          : [{ date: now, action: enrollmentStatus, notes: 'Cadastro inicial' }],
-    };
-    const newChild = normalizeChild(baseChild).child;
-    setChildren(prev => [...prev, newChild]);
-    setPendingChanges(p => p + 1);
-    if (isOnline) {
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: JSON_HEADERS,
-          body: JSON.stringify({ action: 'addChild', data: newChild }),
-        });
-        const result = await res.json().catch(() => null);
-        if (!res.ok || !result?.success) {
-          throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
-        }
-        if (result?.childId) {
-          setChildren(prev =>
-            prev.map(child =>
-              child.id === newChild.id ? { ...child, childId: result.childId } : child
-            )
-          );
-        }
-        if (typeof result?.dataRev === 'number') {
-          setDataRev(result.dataRev);
-        }
-        setPendingChanges(prev => Math.max(0, prev - 1));
-        setLastSync(new Date().toISOString());
-      } catch {
-        return;
-      }
-    }
-  };
-
-  const updateChild = (childId, updatedData) => {
-    setChildren(prev =>
-      prev.map(child => {
-        if (child.id !== childId) return child;
-        const merged = { ...child, ...updatedData };
-        return normalizeChild(merged).child;
-      })
-    );
-    setSelectedChild(prev => {
-      if (!prev || prev.id !== childId) return prev;
-      const merged = { ...prev, ...updatedData };
-      return normalizeChild(merged).child;
-    });
-    setPendingChanges(p => p + 1);
-  };
 
   // Adicionar registro (evita duplicidade por criança/dia)
   const addDailyRecord = async data => {
