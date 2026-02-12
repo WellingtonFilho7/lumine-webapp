@@ -4,7 +4,6 @@
 // ============================================
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   Calendar,
@@ -47,6 +46,9 @@ import RecordsLookupPanel from './components/RecordsLookupPanel';
 import Sidebar from './components/layout/Sidebar';
 import MobileNav from './components/layout/MobileNav';
 import FloatingActions from './components/layout/FloatingActions';
+import OnboardingModal from './components/dialogs/OnboardingModal';
+import SyncConflictDialog from './components/dialogs/SyncConflictDialog';
+import ClearLocalDataDialog from './components/dialogs/ClearLocalDataDialog';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -624,59 +626,12 @@ export default function LumineTracker() {
 
   return (
     <>
-      <Dialog.Root open={onboardingOpen} onOpenChange={setOnboardingOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay
-            className="fixed inset-0 z-50 bg-black/50"
-            style={{
-              paddingTop: 'env(safe-area-inset-top)',
-              paddingBottom: 'env(safe-area-inset-bottom)',
-            }}
-          />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
-            <Dialog.Title className="text-balance text-lg font-semibold text-gray-900">
-              Guia rápida (3 passos)
-            </Dialog.Title>
-            <Dialog.Description className="text-pretty mt-2 text-sm text-gray-600">
-              Antes de começar, confira o essencial para registrar crianças e presenças sem perder dados.
-            </Dialog.Description>
-            <ol className="mt-4 space-y-3 text-pretty text-sm text-gray-700">
-              <li className="flex gap-3">
-                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-cyan-100 text-xs font-semibold tabular-nums text-cyan-800">
-                  1
-                </span>
-                <span className="text-pretty">Cadastre a criança na triagem e finalize a matrícula quando estiver aprovada.</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-cyan-100 text-xs font-semibold tabular-nums text-cyan-800">
-                  2
-                </span>
-                <span className="text-pretty">No registro diário, escolha presença e detalhe apenas quando necessário.</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-cyan-100 text-xs font-semibold tabular-nums text-cyan-800">
-                  3
-                </span>
-                <span className="text-pretty">Ao sincronizar, sempre baixe antes se houver dados novos no servidor.</span>
-              </li>
-            </ol>
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={handleOnboardingLater}
-                className="flex-1 rounded-lg bg-teal-50 py-3 text-sm font-semibold text-gray-700"
-              >
-                Ver depois
-              </button>
-              <button
-                onClick={handleOnboardingDone}
-                className="flex-1 rounded-lg bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400"
-              >
-                Entendi
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <OnboardingModal
+        open={onboardingOpen}
+        onOpenChange={setOnboardingOpen}
+        onLater={handleOnboardingLater}
+        onDone={handleOnboardingDone}
+      />
 
     <div className="min-h-dvh bg-teal-50 pb-20 lg:flex lg:h-dvh lg:overflow-hidden lg:pb-0">
       <Sidebar view={view} setView={setView} lastSyncLabel={lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : ""} isOnline={isOnline} />
@@ -937,49 +892,11 @@ export default function LumineTracker() {
         )}
       </main>
 
-      <Dialog.Root
-        open={Boolean(syncModal)}
-        onOpenChange={open => {
-          if (!open) setSyncModal(null);
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Overlay
-            className="fixed inset-0 z-50 bg-black/50"
-            style={{
-              paddingTop: 'env(safe-area-inset-top)',
-              paddingBottom: 'env(safe-area-inset-bottom)',
-            }}
-          />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
-            <Dialog.Title className="text-lg font-bold">Atenção</Dialog.Title>
-            <Dialog.Description className="mt-2 text-sm text-gray-600">
-              {syncModal?.message}
-            </Dialog.Description>
-            <div className="mt-6 flex gap-3">
-              <Dialog.Close asChild>
-                <button className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">
-                  Cancelar
-                </button>
-              </Dialog.Close>
-              <button
-                onClick={async () => {
-                  try {
-                    if (syncModal?.type === 'revision-mismatch') {
-                      await downloadFromServer();
-                    }
-                  } finally {
-                    setSyncModal(null);
-                  }
-                }}
-                className="flex-1 rounded-lg bg-orange-500 py-3 font-medium text-gray-900 hover:bg-orange-400"
-              >
-                Baixar agora
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <SyncConflictDialog
+        syncModal={syncModal}
+        setSyncModal={setSyncModal}
+        downloadFromServer={downloadFromServer}
+      />
     </div>
 
       <FloatingActions
@@ -4814,46 +4731,6 @@ function ConfigView({
         </div>
       </div>
     </div>
-  );
-}
-
-function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
-  return (
-    <AlertDialog.Root>
-      <AlertDialog.Trigger asChild>
-        <button className={triggerClassName}>Sair e limpar dados deste dispositivo</button>
-      </AlertDialog.Trigger>
-      <AlertDialog.Portal>
-        <AlertDialog.Overlay
-          className="fixed inset-0 z-50 bg-black/50"
-          style={{
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-          }}
-        />
-        <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
-          <AlertDialog.Title className="text-lg font-bold">Confirmar</AlertDialog.Title>
-          <AlertDialog.Description className="mt-2 text-sm text-gray-600">
-            Isso vai apagar todos os dados locais. Os dados no servidor não serão afetados.
-          </AlertDialog.Description>
-          <div className="mt-6 flex gap-3">
-            <AlertDialog.Cancel asChild>
-              <button className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">
-                Cancelar
-              </button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action asChild>
-              <button
-                onClick={onConfirm}
-                className="flex-1 rounded-lg bg-rose-600 py-3 font-medium text-white"
-              >
-                Confirmar e limpar
-              </button>
-            </AlertDialog.Action>
-          </div>
-        </AlertDialog.Content>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
   );
 }
 
