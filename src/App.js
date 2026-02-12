@@ -28,6 +28,13 @@ import { getDashboardStats, getAttendanceAlerts } from './utils/dashboardMetrics
 import { DEFAULT_API_URL } from './constants';
 import { VIEW_TITLES } from './constants/ui';
 import {
+  SYNC_BUTTON_THEME_MOBILE,
+  SYNC_BUTTON_LABEL_MOBILE,
+  SYNC_BUTTON_THEME_DESKTOP,
+  SYNC_BUTTON_LABEL_DESKTOP,
+  getPendingChangesLabel,
+} from './constants/syncUi';
+import {
   ENROLLMENT_STATUS_META,
   TRIAGE_RESULT_OPTIONS,
   PARTICIPATION_DAYS,
@@ -212,6 +219,10 @@ export default function LumineTracker() {
       ? selectedChild?.name || VIEW_TITLES['child-detail']
       : VIEW_TITLES[view] || 'Lumine';
 
+  const syncStateKey = ['syncing', 'success', 'error'].includes(syncStatus)
+    ? syncStatus
+    : 'idle';
+
   return (
     <>
       <OnboardingModal
@@ -230,7 +241,7 @@ export default function LumineTracker() {
           <div className="flex items-center gap-3">
             {(view === 'add-child' || view === 'child-detail') && (
               <button
-                onClick={() => setView(view === 'add-child' ? 'children' : 'children')}
+                onClick={() => setView('children')}
                 className="p-1"
                 aria-label="Voltar"
               >
@@ -260,23 +271,11 @@ export default function LumineTracker() {
               disabled={syncStatus === 'syncing' || overwriteBlocked}
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
-                syncStatus === 'syncing'
-                  ? 'bg-cyan-500'
-                  : syncStatus === 'success'
-                  ? 'bg-green-500'
-                  : syncStatus === 'error'
-                  ? 'bg-red-500'
-                  : 'bg-white/20 hover:bg-white/30'
+                SYNC_BUTTON_THEME_MOBILE[syncStateKey]
               )}
             >
               <RefreshCw size={14} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
-              {syncStatus === 'syncing'
-                ? 'Sync...'
-                : syncStatus === 'success'
-                ? 'OK!'
-                : syncStatus === 'error'
-                ? 'Erro'
-                : 'Sync'}
+              {SYNC_BUTTON_LABEL_MOBILE[syncStateKey]}
             </button>
           </div>
         </div>
@@ -344,7 +343,7 @@ export default function LumineTracker() {
           {pendingChanges > 0 && syncStatus !== 'syncing' && (
             <div className="flex items-center gap-2 rounded-lg bg-amber-100 border-2 border-amber-500 px-3 py-2 text-sm font-bold text-amber-900 animate-pulse">
               <AlertTriangle size={16} />
-              {pendingChanges} alteração{pendingChanges > 1 ? 'ões' : ''} pendente{pendingChanges > 1 ? 's' : ''}
+              {getPendingChangesLabel(pendingChanges)}
             </div>
           )}
 
@@ -359,23 +358,11 @@ export default function LumineTracker() {
             disabled={syncStatus === "syncing" || overwriteBlocked}
             className={cn(
               'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition',
-              syncStatus === 'syncing'
-                ? 'bg-cyan-100 text-cyan-800'
-                : syncStatus === 'success'
-                ? 'bg-emerald-100 text-emerald-700'
-                : syncStatus === 'error'
-                ? 'bg-rose-100 text-rose-700'
-                : 'bg-gray-900 text-white hover:bg-gray-800'
+              SYNC_BUTTON_THEME_DESKTOP[syncStateKey]
             )}
           >
             <RefreshCw size={14} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
-            {syncStatus === "syncing"
-              ? "Sincronizando"
-              : syncStatus === "success"
-              ? "Sincronizado"
-              : syncStatus === "error"
-              ? "Erro"
-              : "Sincronizar"}
+            {SYNC_BUTTON_LABEL_DESKTOP[syncStateKey]}
           </button>
         </div>
       </header>
