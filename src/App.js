@@ -25,6 +25,8 @@ import {
 } from './utils/dateFormat';
 import { upsertDailyRecord } from './utils/records';
 import { getDashboardStats, getAttendanceAlerts } from './utils/dashboardMetrics';
+import { getOrCreateDeviceId } from './utils/device';
+import { buildApiHeaders } from './utils/apiHeaders';
 import { DEFAULT_API_URL } from './constants';
 import { VIEW_TITLES } from './constants/ui';
 import {
@@ -72,32 +74,18 @@ import {
   getMissingFieldsForStatus,
 } from './utils/statusWorkflow';
 
-function getDeviceId() {
-  if (typeof window === 'undefined' || !window.localStorage) return '';
-  const stored = localStorage.getItem('lumine_device_id');
-  if (stored) return stored;
-  const generated =
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  localStorage.setItem('lumine_device_id', generated);
-  return generated;
-}
-
 // ============================================
 // CONFIGURAÇÃO
 // ============================================
 const API_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
 const API_TOKEN = process.env.REACT_APP_API_TOKEN || '';
 const APP_VERSION = process.env.REACT_APP_APP_VERSION || '';
-const DEVICE_ID = getDeviceId();
-const META_HEADERS = {
-  ...(DEVICE_ID ? { 'X-Device-Id': DEVICE_ID } : {}),
-  ...(APP_VERSION ? { 'X-App-Version': APP_VERSION } : {}),
-};
-const AUTH_HEADERS = API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {};
-const BASE_HEADERS = { ...AUTH_HEADERS, ...META_HEADERS };
-const JSON_HEADERS = { 'Content-Type': 'application/json', ...BASE_HEADERS };
+const DEVICE_ID = getOrCreateDeviceId();
+const { baseHeaders: BASE_HEADERS, jsonHeaders: JSON_HEADERS } = buildApiHeaders({
+  apiToken: API_TOKEN,
+  appVersion: APP_VERSION,
+  deviceId: DEVICE_ID,
+});
 
 // ============================================
 // FUNÇÕES AUXILIARES
