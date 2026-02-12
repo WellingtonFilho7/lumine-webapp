@@ -3,7 +3,7 @@
 // Versão 3.0 - UX/UI Otimizada para Mobile
 // ============================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
@@ -3879,6 +3879,142 @@ function ChildDetailDesktop({ child, dailyRecords, onUpdateChild }) {
   );
 }
 
+function getAttendanceMeta(attendance) {
+  if (attendance === 'present') return { label: 'Presente', className: 'bg-green-100 text-green-700' };
+  if (attendance === 'late') return { label: 'Atrasado', className: 'bg-yellow-100 text-yellow-700' };
+  return { label: 'Ausente', className: 'bg-red-100 text-red-700' };
+}
+
+function RecordsLookupPanel({ children, dailyRecords }) {
+  const [lookupChildId, setLookupChildId] = useState('');
+  const [lookupQuery, setLookupQuery] = useState('');
+  const [lookupWindowDays, setLookupWindowDays] = useState('30');
+
+  const activeChildren = children.filter(isMatriculated);
+
+  const filteredRecords = useMemo(() => {
+    const now = new Date();
+    const windowDays = Number(lookupWindowDays) || 0;
+    const minDate = windowDays > 0
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - windowDays)
+      : null;
+
+    return dailyRecords
+      .filter(record => {
+        if (lookupChildId && record.childInternalId !== lookupChildId) return false;
+
+        const recordDate = record.date ? new Date(record.date) : null;
+        if (minDate && recordDate && recordDate < minDate) return false;
+
+        if (!lookupQuery.trim()) return true;
+        const child = children.find(c => c.id === record.childInternalId);
+        const haystack = [
+          child?.name || '',
+          record.notes || '',
+          record.activity || '',
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return haystack.includes(lookupQuery.trim().toLowerCase());
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [children, dailyRecords, lookupChildId, lookupQuery, lookupWindowDays]);
+
+  const quickStats = useMemo(() => {
+    const total = filteredRecords.length;
+    const presentes = filteredRecords.filter(r => r.attendance === 'present' || r.attendance === 'late').length;
+    const ausentes = filteredRecords.filter(r => r.attendance === 'absent').length;
+    return { total, presentes, ausentes };
+  }, [filteredRecords]);
+
+  return (
+    <div className="rounded-lg bg-white p-4 shadow-md">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-balance font-semibold text-gray-800">Consulta rápida de registros</h3>
+          <p className="text-pretty text-xs text-gray-500">Busque informações sem precisar abrir o Supabase.</p>
+        </div>
+        <div className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 tabular-nums">
+          {quickStats.total} encontrados
+        </div>
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-3">
+        <select
+          value={lookupChildId}
+          onChange={e => setLookupChildId(e.target.value)}
+          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        >
+          <option value="">Todas as crianças</option>
+          {activeChildren.map(child => (
+            <option key={child.id} value={child.id}>
+              {child.name}
+            </option>
+          ))}
+        </select>
+
+        <div className="relative">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={lookupQuery}
+            onChange={e => setLookupQuery(e.target.value)}
+            placeholder="Buscar em notas/atividade"
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm"
+          />
+        </div>
+
+        <select
+          value={lookupWindowDays}
+          onChange={e => setLookupWindowDays(e.target.value)}
+          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        >
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+          <option value="0">Todo período</option>
+        </select>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs text-cyan-700 tabular-nums">
+          Presentes: {quickStats.presentes}
+        </span>
+        <span className="rounded-full bg-red-50 px-2 py-1 text-xs text-red-700 tabular-nums">
+          Ausentes: {quickStats.ausentes}
+        </span>
+      </div>
+
+      <div className="mt-4 max-h-72 space-y-2 overflow-auto">
+        {filteredRecords.slice(0, 20).map(record => {
+          const child = children.find(c => c.id === record.childInternalId);
+          const attendance = getAttendanceMeta(record.attendance);
+          return (
+            <div key={record.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-semibold text-gray-800">{child?.name || 'Criança'}</p>
+                <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', attendance.className)}>
+                  {attendance.label}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">{formatDate(record.date)}</p>
+              {record.activity && <p className="mt-1 text-xs text-gray-700">Atividade: {record.activity}</p>}
+              {record.notes && <p className="mt-1 text-pretty text-xs text-gray-600">{record.notes}</p>}
+            </div>
+          );
+        })}
+
+        {filteredRecords.length === 0 && (
+          <div className="rounded-lg border border-dashed border-gray-200 px-3 py-5 text-center text-sm text-gray-500">
+            Nenhum registro encontrado com os filtros atuais.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ============================================
 // REGISTRO DIÁRIO
 // ============================================
@@ -3984,6 +4120,8 @@ function DailyRecordView({ children, dailyRecords, addDailyRecord }) {
           <p className="text-sm text-cyan-700 tabular-nums">{pending.length} pendentes</p>
         </div>
       </div>
+
+      <RecordsLookupPanel children={children} dailyRecords={dailyRecords} />
 
       {step === 'select' && (
         <>
@@ -4363,6 +4501,8 @@ function DailyRecordDesktop({ children, dailyRecords, addDailyRecord }) {
           />
         </div>
       </div>
+
+      <RecordsLookupPanel children={children} dailyRecords={dailyRecords} />
 
       <div className="grid grid-cols-[minmax(0,360px)_1fr] gap-6">
         <div className="rounded-2xl bg-white p-5 shadow-md">
