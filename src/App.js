@@ -4,7 +4,7 @@
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ChevronLeft, AlertTriangle } from 'lucide-react';
 import { cn } from './utils/cn';
 import { isTriageDraft } from './utils/enrollment';
 import { clearOnboardingFlag, getOnboardingFlag, setOnboardingFlag } from './utils/onboarding';
@@ -28,12 +28,8 @@ import { getDashboardStats, getAttendanceAlerts } from './utils/dashboardMetrics
 import { getOrCreateDeviceId } from './utils/device';
 import { buildApiHeaders } from './utils/apiHeaders';
 import { DEFAULT_API_URL } from './constants';
-import { VIEW_TITLES } from './constants/ui';
+import { VIEW_TITLES, UI_TEXT } from './constants/ui';
 import {
-  SYNC_BUTTON_THEME_MOBILE,
-  SYNC_BUTTON_LABEL_MOBILE,
-  SYNC_BUTTON_THEME_DESKTOP,
-  SYNC_BUTTON_LABEL_DESKTOP,
   getSyncStateKey,
   isSyncActionDisabled,
   shouldShowPendingSyncBadge,
@@ -58,6 +54,8 @@ import MobileNav from './components/layout/MobileNav';
 import FloatingActions from './components/layout/FloatingActions';
 import OnboardingModal from './components/dialogs/OnboardingModal';
 import SyncConflictDialog from './components/dialogs/SyncConflictDialog';
+import SyncErrorNotice from './components/ui/SyncErrorNotice';
+import SyncActionButton from './components/ui/SyncActionButton';
 import DashboardView from './views/dashboard/DashboardView';
 import DashboardDesktop from './views/dashboard/DashboardDesktop';
 import ChildrenView from './views/children/ChildrenView';
@@ -238,7 +236,7 @@ export default function LumineTracker() {
               <button
                 onClick={() => setView('children')}
                 className="p-1"
-                aria-label="Voltar"
+                aria-label={UI_TEXT.backAriaLabel}
               >
                 <ChevronLeft size={24} />
               </button>
@@ -261,77 +259,45 @@ export default function LumineTracker() {
             />
 
             {/* Botão Sync */}
-            <button
-              onClick={() => syncWithServer()}
+            <SyncActionButton
+              variant="mobile"
+              syncStateKey={syncStateKey}
+              isSyncing={isSyncing}
               disabled={syncActionDisabled}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
-                SYNC_BUTTON_THEME_MOBILE[syncStateKey]
-              )}
-            >
-              <RefreshCw size={14} className={cn(isSyncing && 'animate-spin')} />
-              {SYNC_BUTTON_LABEL_MOBILE[syncStateKey]}
-            </button>
+              onSync={() => syncWithServer()}
+            />
           </div>
         </div>
 
         {/* Última sync - só mostra se tiver */}
         {lastSync && syncStatus === 'idle' && (
-          <p className="mt-1 text-xs text-cyan-200">Última sync: {formatTime(lastSync)}</p>
+          <p className="mt-1 text-xs text-cyan-200">{UI_TEXT.lastSyncLabel}: {formatTime(lastSync)}</p>
         )}
-        {syncStatus === 'error' && syncError && (
-          <div className="mt-1 flex items-start justify-between gap-2">
-            <p
-              className={cn(
-                'text-xs',
-                syncErrorLevel === 'critical' ? 'text-rose-100 font-semibold' : 'text-amber-100'
-              )}
-            >
-              Sync: {syncError}
-            </p>
-            {syncErrorLevel === 'critical' && (
-              <button
-                type="button"
-                onClick={clearSyncFeedback}
-                className="rounded border border-white/30 px-2 py-0.5 text-[10px] font-semibold text-white/90"
-              >
-                Limpar
-              </button>
-            )}
-          </div>
-        )}
+        <SyncErrorNotice
+          syncStatus={syncStatus}
+          syncError={syncError}
+          syncErrorLevel={syncErrorLevel}
+          onClear={clearSyncFeedback}
+          variant="mobile"
+        />
       </header>
 
       {/* ========== HEADER DESKTOP ========== */}
       <header className="hidden items-center justify-between border-b border-gray-200 bg-white px-8 py-3 lg:flex">
         <div>
-          <p className="text-xs uppercase text-gray-400">Instituto Lumine</p>
+          <p className="text-xs uppercase text-gray-400">{UI_TEXT.instituteLabel}</p>
           <h1 className="text-balance text-lg font-semibold text-gray-900">{viewTitle}</h1>
           <p className="text-xs text-gray-500">
-            Última sync:{" "}
-            {lastSync ? `${formatDate(lastSync)} às ${formatTime(lastSync)}` : "Nenhuma"}
+            {UI_TEXT.lastSyncLabel}:{" "}
+            {lastSync ? `${formatDate(lastSync)} às ${formatTime(lastSync)}` : UI_TEXT.noSyncLabel}
           </p>
-          {syncStatus === 'error' && syncError && (
-            <div className="mt-1 flex items-center gap-2">
-              <p
-                className={cn(
-                  'text-pretty text-xs',
-                  syncErrorLevel === 'critical' ? 'text-rose-700 font-semibold' : 'text-amber-700'
-                )}
-              >
-                Sync: {syncError}
-              </p>
-              {syncErrorLevel === 'critical' && (
-                <button
-                  type="button"
-                  onClick={clearSyncFeedback}
-                  className="rounded border border-rose-300 px-2 py-0.5 text-[10px] font-semibold text-rose-700"
-                >
-                  Limpar
-                </button>
-              )}
-            </div>
-          )}
+          <SyncErrorNotice
+            syncStatus={syncStatus}
+            syncError={syncError}
+            syncErrorLevel={syncErrorLevel}
+            onClear={clearSyncFeedback}
+            variant="desktop"
+          />
         </div>
         <div className="flex items-center gap-3">
           {/* Indicador de Pendências Desktop - Mais Proeminente */}
@@ -348,17 +314,13 @@ export default function LumineTracker() {
             />
             {getConnectionLabel(isOnline)}
           </div>
-          <button
-            onClick={() => syncWithServer()}
+          <SyncActionButton
+            variant="desktop"
+            syncStateKey={syncStateKey}
+            isSyncing={isSyncing}
             disabled={syncActionDisabled}
-            className={cn(
-              'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition',
-              SYNC_BUTTON_THEME_DESKTOP[syncStateKey]
-            )}
-          >
-            <RefreshCw size={14} className={cn(isSyncing && 'animate-spin')} />
-            {SYNC_BUTTON_LABEL_DESKTOP[syncStateKey]}
-          </button>
+            onSync={() => syncWithServer()}
+          />
         </div>
       </header>
 

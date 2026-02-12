@@ -1,4 +1,4 @@
-import { VIEW_TITLES } from './ui';
+import { VIEW_TITLES, UI_TEXT } from './ui';
 
 describe('ui constants', () => {
   test('contains expected top-level view titles', () => {
@@ -9,6 +9,15 @@ describe('ui constants', () => {
       daily: 'Registro',
       'child-detail': 'Detalhes',
       config: 'Configurações',
+    });
+  });
+
+  test('contains shared ui labels', () => {
+    expect(UI_TEXT).toMatchObject({
+      instituteLabel: 'Instituto Lumine',
+      lastSyncLabel: 'Última sync',
+      noSyncLabel: 'Nenhuma',
+      backAriaLabel: 'Voltar',
     });
   });
 });
