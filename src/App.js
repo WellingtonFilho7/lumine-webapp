@@ -9,14 +9,12 @@ import * as Dialog from '@radix-ui/react-dialog';
 import {
   Calendar,
   Users,
-  Settings,
   Plus,
   ChevronLeft,
   Search,
   Download,
   Upload,
   AlertTriangle,
-  Home,
   CheckCircle,
   XCircle,
   RefreshCw,
@@ -46,6 +44,9 @@ import useSync from './hooks/useSync';
 import useChildren from './hooks/useChildren';
 import useRecords from './hooks/useRecords';
 import RecordsLookupPanel from './components/RecordsLookupPanel';
+import Sidebar from './components/layout/Sidebar';
+import MobileNav from './components/layout/MobileNav';
+import FloatingActions from './components/layout/FloatingActions';
 
 function getDeviceId() {
   if (typeof window === 'undefined' || !window.localStorage) return '';
@@ -678,7 +679,7 @@ export default function LumineTracker() {
       </Dialog.Root>
 
     <div className="min-h-dvh bg-teal-50 pb-20 lg:flex lg:h-dvh lg:overflow-hidden lg:pb-0">
-      <Sidebar view={view} setView={setView} lastSync={lastSync} isOnline={isOnline} />
+      <Sidebar view={view} setView={setView} lastSyncLabel={lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : ""} isOnline={isOnline} />
       <div className="flex-1 lg:flex lg:flex-col lg:overflow-hidden">
       {/* ========== HEADER COMPACTO ========== */}
       <header className="sticky top-0 z-30 bg-cyan-700 px-4 py-3 text-white shadow-lg lg:hidden">
@@ -981,166 +982,16 @@ export default function LumineTracker() {
       </Dialog.Root>
     </div>
 
-      {/* ========== FAB (Floating Action Button) ========== */}
-      {(view === 'children' || view === 'daily' || view === 'dashboard') && (
-        <div
-          className="fixed right-4 z-40 lg:hidden"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}
-        >
-          {showFABMenu && (
-            <div className="absolute bottom-16 right-0 mb-2 w-48 overflow-hidden rounded-lg border bg-white shadow-xl">
-              <button
-                onClick={() => {
-                  setView('add-child');
-                  setShowFABMenu(false);
-                }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
-              >
-                <Users size={18} className="text-cyan-700" />
-                <span className="text-sm font-medium">Nova Criança</span>
-              </button>
-              <button
-                onClick={() => {
-                  setView('daily');
-                  setShowFABMenu(false);
-                }}
-                className="flex w-full items-center gap-3 border-t px-4 py-3 text-left hover:bg-gray-50"
-              >
-                <Calendar size={18} className="text-green-600" />
-                <span className="text-sm font-medium">Novo Registro</span>
-              </button>
-            </div>
-          )}
-          <button
-            onClick={() => setShowFABMenu(!showFABMenu)}
-            className={cn(
-              'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',
-              showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-orange-500 hover:bg-orange-400'
-            )}
-            aria-label={showFABMenu ? 'Fechar ações' : 'Abrir ações'}
-          >
-            <Plus size={28} className="text-white" />
-          </button>
-        </div>
-      )}
+      <FloatingActions
+        view={view}
+        setView={setView}
+        showFABMenu={showFABMenu}
+        setShowFABMenu={setShowFABMenu}
+      />
 
-      {/* ========== BOTTOM NAVIGATION ========== */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white shadow-lg lg:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <div className="mx-auto flex h-16 max-w-lg items-center justify-around">
-          <NavItem icon={Home} label="Início" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
-          <NavItem
-            icon={Users}
-            label="Crianças"
-            active={view === 'children' || view === 'add-child' || view === 'child-detail'}
-            onClick={() => setView('children')}
-          />
-          <NavItem icon={Calendar} label="Registro" active={view === 'daily'} onClick={() => setView('daily')} />
-          <NavItem icon={Settings} label="Config" active={view === 'config'} onClick={() => setView('config')} />
-        </div>
-      </nav>
-
-      {/* Overlay para fechar FAB menu */}
-      {showFABMenu && (
-        <div
-          className="fixed inset-0 z-30 lg:hidden"
-          onClick={() => setShowFABMenu(false)}
-          style={{
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-          }}
-        />
-      )}
+      <MobileNav view={view} setView={setView} />
     </div>
     </>
-  );
-}
-
-// ============================================
-// BOTTOM NAV ITEM
-// ============================================
-function NavItem({ icon: Icon, label, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'flex h-full w-16 flex-col items-center justify-center transition-colors',
-        active ? 'text-cyan-700' : 'text-gray-400'
-      )}
-    >
-      <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-      <span className={cn('mt-1 text-xs', active && 'font-semibold')}>{label}</span>
-    </button>
-  );
-}
-
-
-// ============================================
-// SIDEBAR DESKTOP
-// ============================================
-function Sidebar({ view, setView, lastSync, isOnline }) {
-  return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:bg-gray-900 lg:text-white">
-      <div className="px-6 py-6">
-        <p className="text-xs uppercase text-cyan-300">Instituto</p>
-        <h2 className="text-balance mt-2 text-2xl font-semibold text-white">Lumine</h2>
-        <p className="mt-1 text-xs text-cyan-200">Sistema de Acompanhamento</p>
-      </div>
-      <nav className="flex-1 space-y-1 px-3">
-        <SidebarItem
-          icon={Home}
-          label="Dashboard"
-          active={view === 'dashboard'}
-          onClick={() => setView('dashboard')}
-        />
-        <SidebarItem
-          icon={Users}
-          label="Crianças"
-          active={view === 'children' || view === 'add-child' || view === 'child-detail'}
-          onClick={() => setView('children')}
-        />
-        <SidebarItem
-          icon={Calendar}
-          label="Registro"
-          active={view === 'daily'}
-          onClick={() => setView('daily')}
-        />
-        <SidebarItem
-          icon={Settings}
-          label="Configurações"
-          active={view === 'config'}
-          onClick={() => setView('config')}
-        />
-      </nav>
-      <div className="border-t border-white/10 px-6 py-4 text-xs text-cyan-200">
-        <div className="flex items-center gap-2">
-          <span
-            className={cn('size-2 rounded-full', isOnline ? 'bg-emerald-400' : 'bg-rose-400')}
-          />
-          {isOnline ? 'Online' : 'Offline'}
-        </div>
-        <p className="mt-2">
-          Última sync: {lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : 'Nenhuma'}
-        </p>
-      </div>
-    </aside>
-  );
-}
-
-function SidebarItem({ icon: Icon, label, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-sm font-medium transition',
-        active ? 'bg-cyan-700 text-white' : 'text-cyan-100 hover:bg-white/10'
-      )}
-    >
-      <Icon size={18} />
-      {label}
-    </button>
   );
 }
 
