@@ -508,40 +508,38 @@ export default function LumineTracker() {
     const localRevBefore = Number(dataRev) || 0;
     let serverRev = localRevBefore;
 
-    if (!payload) {
+    try {
+      const preRes = await fetch(API_URL, { headers: BASE_HEADERS });
+      let preData = null;
       try {
-        const preRes = await fetch(API_URL, { headers: BASE_HEADERS });
-        let preData = null;
-        try {
-          preData = await preRes.json();
-        } catch {
-          preData = null;
-        }
-        if (preRes.ok && preData?.success) {
-          if (typeof preData.dataRev === 'number') {
-            serverRev = preData.dataRev;
-            setDataRev(serverRev);
-          }
-          setOverwriteBlocked(false);
-
-          if (serverRev > localRevBefore) {
-            if (mode === 'manual') {
-              setSyncModal({
-                type: 'server-new',
-                message: 'Há dados novos no servidor. Baixe os dados atuais antes de sincronizar.',
-              });
-            } else {
-              setOverwriteBlocked(true);
-              setSyncError('Há dados novos no servidor. Toque em Baixar para atualizar.');
-            }
-            setSyncStatus('error');
-            setTimeout(() => setSyncStatus('idle'), 3000);
-            return false;
-          }
-        }
+        preData = await preRes.json();
       } catch {
-        // Ignora falha no pré-check e tenta sincronizar normalmente.
+        preData = null;
       }
+      if (preRes.ok && preData?.success) {
+        if (typeof preData.dataRev === 'number') {
+          serverRev = preData.dataRev;
+          setDataRev(serverRev);
+        }
+        setOverwriteBlocked(false);
+
+        if (serverRev > localRevBefore) {
+          if (mode === 'manual') {
+            setSyncModal({
+              type: 'server-new',
+              message: 'Há dados novos no servidor. Baixe os dados atuais antes de sincronizar.',
+            });
+          } else {
+            setOverwriteBlocked(true);
+            setSyncError('Há dados novos no servidor. Toque em Baixar para atualizar.');
+          }
+          setSyncStatus('error');
+          setTimeout(() => setSyncStatus('idle'), 3000);
+          return false;
+        }
+      }
+    } catch {
+      // Ignora falha no pré-check e tenta sincronizar normalmente.
     }
 
     try {
@@ -563,10 +561,15 @@ export default function LumineTracker() {
 
       if (!res.ok || !result?.success) {
         if (res.status === 409 && result?.error === 'REVISION_MISMATCH') {
-          setSyncModal({
-            type: 'revision-mismatch',
-            message: 'Os dados foram alterados por outro dispositivo. Baixe a versão atual.',
-          });
+          if (mode === 'manual') {
+            setSyncModal({
+              type: 'revision-mismatch',
+              message: 'Os dados foram alterados por outro dispositivo. Baixe a versão atual.',
+            });
+          } else {
+            setOverwriteBlocked(true);
+            setSyncError('Os dados mudaram no servidor. Toque em Baixar para atualizar.');
+          }
           setSyncStatus('error');
           setTimeout(() => setSyncStatus('idle'), 3000);
           return false;
@@ -3885,6 +3888,27 @@ function getAttendanceMeta(attendance) {
   return { label: 'Ausente', className: 'bg-red-100 text-red-700' };
 }
 
+function formatScaleValue(value) {
+  if (value === 'high') return 'Alta';
+  if (value === 'medium') return 'Média';
+  if (value === 'low') return 'Baixa';
+  return '—';
+}
+
+function formatMoodValue(value) {
+  if (!value) return '—';
+  const moodMap = {
+    happy: 'Feliz',
+    neutral: 'Neutro',
+    calm: 'Calma',
+    quiet: 'Quieta',
+    sad: 'Triste',
+    agitated: 'Agitada',
+    irritated: 'Irritada',
+  };
+  return moodMap[value] || value;
+}
+
 function RecordsLookupPanel({ children, dailyRecords }) {
   const [lookupChildId, setLookupChildId] = useState('');
   const [lookupQuery, setLookupQuery] = useState('');
@@ -3992,15 +4016,34 @@ function RecordsLookupPanel({ children, dailyRecords }) {
           const attendance = getAttendanceMeta(record.attendance);
           return (
             <div key={record.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-              <div className="mb-1 flex items-center justify-between gap-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="truncate text-sm font-semibold text-gray-800">{child?.name || 'Criança'}</p>
                 <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', attendance.className)}>
                   {attendance.label}
                 </span>
               </div>
-              <p className="text-xs text-gray-500">{formatDate(record.date)}</p>
-              {record.activity && <p className="mt-1 text-xs text-gray-700">Atividade: {record.activity}</p>}
-              {record.notes && <p className="mt-1 text-pretty text-xs text-gray-600">{record.notes}</p>}
+
+              <div className="grid gap-1 text-xs text-gray-700">
+                <p>
+                  <span className="font-semibold text-gray-500">Data:</span> {formatDate(record.date)}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-500">Atividade:</span> {record.activity || '—'}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-500">Humor:</span> {formatMoodValue(record.mood)}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-500">Participação:</span> {formatScaleValue(record.participation)}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-500">Interação:</span> {formatScaleValue(record.interaction)}
+                </p>
+              </div>
+
+              <div className="mt-2 rounded-md bg-white px-2 py-1 text-xs text-gray-700">
+                <span className="font-semibold text-gray-500">Observações:</span> {record.notes || 'Sem observações'}
+              </div>
             </div>
           );
         })}
