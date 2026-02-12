@@ -3909,10 +3909,27 @@ function formatMoodValue(value) {
   return moodMap[value] || value;
 }
 
+function buildRecordShareSummary(record, childName) {
+  const attendance = getAttendanceMeta(record.attendance).label;
+  return [
+    'Resumo de acompanhamento - Instituto Lumine',
+    'Criança: ' + (childName || 'Criança'),
+    'Data: ' + formatDate(record.date),
+    'Presença: ' + attendance,
+    'Atividade: ' + (record.activity || '—'),
+    'Humor: ' + formatMoodValue(record.mood),
+    'Participação: ' + formatScaleValue(record.participation),
+    'Interação: ' + formatScaleValue(record.interaction),
+    'Observações: ' + (record.notes || 'Sem observações'),
+  ].join('\n');
+}
+
 function RecordsLookupPanel({ children, dailyRecords }) {
   const [lookupChildId, setLookupChildId] = useState('');
   const [lookupQuery, setLookupQuery] = useState('');
   const [lookupWindowDays, setLookupWindowDays] = useState('30');
+  const [copiedRecordId, setCopiedRecordId] = useState('');
+  const [copyError, setCopyError] = useState('');
 
   const activeChildren = children.filter(isMatriculated);
 
@@ -3951,6 +3968,33 @@ function RecordsLookupPanel({ children, dailyRecords }) {
     const ausentes = filteredRecords.filter(r => r.attendance === 'absent').length;
     return { total, presentes, ausentes };
   }, [filteredRecords]);
+
+  const copyRecordSummary = async (record, childName) => {
+    const summaryText = buildRecordShareSummary(record, childName);
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(summaryText);
+      } else {
+        const fallbackInput = document.createElement('textarea');
+        fallbackInput.value = summaryText;
+        fallbackInput.setAttribute('readonly', '');
+        fallbackInput.style.position = 'fixed';
+        fallbackInput.style.left = '-9999px';
+        document.body.appendChild(fallbackInput);
+        fallbackInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(fallbackInput);
+      }
+      setCopyError('');
+      setCopiedRecordId(record.id);
+      setTimeout(() => {
+        setCopiedRecordId(current => (current === record.id ? '' : current));
+      }, 1500);
+    } catch {
+      setCopyError('Não foi possível copiar. Tente novamente.');
+      setTimeout(() => setCopyError(''), 2000);
+    }
+  };
 
   return (
     <div className="rounded-lg bg-white p-4 shadow-md">
@@ -4010,6 +4054,10 @@ function RecordsLookupPanel({ children, dailyRecords }) {
         </span>
       </div>
 
+      {copyError && (
+        <p className="mt-2 text-xs font-semibold text-red-600">{copyError}</p>
+      )}
+
       <div className="mt-4 max-h-72 space-y-2 overflow-auto">
         {filteredRecords.slice(0, 20).map(record => {
           const child = children.find(c => c.id === record.childInternalId);
@@ -4043,6 +4091,21 @@ function RecordsLookupPanel({ children, dailyRecords }) {
 
               <div className="mt-2 rounded-md bg-white px-2 py-1 text-xs text-gray-700">
                 <span className="font-semibold text-gray-500">Observações:</span> {record.notes || 'Sem observações'}
+              </div>
+
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => copyRecordSummary(record, child?.name)}
+                  className={cn(
+                    'rounded-lg border px-3 py-1 text-xs font-semibold transition-colors',
+                    copiedRecordId === record.id
+                      ? 'border-green-200 bg-green-50 text-green-700'
+                      : 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
+                  )}
+                >
+                  {copiedRecordId === record.id ? 'Resumo copiado' : 'Copiar resumo'}
+                </button>
               </div>
             </div>
           );
