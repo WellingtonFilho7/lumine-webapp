@@ -33,6 +33,9 @@ import {
   SYNC_BUTTON_THEME_DESKTOP,
   SYNC_BUTTON_LABEL_DESKTOP,
   getPendingChangesLabel,
+  getPendingSyncBadgeMobileLabel,
+  getConnectionIndicatorClass,
+  getConnectionLabel,
 } from './constants/syncUi';
 import {
   ENROLLMENT_STATUS_META,
@@ -256,13 +259,13 @@ export default function LumineTracker() {
             {pendingChanges > 0 && syncStatus !== 'syncing' && (
               <div className="flex items-center gap-1.5 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white animate-pulse">
                 <AlertTriangle size={12} />
-                {pendingChanges} não sync
+                {getPendingSyncBadgeMobileLabel(pendingChanges)}
               </div>
             )}
 
             {/* Status Online/Offline */}
             <div
-              className={cn('size-2 rounded-full', isOnline ? 'bg-green-400' : 'bg-red-400')}
+              className={cn('size-2 rounded-full', getConnectionIndicatorClass(isOnline, 'mobile'))}
             />
 
             {/* Botão Sync */}
@@ -349,9 +352,9 @@ export default function LumineTracker() {
 
           <div className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
             <span
-              className={cn('size-2 rounded-full', isOnline ? 'bg-emerald-400' : 'bg-rose-400')}
+              className={cn('size-2 rounded-full', getConnectionIndicatorClass(isOnline, 'desktop'))}
             />
-            {isOnline ? "Online" : "Offline"}
+            {getConnectionLabel(isOnline)}
           </div>
           <button
             onClick={() => syncWithServer()}

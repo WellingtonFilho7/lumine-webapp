@@ -27,5 +27,21 @@ export const SYNC_BUTTON_LABEL_DESKTOP = {
 };
 
 export function getPendingChangesLabel(pendingChanges) {
-  return `${pendingChanges} alteração${pendingChanges > 1 ? 'ões' : ''} pendente${pendingChanges > 1 ? 's' : ''}`;
+  const label = pendingChanges > 1 ? 'alterações pendentes' : 'alteração pendente';
+  return `${pendingChanges} ${label}`;
+}
+
+export function getPendingSyncBadgeMobileLabel(pendingChanges) {
+  return `${pendingChanges} não sync`;
+}
+
+export function getConnectionIndicatorClass(isOnline, variant = 'mobile') {
+  if (variant === 'desktop') {
+    return isOnline ? 'bg-emerald-400' : 'bg-rose-400';
+  }
+  return isOnline ? 'bg-green-400' : 'bg-red-400';
+}
+
+export function getConnectionLabel(isOnline) {
+  return isOnline ? 'Online' : 'Offline';
 }
