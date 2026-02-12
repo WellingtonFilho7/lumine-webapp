@@ -56,7 +56,7 @@ function getDeviceId() {
 // ============================================
 // CONFIGURAÇÃO
 // ============================================
-const API_URL = 'https://lumine-api-7qnj.vercel.app/api/sync';
+const API_URL = process.env.REACT_APP_API_URL || 'https://lumine-api.vercel.app/api/sync';
 const API_TOKEN = process.env.REACT_APP_API_TOKEN || '';
 const APP_VERSION = process.env.REACT_APP_APP_VERSION || '';
 const DEVICE_ID = getDeviceId();
