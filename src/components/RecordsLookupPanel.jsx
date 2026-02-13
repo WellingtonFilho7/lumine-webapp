@@ -265,7 +265,18 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
 
         {filteredRecords.length === 0 && (
           <div className="rounded-lg border border-dashed border-gray-200 px-3 py-5 text-center text-sm text-gray-500">
-            Nenhum registro encontrado com os filtros atuais.
+            <p className="text-pretty">Nenhum registro encontrado com os filtros atuais.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setLookupChildId('');
+                setLookupQuery('');
+                setLookupWindowDays('30');
+              }}
+              className="mt-3 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Limpar filtros
+            </button>
           </div>
         )}
       </div>
