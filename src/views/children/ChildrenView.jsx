@@ -65,7 +65,7 @@ export default function ChildrenView({
         ))}
       </div>
 
-      <p className="text-sm text-gray-500 tabular-nums">
+      <p role="status" aria-live="polite" className="text-sm text-gray-500 tabular-nums">
         {filtered.length} criança{filtered.length !== 1 ? 's' : ''}
       </p>
 

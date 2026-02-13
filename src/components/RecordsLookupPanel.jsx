@@ -194,13 +194,13 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs text-cyan-700 tabular-nums">
+        <span role="status" aria-live="polite" className="rounded-full bg-cyan-50 px-2 py-1 text-xs text-cyan-700 tabular-nums">
           Registros: {quickStats.total}
         </span>
-        <span className="rounded-full bg-green-50 px-2 py-1 text-xs text-green-700 tabular-nums">
+        <span role="status" aria-live="polite" className="rounded-full bg-green-50 px-2 py-1 text-xs text-green-700 tabular-nums">
           Presentes/Atrasados: {quickStats.presentes}
         </span>
-        <span className="rounded-full bg-red-50 px-2 py-1 text-xs text-red-700 tabular-nums">
+        <span role="status" aria-live="polite" className="rounded-full bg-red-50 px-2 py-1 text-xs text-red-700 tabular-nums">
           Ausentes: {quickStats.ausentes}
         </span>
       </div>

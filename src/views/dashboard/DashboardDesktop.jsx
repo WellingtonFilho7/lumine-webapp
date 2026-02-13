@@ -120,7 +120,7 @@ export default function DashboardDesktop({
         <div className="rounded-2xl bg-white p-5 shadow-md">
           <div className="flex items-center justify-between">
             <h3 className="text-balance font-semibold text-gray-900">Registros de hoje</h3>
-            <span className="text-xs text-gray-500 tabular-nums">{todayRecords.length} registros</span>
+            <span role="status" aria-live="polite" className="text-xs text-gray-500 tabular-nums">{todayRecords.length} registros</span>
           </div>
           <div className="mt-4 max-h-[420px] space-y-2 overflow-auto">
             {todayRecords.length === 0 && (

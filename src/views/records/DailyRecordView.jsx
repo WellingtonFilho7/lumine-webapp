@@ -157,7 +157,7 @@ function DailyRecordView({
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-cyan-700 tabular-nums">{pendingExpectedCount} pendentes</p>
+          <p role="status" aria-live="polite" className="text-sm text-cyan-700 tabular-nums">{pendingExpectedCount} pendentes</p>
         </div>
       </div>
 

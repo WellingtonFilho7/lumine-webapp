@@ -175,7 +175,7 @@ function DailyRecordDesktop({
         <div className="rounded-2xl bg-white p-5 shadow-md">
           <div className="flex items-center justify-between">
             <h3 className="text-balance font-semibold text-gray-900">Pendentes</h3>
-            <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
+            <span role="status" aria-live="polite" className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
               {pendingExpectedCount} pendentes
             </span>
           </div>
