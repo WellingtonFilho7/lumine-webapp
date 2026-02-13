@@ -524,7 +524,7 @@ function ChildDetailDesktop({
         </div>
 
         <div className="space-y-3 rounded-2xl bg-white p-4 shadow-md">
-          <h3 className="font-semibold text-gray-800">Informações</h3>
+          <h3 className="font-semibold text-gray-900">Informações</h3>
           <InfoRow icon={User} label="Responsável" value={child.guardianName} />
           <InfoRow icon={Phone} label="Telefone" value={child.guardianPhone} />
             {child.school && (
@@ -541,7 +541,7 @@ function ChildDetailDesktop({
 
       <div className="rounded-2xl bg-white p-5 shadow-md">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-800">Histórico da matrícula</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Histórico da matrícula</h3>
           <span className="text-xs text-gray-500">{enrollmentHistory.length} eventos</span>
         </div>
         <div className="mt-4 space-y-2">
@@ -561,14 +561,15 @@ function ChildDetailDesktop({
               return (
                 <div key={`${entry.date}-${index}`} className="rounded-lg border border-gray-100 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-xs font-semibold',
-                        meta.className
-                      )}
-                    >
-                      {meta.label}
-                    </span>
+                    {enrollmentStatusMeta[entry.action] ? (
+                      <StatusBadge status={entry.action} />
+                    ) : (
+                      <span
+                        className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', meta.className)}
+                      >
+                        {meta.label}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500">{formatDate(entry.date)}</span>
                   </div>
                   {entry.notes && <p className="mt-2 text-xs text-gray-600">{entry.notes}</p>}
@@ -580,7 +581,7 @@ function ChildDetailDesktop({
 
       <div className="rounded-2xl bg-white p-5 shadow-md">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-800">Histórico</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Histórico</h3>
           <span className="text-xs text-gray-500">{childRecords.length} registros</span>
         </div>
         <div className="mt-4 max-h-[520px] overflow-auto">
@@ -602,14 +603,14 @@ function ChildDetailDesktop({
                       className={cn(
                         'rounded-full px-2 py-1 text-xs font-semibold',
                         record.attendance === 'present'
-                          ? 'bg-green-100 text-green-700'
+                          ? 'bg-green-100 text-green-800'
                           : record.attendance === 'late'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
                       )}
                     >
                       {record.attendance === 'present'
-                        ? 'Presente'
+                        ? 'Presente ✔'
                         : record.attendance === 'late'
                         ? 'Atrasado'
                         : 'Ausente'}

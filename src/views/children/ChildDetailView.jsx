@@ -525,7 +525,7 @@ function ChildDetailView({
 
       {/* Info */}
       <div className="space-y-3 rounded-lg bg-white p-4 shadow-md">
-        <h3 className="font-semibold text-gray-800">Informações</h3>
+        <h3 className="font-semibold text-gray-900">Informações</h3>
         <InfoRow icon={User} label="Responsável" value={child.guardianName} />
         <InfoRow icon={Phone} label="Telefone" value={child.guardianPhone} />
         {child.school && (
@@ -541,7 +541,7 @@ function ChildDetailView({
       
       {/* Histórico de status */}
       <div className="rounded-lg bg-white p-4 shadow-md">
-        <h3 className="mb-3 font-semibold text-gray-800">Histórico da matrícula</h3>
+        <h3 className="mb-3 font-semibold text-gray-900">Histórico da matrícula</h3>
         {enrollmentHistory.length > 0 ? (
           <div className="space-y-2">
             {enrollmentHistory
@@ -555,14 +555,15 @@ function ChildDetailView({
                 return (
                   <div key={`${entry.date}-${index}`} className="rounded-lg border border-gray-100 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span
-                        className={cn(
-                          'rounded-full px-2 py-0.5 text-xs font-semibold',
-                          meta.className
-                        )}
-                      >
-                        {meta.label}
-                      </span>
+                      {enrollmentStatusMeta[entry.action] ? (
+                        <StatusBadge status={entry.action} />
+                      ) : (
+                        <span
+                          className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', meta.className)}
+                        >
+                          {meta.label}
+                        </span>
+                      )}
                       <span className="text-xs text-gray-500">{formatDate(entry.date)}</span>
                     </div>
                     {entry.notes && <p className="mt-2 text-xs text-gray-600">{entry.notes}</p>}
@@ -577,7 +578,7 @@ function ChildDetailView({
 
       {/* Histórico */}
       <div className="rounded-lg bg-white p-4 shadow-md">
-        <h3 className="mb-3 font-semibold text-gray-800">Últimos registros</h3>
+        <h3 className="mb-3 font-semibold text-gray-900">Últimos registros</h3>
         {childRecords.length > 0 ? (
           <div className="space-y-2">
             {childRecords.slice(0, 10).map(rec => (
@@ -598,14 +599,14 @@ function ChildDetailView({
                     className={cn(
                       'rounded-full px-2 py-0.5 text-xs',
                       rec.attendance === 'present'
-                        ? 'bg-green-200 text-green-800'
+                        ? 'bg-green-100 text-green-800'
                         : rec.attendance === 'late'
-                        ? 'bg-yellow-200 text-yellow-800'
-                        : 'bg-red-200 text-red-800'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
                     )}
                   >
                     {rec.attendance === 'present'
-                      ? 'Presente'
+                      ? 'Presente ✔'
                       : rec.attendance === 'late'
                       ? 'Atrasado'
                       : 'Ausente'}
