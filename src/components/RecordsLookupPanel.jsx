@@ -192,7 +192,10 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
 
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs text-cyan-700 tabular-nums">
-          Presentes: {quickStats.presentes}
+          Registros: {quickStats.total}
+        </span>
+        <span className="rounded-full bg-green-50 px-2 py-1 text-xs text-green-700 tabular-nums">
+          Presentes/Atrasados: {quickStats.presentes}
         </span>
         <span className="rounded-full bg-red-50 px-2 py-1 text-xs text-red-700 tabular-nums">
           Ausentes: {quickStats.ausentes}
@@ -209,8 +212,11 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
           const attendance = getAttendanceMeta(record.attendance);
           return (
             <div key={record.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="truncate text-sm font-semibold text-gray-800">{child?.name || 'Crianca'}</p>
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-gray-900">{child?.name || 'Crianca'}</p>
+                  <p className="text-xs text-gray-500">Data do registro: {formatDate(record.date)}</p>
+                </div>
                 <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', attendance.className)}>
                   {attendance.label}
                 </span>
@@ -218,24 +224,21 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
 
               <div className="grid gap-1 text-xs text-gray-700">
                 <p>
-                  <span className="font-semibold text-gray-500">Data:</span> {formatDate(record.date)}
+                  <span className="font-semibold text-gray-500">Atividade principal:</span> {record.activity || '-'}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-500">Atividade:</span> {record.activity || '-'}
+                  <span className="font-semibold text-gray-500">Humor observado:</span> {formatMoodValue(record.mood)}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-500">Humor:</span> {formatMoodValue(record.mood)}
+                  <span className="font-semibold text-gray-500">Participação:</span> {formatScaleValue(record.participation)}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-500">Participacao:</span> {formatScaleValue(record.participation)}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-500">Interacao:</span> {formatScaleValue(record.interaction)}
+                  <span className="font-semibold text-gray-500">Interação:</span> {formatScaleValue(record.interaction)}
                 </p>
               </div>
 
               <div className="mt-2 rounded-md bg-white px-2 py-1 text-xs text-gray-700">
-                <span className="font-semibold text-gray-500">Observacoes:</span> {record.notes || 'Sem observacoes'}
+                <span className="font-semibold text-gray-500">Observações:</span> {record.notes || 'Sem observações'}
               </div>
 
               <div className="mt-2 flex justify-end">
