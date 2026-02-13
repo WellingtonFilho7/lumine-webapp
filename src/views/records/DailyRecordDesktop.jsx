@@ -175,7 +175,7 @@ function DailyRecordDesktop({
       <div className="grid grid-cols-[minmax(0,360px)_1fr] gap-6">
         <div className="rounded-2xl bg-white p-5 shadow-md">
           <div className="flex items-center justify-between">
-            <h3 className="text-balance font-semibold text-gray-800">Pendentes</h3>
+            <h3 className="text-balance font-semibold text-gray-900">Pendentes</h3>
             <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
               {pending.length} pendentes
             </span>
@@ -202,7 +202,7 @@ function DailyRecordDesktop({
               >
                 <button
                   onClick={() => setSelectedChildId(child.id)}
-                  className="flex-1 text-left text-sm font-medium text-gray-800"
+                  className="flex-1 text-left text-sm font-semibold text-gray-900"
                 >
                   {child.name}
                 </button>
@@ -225,7 +225,7 @@ function DailyRecordDesktop({
           {dateRecords.length > 0 && (
             <div className="mt-6 border-t border-gray-100 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <h4 className="text-balance text-sm font-semibold text-gray-800">Registros do dia</h4>
+                <h4 className="text-balance text-sm font-semibold text-gray-900">Registros do dia</h4>
                 <span className="text-xs text-gray-500 tabular-nums">{dateRecords.length} registros</span>
               </div>
               <div className="max-h-[260px] space-y-2 overflow-auto">
@@ -249,7 +249,7 @@ function DailyRecordDesktop({
                             : 'bg-red-500'
                         )}
                       />
-                      <span className="flex-1 truncate text-sm font-medium text-gray-800">{label}</span>
+                      <span className="flex-1 truncate text-sm font-semibold text-gray-900">{label}</span>
                       <span className="text-xs text-gray-500">
                         {record.attendance === 'present'
                           ? 'Presente'
@@ -269,7 +269,7 @@ function DailyRecordDesktop({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-balance text-xs uppercase text-gray-400">Detalhes</p>
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900">
                 {selectedChild ? selectedChild.name : 'Selecione uma criança'}
               </h3>
               {editingRecordId && (

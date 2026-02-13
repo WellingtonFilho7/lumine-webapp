@@ -153,7 +153,7 @@ function DailyRecordView({
       <div className="flex items-center justify-between rounded-lg bg-cyan-50 p-4">
         <div>
           <p className="text-sm font-medium text-cyan-900">Registros hoje</p>
-          <p className="text-2xl font-bold text-cyan-700 tabular-nums">
+          <p className="text-2xl font-extrabold text-cyan-700 tabular-nums">
             {dateRecords.length}/{activeChildren.length}
           </p>
         </div>
@@ -188,7 +188,7 @@ function DailyRecordView({
           {dateRecords.length > 0 && (
             <div className="rounded-lg bg-white p-4 shadow-md">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-balance font-semibold text-gray-800">Registros do dia</h3>
+                <h3 className="text-balance font-semibold text-gray-900">Registros do dia</h3>
                 <span className="text-xs text-gray-500 tabular-nums">{dateRecords.length} registros</span>
               </div>
               <div className="space-y-2">
@@ -212,7 +212,7 @@ function DailyRecordView({
                             : 'bg-red-500'
                         )}
                       />
-                      <span className="flex-1 truncate text-sm font-medium text-gray-800">{label}</span>
+                      <span className="flex-1 truncate text-sm font-semibold text-gray-900">{label}</span>
                       <span className="text-xs text-gray-500">
                         {record.attendance === 'present'
                           ? 'Presente'
@@ -230,11 +230,11 @@ function DailyRecordView({
           {/* Registro rápido */}
           {pending.length > 0 && (
             <div className="rounded-lg bg-white p-4 shadow-md">
-              <h3 className="text-balance mb-3 font-semibold text-gray-800">Registro rápido</h3>
+              <h3 className="text-balance mb-3 font-semibold text-gray-900">Registro rápido</h3>
               <div className="max-h-60 space-y-2 overflow-y-auto">
                 {pending.map(child => (
                   <div key={child.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
-                    <span className="flex-1 truncate text-sm font-medium">{child.name}</span>
+                    <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
                     <button
                       onClick={() => quickRecord(child.id, 'present')}
                       className="rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-700"
@@ -255,7 +255,7 @@ function DailyRecordView({
 
           {/* Registro detalhado */}
           <div className="rounded-lg bg-white p-4 shadow-md">
-            <h3 className="text-balance mb-3 font-semibold text-gray-800">Registro detalhado</h3>
+            <h3 className="text-balance mb-3 font-semibold text-gray-900">Registro detalhado</h3>
             <select
               value={selectedChildId}
               onChange={e => setSelectedChildId(e.target.value)}
@@ -309,7 +309,7 @@ function DailyRecordView({
 
           {/* Bloco 1: Presença */}
           <div className="rounded-lg bg-white p-4 shadow-md">
-            <h4 className="text-balance mb-3 font-medium text-gray-800">Presença</h4>
+            <h4 className="text-balance mb-3 font-semibold text-gray-900">Presença</h4>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { value: 'present', label: 'Presente', color: 'green' },
@@ -339,7 +339,7 @@ function DailyRecordView({
           {/* Bloco 2: Detalhes (só se presente/atrasado) */}
           {form.attendance !== 'absent' && (
             <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
-              <h4 className="text-balance font-medium text-gray-800">Detalhes</h4>
+              <h4 className="text-balance font-semibold text-gray-900">Detalhes</h4>
 
               <div>
                 <label className="mb-2 block text-sm text-gray-600">Humor</label>
@@ -418,7 +418,7 @@ function DailyRecordView({
 
           {/* Bloco 3: Observações */}
           <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
-            <h4 className="text-balance font-medium text-gray-800">Observações</h4>
+            <h4 className="text-balance font-semibold text-gray-900">Observações</h4>
             <textarea
               value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
