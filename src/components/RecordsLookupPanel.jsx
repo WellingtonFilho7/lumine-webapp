@@ -155,6 +155,7 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
 
       <div className="grid gap-2 md:grid-cols-3">
         <select
+          aria-label="Filtrar por crianca"
           value={lookupChildId}
           onChange={e => setLookupChildId(e.target.value)}
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
@@ -171,6 +172,7 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
+            aria-label="Buscar em notas e atividade"
             value={lookupQuery}
             onChange={e => setLookupQuery(e.target.value)}
             placeholder="Buscar em notas/atividade"
@@ -179,6 +181,7 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
         </div>
 
         <select
+          aria-label="Filtrar por periodo"
           value={lookupWindowDays}
           onChange={e => setLookupWindowDays(e.target.value)}
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"

@@ -33,6 +33,7 @@ export default function ChildrenView({
           placeholder="Buscar criança..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
+          aria-label="Buscar crianca pelo nome"
           className="w-full rounded-lg border-0 bg-white py-3 pl-10 pr-4 shadow-md focus:ring-2 focus:ring-cyan-500"
         />
       </div>
@@ -51,6 +52,7 @@ export default function ChildrenView({
         ].map(option => (
           <button
             key={option.value}
+            type="button"
             onClick={() => setStatusFilter(option.value)}
             className={cn(
               'rounded-full px-3 py-1 text-xs font-semibold',
