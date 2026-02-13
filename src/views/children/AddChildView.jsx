@@ -208,7 +208,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <div
                   className={cn(
                     "h-full transition-all duration-500 rounded-full",
-                    triageComplete ? "bg-green-600" : "bg-blue-600"
+                    triageComplete ? "bg-green-700" : "bg-blue-600"
                   )}
                   style={{
                     width: `${Math.round((triageChecklistItems.filter(item => item.complete).length / triageChecklistItems.length) * 100)}%`
@@ -226,13 +226,13 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                   key={item.field}
                   className={cn(
                     'inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold',
-                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-teal-50 text-gray-600'
+                    item.complete ? 'bg-emerald-50 text-emerald-800' : 'bg-teal-50 text-gray-600'
                   )}
                 >
                   <span
                     className={cn(
                       'size-2 rounded-full',
-                      item.complete ? 'bg-emerald-500' : 'bg-gray-300'
+                      item.complete ? 'bg-emerald-600' : 'bg-gray-300'
                     )}
                   />
                   {item.label}
@@ -508,7 +508,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <div
                   className={cn(
                     "h-full transition-all duration-500 rounded-full",
-                    matriculaComplete ? "bg-green-600" : "bg-blue-600"
+                    matriculaComplete ? "bg-green-700" : "bg-blue-600"
                   )}
                   style={{
                     width: `${Math.round((matriculaChecklistItems.filter(item => item.complete).length / matriculaChecklistItems.length) * 100)}%`
@@ -526,13 +526,13 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                   key={item.field}
                   className={cn(
                     'inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold',
-                    item.complete ? 'bg-emerald-50 text-emerald-700' : 'bg-teal-50 text-gray-600'
+                    item.complete ? 'bg-emerald-50 text-emerald-800' : 'bg-teal-50 text-gray-600'
                   )}
                 >
                   <span
                     className={cn(
                       'size-2 rounded-full',
-                      item.complete ? 'bg-emerald-500' : 'bg-gray-300'
+                      item.complete ? 'bg-emerald-600' : 'bg-gray-300'
                     )}
                   />
                   {item.label}

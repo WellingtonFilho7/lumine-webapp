@@ -514,12 +514,12 @@ function ChildDetailView({
           <p className="text-xs text-cyan-700">Frequência</p>
         </div>
         <div className="rounded-lg bg-green-50 p-3 text-center">
-          <p className="text-xl font-bold text-green-600">{present}</p>
-          <p className="text-xs text-green-600">Presenças</p>
+          <p className="text-xl font-bold text-green-700">{present}</p>
+          <p className="text-xs text-green-700">Presenças</p>
         </div>
         <div className="rounded-lg bg-red-50 p-3 text-center">
-          <p className="text-xl font-bold text-red-600">{absent}</p>
-          <p className="text-xs text-red-600">Faltas</p>
+          <p className="text-xl font-bold text-red-700">{absent}</p>
+          <p className="text-xs text-red-700">Faltas</p>
         </div>
       </div>
 
