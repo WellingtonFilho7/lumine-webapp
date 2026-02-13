@@ -3,6 +3,37 @@ const LEGACY_STATUS_MAP = {
   inactive: 'inativo',
 };
 
+function normalizeAsciiToken(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function normalizeDocumentKey(value) {
+  const token = normalizeAsciiToken(value).replace(/\s+/g, '_');
+  const map = {
+    certidao_nascimento: 'certidao_nascimento',
+    documento_responsavel: 'documento_responsavel',
+    comprovante_residencia: 'comprovante_residencia',
+    carteira_vacinacao: 'carteira_vacinacao',
+  };
+  return map[token] || token;
+}
+
+function normalizeClassGroup(value) {
+  const token = normalizeAsciiToken(value);
+  if (!token) return '';
+  const map = {
+    pre_alfabetizacao: 'pre_alfabetizacao',
+    alfabetizacao: 'alfabetizacao',
+    fundamental_1: 'fundamental_1',
+    fundamental_2: 'fundamental_2',
+  };
+  return map[token] || token;
+}
+
 export function getEnrollmentStatus(child) {
   if (!child) return 'matriculado';
   if (child.enrollmentStatus) return child.enrollmentStatus;
@@ -27,11 +58,19 @@ export function parseEnrollmentHistory(value) {
 
 export function parseDocumentsReceived(value) {
   if (!value) return [];
-  if (Array.isArray(value)) return value;
-  return String(value)
-    .split('|')
-    .map(item => item.trim())
-    .filter(Boolean);
+  const list = Array.isArray(value)
+    ? value
+    : String(value)
+        .split('|')
+        .map(item => item.trim())
+        .filter(Boolean);
+
+  const normalized = [];
+  for (const item of list) {
+    const key = normalizeDocumentKey(item);
+    if (!normalized.includes(key)) normalized.push(key);
+  }
+  return normalized;
 }
 
 export function parseParticipationDays(value) {
@@ -132,7 +171,20 @@ export function normalizeChild(child) {
     changed = true;
   }
 
-  ['responsibilityTerm', 'consentTerm', 'leaveAloneConsent'].forEach(field => {
+  const normalizedClassGroup = normalizeClassGroup(normalized.classGroup);
+  if (normalizedClassGroup !== normalized.classGroup) {
+    normalized.classGroup = normalizedClassGroup;
+    changed = true;
+  }
+
+  [
+    'responsibilityTerm',
+    'consentTerm',
+    'leaveAloneConsent',
+    'leaveAloneConfirmado',
+    'termoLgpdAssinado',
+    'consentimentoSaude',
+  ].forEach(field => {
     const parsed = parseBoolean(normalized[field]);
     if (parsed !== normalized[field]) {
       normalized[field] = parsed;
@@ -152,6 +204,11 @@ export function normalizeChild(child) {
 
   if (normalized.leaveAloneConfirmation == null) {
     normalized.leaveAloneConfirmation = '';
+    changed = true;
+  }
+
+  if (normalized.formaChegada == null) {
+    normalized.formaChegada = '';
     changed = true;
   }
 

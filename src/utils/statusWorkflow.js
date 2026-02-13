@@ -24,23 +24,34 @@ export function getStatusMeta(child) {
 }
 
 export function buildStatusFormData(child) {
+  const leaveAloneConfirmado = parseBoolean(child?.leaveAloneConfirmado) || parseBoolean(child?.leaveAloneConsent);
+
   return {
     name: child?.name || '',
+    sexo: child?.sexo || '',
     birthDate: child?.birthDate || '',
     guardianName: child?.guardianName || '',
+    parentesco: child?.parentesco || '',
     guardianPhone: child?.guardianPhone || '',
+    contatoEmergenciaNome: child?.contatoEmergenciaNome || '',
+    contatoEmergenciaTelefone: child?.contatoEmergenciaTelefone || '',
     neighborhood: child?.neighborhood || '',
     school: child?.school || '',
     schoolShift: child?.schoolShift || '',
     referralSource: child?.referralSource || '',
     schoolCommuteAlone: child?.schoolCommuteAlone || '',
+    renovacao: child?.renovacao ?? '',
+    termoLgpdAssinado: parseBoolean(child?.termoLgpdAssinado),
     startDate: child?.startDate || child?.entryDate || '',
     participationDays: parseParticipationDays(child?.participationDays),
     authorizedPickup: child?.authorizedPickup || '',
     canLeaveAlone: child?.canLeaveAlone || '',
     leaveAloneConsent: parseBoolean(child?.leaveAloneConsent),
     leaveAloneConfirmation: child?.leaveAloneConfirmation || '',
-    termsAccepted: Boolean(child?.responsibilityTerm || child?.consentTerm),
+    leaveAloneConfirmado,
+    formaChegada: child?.formaChegada || '',
+    consentimentoSaude: parseBoolean(child?.consentimentoSaude),
+    termsAccepted: Boolean(child?.responsibilityTerm || child?.consentTerm || child?.termsAccepted),
     classGroup: child?.classGroup || '',
     imageConsent: normalizeImageConsent(child?.imageConsent),
     documentsReceived: parseDocumentsReceived(child?.documentsReceived),

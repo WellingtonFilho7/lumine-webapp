@@ -7,15 +7,38 @@ import {
   isTriageComplete,
   isMatriculaComplete,
 } from '../../utils/enrollment';
+import {
+  getEnrollmentHardeningMissingFields,
+  normalizeEnrollmentPayload,
+} from '../../utils/enrollmentHardening';
+
+const STRICT_UI_MODE = (process.env.REACT_APP_ENROLLMENT_STRICT_UI || 'true').toLowerCase() !== 'false';
+
+const NEIGHBORHOOD_OPTIONS = [
+  { value: 'centro', label: 'Centro' },
+  { value: 'catole', label: 'Catolé' },
+  { value: 'jardim_oceania', label: 'Jardim Oceania' },
+  { value: 'bodocongo', label: 'Bodocongó' },
+  { value: 'pedregal', label: 'Pedregal' },
+  { value: 'liberdade', label: 'Liberdade' },
+  { value: 'prata', label: 'Prata' },
+  { value: 'serrotao', label: 'Serrotão' },
+  { value: 'outro', label: 'Outro' },
+];
 
 function AddChildView({ addChild, setView, triageResultOptions, participationDays, statusFieldLabels }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: '',
+    sexo: '',
     birthDate: '',
     guardianName: '',
+    parentesco: '',
     guardianPhone: '',
+    contatoEmergenciaNome: '',
+    contatoEmergenciaTelefone: '',
     neighborhood: '',
+    neighborhoodOther: '',
     school: '',
     schoolShift: '',
     referralSource: '',
@@ -25,21 +48,31 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
     healthCareNeeded: '',
     healthNotes: '',
     dietaryRestriction: '',
+    restricaoAlimentar: '',
+    alergiaAlimentar: '',
+    alergiaMedicamento: '',
+    medicamentosEmUso: '',
     specialNeeds: '',
     triageNotes: '',
     priority: '',
     priorityReason: '',
     triageResult: '',
+    renovacao: '',
+    termoLgpdAssinado: false,
+    termoLgpdData: '',
     startDate: new Date().toISOString().split('T')[0],
     participationDays: [],
     authorizedPickup: '',
     canLeaveAlone: '',
     leaveAloneConsent: false,
     leaveAloneConfirmation: '',
+    leaveAloneConfirmado: false,
     termsAccepted: false,
     classGroup: '',
     imageConsent: '',
     documentsReceived: [],
+    formaChegada: '',
+    consentimentoSaude: false,
     initialObservations: '',
   });
 
@@ -84,7 +117,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
 
   const matriculaChecklistFields = [
     ...MATRICULA_REQUIRED_FIELDS,
-    ...(form.canLeaveAlone === 'sim' ? ['leaveAloneConsent', 'leaveAloneConfirmation'] : []),
+    ...(form.canLeaveAlone === 'sim' ? ['leaveAloneConfirmado'] : []),
   ];
   const matriculaChecklistItems = buildChecklist(
     matriculaChecklistFields,
@@ -93,9 +126,6 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
   );
   const matriculaComplete = isMatriculaComplete(form);
   const matriculaMissingCount = matriculaChecklistItems.filter(item => !item.complete).length;
-
-
-
 
   const buildPayload = (status, triageIsComplete) => {
     const now = new Date().toISOString();
@@ -121,24 +151,27 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
       });
     }
 
+    const normalized = normalizeEnrollmentPayload({
+      ...form,
+      neighborhood: form.neighborhood === 'outro' ? form.neighborhoodOther : form.neighborhood,
+      termoLgpdData: form.termoLgpdAssinado ? now : '',
+    });
+
     const {
       termsAccepted,
       triageResult,
-      healthNotes,
-      leaveAloneConfirmation,
+      neighborhoodOther,
       ...rest
-    } = form;
+    } = normalized;
 
     return {
       ...rest,
-      healthNotes: form.healthCareNeeded === 'sim' ? healthNotes : '',
-      leaveAloneConfirmation: form.canLeaveAlone === 'sim' ? leaveAloneConfirmation : '',
       enrollmentStatus: status,
       enrollmentDate: now,
       triageDate: triageCompleteFlag ? now : '',
       matriculationDate: status === 'matriculado' ? now : '',
-      startDate: status === 'matriculado' ? form.startDate : '',
-      entryDate: status === 'matriculado' ? form.startDate : '',
+      startDate: status === 'matriculado' ? normalized.startDate : '',
+      entryDate: status === 'matriculado' ? normalized.startDate : '',
       responsibilityTerm: termsAccepted,
       consentTerm: termsAccepted,
       enrollmentHistory,
@@ -167,6 +200,16 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
       setMatriculaError('Complete os itens obrigatórios da matrícula para concluir.');
       return;
     }
+
+    const hardeningMissing = getEnrollmentHardeningMissingFields(form, {
+      strictMode: STRICT_UI_MODE,
+    });
+
+    if (hardeningMissing.length) {
+      setMatriculaError('Faltam confirmações legais obrigatórias para concluir a matrícula.');
+      return;
+    }
+
     addChild(buildPayload('matriculado', true));
     setView('children');
   };
@@ -202,20 +245,23 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
               </span>
             </div>
 
-            {/* Progress Bar */}
             <div className="mt-3 mb-3">
-              <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
                 <div
                   className={cn(
-                    "h-full transition-all duration-500 rounded-full",
-                    triageComplete ? "bg-green-700" : "bg-blue-600"
+                    'h-full rounded-full transition-all duration-500',
+                    triageComplete ? 'bg-green-700' : 'bg-blue-600'
                   )}
                   style={{
-                    width: `${Math.round((triageChecklistItems.filter(item => item.complete).length / triageChecklistItems.length) * 100)}%`
+                    width: `${Math.round(
+                      (triageChecklistItems.filter(item => item.complete).length /
+                        Math.max(triageChecklistItems.length, 1)) *
+                        100
+                    )}%`,
                   }}
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-600 font-semibold">
+              <p className="mt-1 text-xs font-semibold text-gray-600">
                 {triageChecklistItems.filter(item => item.complete).length} de {triageChecklistItems.length} campos preenchidos
               </p>
             </div>
@@ -252,15 +298,32 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 placeholder="Nome da criança"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Data de nascimento *</label>
-              <input
-                type="date"
-                value={form.birthDate}
-                onChange={e => updateField('birthDate', e.target.value)}
-                className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-              />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Sexo da criança *</label>
+                <select
+                  value={form.sexo}
+                  onChange={e => updateField('sexo', e.target.value)}
+                  className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="">Selecione</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Feminino</option>
+                  <option value="nao_declarado">Prefiro não declarar</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Data de nascimento *</label>
+                <input
+                  type="date"
+                  value={form.birthDate}
+                  onChange={e => updateField('birthDate', e.target.value)}
+                  className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Nome do responsável principal *</label>
               <input
@@ -270,16 +333,67 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Parentesco *</label>
+                <select
+                  value={form.parentesco}
+                  onChange={e => updateField('parentesco', e.target.value)}
+                  className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="">Selecione</option>
+                  <option value="mae">Mãe</option>
+                  <option value="pai">Pai</option>
+                  <option value="avo">Avô/Avó</option>
+                  <option value="tio">Tio/Tia</option>
+                  <option value="responsavel_legal">Responsável legal</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Telefone (WhatsApp) *</label>
+                <input
+                  type="tel"
+                  value={form.guardianPhone}
+                  onChange={e => updateField('guardianPhone', e.target.value)}
+                  className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                  placeholder="(83) 99999-9999"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone (WhatsApp) *</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone alternativo</label>
               <input
                 type="tel"
-                value={form.guardianPhone}
-                onChange={e => updateField('guardianPhone', e.target.value)}
+                value={form.guardianPhoneAlt}
+                onChange={e => updateField('guardianPhoneAlt', e.target.value)}
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-                placeholder="(83) 99999-9999"
               />
             </div>
+
+            <div className="rounded-lg border border-teal-100 bg-teal-50 p-4">
+              <p className="mb-2 text-sm font-semibold text-gray-800">Contato de emergência *</p>
+              <p className="mb-3 text-xs text-gray-600">Pessoa diferente do responsável principal para situações de urgência.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={form.contatoEmergenciaNome}
+                  onChange={e => updateField('contatoEmergenciaNome', e.target.value)}
+                  className="w-full rounded-lg border bg-white px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                  placeholder="Nome completo"
+                />
+                <input
+                  type="tel"
+                  value={form.contatoEmergenciaTelefone}
+                  onChange={e => updateField('contatoEmergenciaTelefone', e.target.value)}
+                  className="w-full rounded-lg border bg-white px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                  placeholder="(83) 99999-9999"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Escola *</label>
@@ -301,6 +415,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 />
               </div>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Turno escolar *</label>
               <select
@@ -309,20 +424,41 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               >
                 <option value="">Selecione</option>
-                <option value="manhã">Manhã</option>
+                <option value="manha">Manhã</option>
                 <option value="tarde">Tarde</option>
                 <option value="integral">Integral</option>
               </select>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Bairro/Comunidade *</label>
-              <input
-                type="text"
+              <select
                 value={form.neighborhood}
                 onChange={e => updateField('neighborhood', e.target.value)}
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-              />
+              >
+                <option value="">Selecione</option>
+                {NEIGHBORHOOD_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {form.neighborhood === 'outro' && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Informe o bairro</label>
+                <input
+                  type="text"
+                  value={form.neighborhoodOther}
+                  onChange={e => updateField('neighborhoodOther', e.target.value)}
+                  className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                  placeholder="Digite o bairro"
+                />
+              </div>
+            )}
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Como conheceu o Lumine? *</label>
               <select
@@ -334,11 +470,12 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <option value="igreja">Igreja</option>
                 <option value="escola">Escola</option>
                 <option value="CRAS">CRAS</option>
-                <option value="indicação">Indicação</option>
+                <option value="indicacao">Indicação</option>
                 <option value="redes_sociais">Redes sociais</option>
                 <option value="outro">Outro</option>
               </select>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 A criança vai e volta desacompanhada da escola? *
@@ -353,15 +490,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <option value="nao">Não</option>
               </select>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Telefone alternativo</label>
-              <input
-                type="tel"
-                value={form.guardianPhoneAlt}
-                onChange={e => updateField('guardianPhoneAlt', e.target.value)}
-                className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-              />
-            </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Existe algum cuidado de saúde?</label>
               <select
@@ -374,9 +503,10 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <option value="nao">Não</option>
               </select>
             </div>
+
             {form.healthCareNeeded === 'sim' && (
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Qual cuidado de saúde?</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Qual cuidado de saúde? *</label>
                 <input
                   type="text"
                   value={form.healthNotes}
@@ -385,18 +515,51 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 />
               </div>
             )}
+
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Existe alguma restrição alimentar?</label>
-              <select
-                value={form.dietaryRestriction}
-                onChange={e => updateField('dietaryRestriction', e.target.value)}
+              <label className="mb-1 block text-sm font-medium text-gray-700">Restrição alimentar</label>
+              <input
+                type="text"
+                value={form.restricaoAlimentar}
+                onChange={e => updateField('restricaoAlimentar', e.target.value)}
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-              >
-                <option value="">Selecione</option>
-                <option value="sim">Sim</option>
-                <option value="nao">Não</option>
-              </select>
+                placeholder="Ex: intolerância à lactose, dieta específica"
+              />
             </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Alergia alimentar</label>
+              <input
+                type="text"
+                value={form.alergiaAlimentar}
+                onChange={e => updateField('alergiaAlimentar', e.target.value)}
+                className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                placeholder="Ex: amendoim, leite"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Alergia a medicamentos</label>
+              <input
+                type="text"
+                value={form.alergiaMedicamento}
+                onChange={e => updateField('alergiaMedicamento', e.target.value)}
+                className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                placeholder="Ex: dipirona"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Medicamentos em uso</label>
+              <input
+                type="text"
+                value={form.medicamentosEmUso}
+                onChange={e => updateField('medicamentosEmUso', e.target.value)}
+                className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+                placeholder="Nome + dosagem + horario"
+              />
+            </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Necessidades específicas</label>
               <input
@@ -406,6 +569,20 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               />
             </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">É renovação de matrícula? *</label>
+              <select
+                value={form.renovacao}
+                onChange={e => updateField('renovacao', e.target.value)}
+                className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="">Selecione</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Observações da triagem</label>
               <textarea
@@ -415,6 +592,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               />
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Prioridade (interna)</label>
               <select
@@ -424,10 +602,11 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
               >
                 <option value="">Selecione</option>
                 <option value="alta">Alta</option>
-                <option value="média">Média</option>
+                <option value="media">Média</option>
                 <option value="baixa">Baixa</option>
               </select>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Notas internas da triagem</label>
               <input
@@ -437,6 +616,23 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               />
             </div>
+
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="mb-2 text-sm font-semibold text-gray-800">Termo LGPD *</p>
+              <p className="mb-3 text-xs text-gray-600">
+                Confirme que o responsável leu e assinou o Termo LGPD físico de coleta e uso de dados do Lumine.
+              </p>
+              <label className="flex items-center gap-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.termoLgpdAssinado}
+                  onChange={e => updateField('termoLgpdAssinado', e.target.checked)}
+                  className="h-4 w-4 rounded"
+                />
+                O responsável assinou o termo LGPD físico
+              </label>
+            </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Resultado da triagem (opcional)</label>
               <select
@@ -502,20 +698,23 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
               </span>
             </div>
 
-            {/* Progress Bar */}
             <div className="mt-3 mb-3">
-              <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
                 <div
                   className={cn(
-                    "h-full transition-all duration-500 rounded-full",
-                    matriculaComplete ? "bg-green-700" : "bg-blue-600"
+                    'h-full rounded-full transition-all duration-500',
+                    matriculaComplete ? 'bg-green-700' : 'bg-blue-600'
                   )}
                   style={{
-                    width: `${Math.round((matriculaChecklistItems.filter(item => item.complete).length / matriculaChecklistItems.length) * 100)}%`
+                    width: `${Math.round(
+                      (matriculaChecklistItems.filter(item => item.complete).length /
+                        Math.max(matriculaChecklistItems.length, 1)) *
+                        100
+                    )}%`,
                   }}
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-600 font-semibold">
+              <p className="mt-1 text-xs font-semibold text-gray-600">
                 {matriculaChecklistItems.filter(item => item.complete).length} de {matriculaChecklistItems.length} campos preenchidos
               </p>
             </div>
@@ -551,6 +750,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               />
             </div>
+
             <div>
               <p className="mb-2 text-sm font-medium text-gray-700">Dias de participação *</p>
               <div className="flex flex-wrap gap-2">
@@ -572,6 +772,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 ))}
               </div>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Pessoas autorizadas a retirar a criança *
@@ -584,6 +785,24 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 placeholder="Nome(s) autorizados"
               />
             </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Como a criança chega e sai do programa? *
+              </label>
+              <select
+                value={form.formaChegada}
+                onChange={e => updateField('formaChegada', e.target.value)}
+                className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="">Selecione</option>
+                <option value="levada_responsavel">Levada/buscada pelo responsável</option>
+                <option value="a_pe">A pé</option>
+                <option value="transporte_escolar">Transporte escolar</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 A criança pode sair desacompanhada ao deixar o Lumine? *
@@ -598,31 +817,42 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <option value="nao">Não</option>
               </select>
             </div>
+
             {form.canLeaveAlone === 'sim' && (
-              <div className="space-y-3 rounded-lg bg-cyan-50 p-4">
+              <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm text-gray-700">
+                  Declaro que estou ciente de que meu/minha filho(a) está autorizado(a) a sair das
+                  dependências do Instituto Lumine sem acompanhamento de um adulto responsável,
+                  assumindo total responsabilidade por esse deslocamento.
+                </p>
                 <label className="flex items-center gap-3 text-sm text-gray-700">
                   <input
                     type="checkbox"
-                    checked={form.leaveAloneConsent}
-                    onChange={e => updateField('leaveAloneConsent', e.target.checked)}
+                    checked={form.leaveAloneConfirmado}
+                    onChange={e => updateField('leaveAloneConfirmado', e.target.checked)}
                     className="h-4 w-4 rounded"
                   />
-                  Autorizo a saída desacompanhada
+                  O responsável confirma esta autorização
                 </label>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Confirmação do responsável legal *
-                  </label>
-                  <input
-                    type="text"
-                    value={form.leaveAloneConfirmation}
-                    onChange={e => updateField('leaveAloneConfirmation', e.target.value)}
-                    className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-                    placeholder="Ex: Autorizo que Maria saia desacompanhada"
-                  />
-                </div>
               </div>
             )}
+
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="mb-2 text-sm font-semibold text-gray-800">Autorização para dados de saúde *</p>
+              <p className="mb-3 text-xs text-gray-600">
+                Confirme que o responsável autorizou o uso dos dados sensíveis de saúde para segurança da criança.
+              </p>
+              <label className="flex items-center gap-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.consentimentoSaude}
+                  onChange={e => updateField('consentimentoSaude', e.target.checked)}
+                  className="h-4 w-4 rounded"
+                />
+                O responsável autorizou o tratamento de dados de saúde
+              </label>
+            </div>
+
             <label className="flex items-center gap-3 text-sm text-gray-700">
               <input
                 type="checkbox"
@@ -632,6 +862,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
               />
               Declaro ciência e concordo com o Termo de Responsabilidade e Consentimento *
             </label>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Turma/Grupo</label>
               <select
@@ -640,12 +871,13 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               >
                 <option value="">Selecione</option>
-                <option value="pré_alfabetização">Pré-alfabetização</option>
-                <option value="alfabetização">Alfabetização</option>
+                <option value="pre_alfabetizacao">Pré-alfabetização</option>
+                <option value="alfabetizacao">Alfabetização</option>
                 <option value="fundamental_1">Fundamental 1</option>
                 <option value="fundamental_2">Fundamental 2</option>
               </select>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Autorização de uso de imagem (opcional)
@@ -655,19 +887,20 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 onChange={e => updateField('imageConsent', e.target.value)}
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               >
-                <option value="">Não autorizo</option>
-                <option value="interno">Uso interno (sem divulgação)</option>
-                <option value="comunicacao">Uso institucional e comunicação</option>
+                <option value="">Nenhuma autorização</option>
+                <option value="interno">Apenas uso interno</option>
+                <option value="comunicacao">Comunicação institucional</option>
               </select>
             </div>
+
             <div>
               <p className="mb-2 text-sm font-medium text-gray-700">Documentos recebidos</p>
               <div className="space-y-2 text-sm text-gray-600">
                 <label className="flex items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={form.documentsReceived.includes('certidão_nascimento')}
-                    onChange={() => toggleDocument('certidão_nascimento')}
+                    checked={form.documentsReceived.includes('certidao_nascimento')}
+                    onChange={() => toggleDocument('certidao_nascimento')}
                     className="h-4 w-4 rounded"
                   />
                   Certidão de nascimento
@@ -675,8 +908,8 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <label className="flex items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={form.documentsReceived.includes('documento_responsável')}
-                    onChange={() => toggleDocument('documento_responsável')}
+                    checked={form.documentsReceived.includes('documento_responsavel')}
+                    onChange={() => toggleDocument('documento_responsavel')}
                     className="h-4 w-4 rounded"
                   />
                   Documento do responsável
@@ -684,14 +917,24 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 <label className="flex items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={form.documentsReceived.includes('comprovante_residência')}
-                    onChange={() => toggleDocument('comprovante_residência')}
+                    checked={form.documentsReceived.includes('comprovante_residencia')}
+                    onChange={() => toggleDocument('comprovante_residencia')}
                     className="h-4 w-4 rounded"
                   />
                   Comprovante de residência
                 </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={form.documentsReceived.includes('carteira_vacinacao')}
+                    onChange={() => toggleDocument('carteira_vacinacao')}
+                    className="h-4 w-4 rounded"
+                  />
+                  Carteira de vacinação
+                </label>
               </div>
             </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Observações pedagógicas</label>
               <textarea
@@ -729,9 +972,5 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
     </div>
   );
 }
-
-// ============================================
-// DETALHES DA CRIANÇA
-// ============================================
 
 export default AddChildView;

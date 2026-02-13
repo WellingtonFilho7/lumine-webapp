@@ -23,16 +23,21 @@ describe('statusWorkflow helpers', () => {
       participationDays: 'seg|qua',
       leaveAloneConsent: 'sim',
       imageConsent: 'communication',
-      documentsReceived: 'certidao|comprovante',
+      documentsReceived: 'certidao_nascimento|comprovante_residencia',
       responsibilityTerm: true,
+      consentimentoSaude: true,
+      termoLgpdAssinado: true,
     });
 
     expect(result.name).toBe('Crianca A');
     expect(result.participationDays).toEqual(['seg', 'qua']);
     expect(result.leaveAloneConsent).toBe(true);
+    expect(result.leaveAloneConfirmado).toBe(true);
     expect(result.imageConsent).toBe('comunicacao');
-    expect(result.documentsReceived).toEqual(['certidao', 'comprovante']);
+    expect(result.documentsReceived).toEqual(['certidao_nascimento', 'comprovante_residencia']);
     expect(result.termsAccepted).toBe(true);
+    expect(result.consentimentoSaude).toBe(true);
+    expect(result.termoLgpdAssinado).toBe(true);
   });
 
   test('maps missing field keys to human-readable labels', () => {
@@ -41,11 +46,14 @@ describe('statusWorkflow helpers', () => {
       participationDays: [],
     });
 
-    expect(missing).toEqual(expect.arrayContaining([
-      'Nome completo',
-      'Data de nascimento',
-      'Autorização de saída desacompanhada',
-      'Confirmação da autorização',
-    ]));
+    expect(missing).toEqual(
+      expect.arrayContaining([
+        'Nome completo',
+        'Data de nascimento',
+        'Forma de chegada/saída',
+        'Autorização para dados de saúde',
+        'Confirmação de saída desacompanhada',
+      ])
+    );
   });
 });
