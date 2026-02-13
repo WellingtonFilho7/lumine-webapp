@@ -247,7 +247,7 @@ export default function LumineTracker() {
           <div className="flex items-center gap-2">
             {/* Indicador de Pendências - Mais Proeminente */}
             {showPendingSyncBadge && (
-              <div className="flex items-center gap-1.5 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white animate-pulse">
+              <div role="status" aria-live="polite" className="flex items-center gap-1.5 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white animate-pulse">
                 <AlertTriangle size={12} />
                 {getPendingSyncBadgeMobileLabel(pendingChanges)}
               </div>
@@ -302,7 +302,7 @@ export default function LumineTracker() {
         <div className="flex items-center gap-3">
           {/* Indicador de Pendências Desktop - Mais Proeminente */}
           {showPendingSyncBadge && (
-            <div className="flex items-center gap-2 rounded-lg bg-amber-100 border-2 border-amber-500 px-3 py-2 text-sm font-bold text-amber-900 animate-pulse">
+            <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-lg bg-amber-100 border-2 border-amber-500 px-3 py-2 text-sm font-bold text-amber-900 animate-pulse">
               <AlertTriangle size={16} />
               {getPendingChangesLabel(pendingChanges)}
             </div>

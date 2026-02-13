@@ -487,7 +487,7 @@ function ConfigView({
                         child.rate >= ATTENDANCE_THRESHOLDS.GREEN
                           ? 'bg-green-100 text-green-700'
                           : child.rate >= ATTENDANCE_THRESHOLDS.YELLOW
-                          ? 'bg-yellow-100 text-yellow-700'
+                          ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-700'
                       )}
                     >

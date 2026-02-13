@@ -13,7 +13,7 @@ const VARIANT_STYLES = {
     wrapper: 'mt-1 flex items-center gap-2',
     textBase: 'text-pretty text-xs',
     critical: 'text-rose-700 font-semibold',
-    warning: 'text-amber-700',
+    warning: 'text-amber-800',
     button: 'rounded border border-rose-300 px-2 py-0.5 text-[10px] font-semibold text-rose-700',
   },
 };
@@ -32,6 +32,8 @@ export default function SyncErrorNotice({
   return (
     <div className={styles.wrapper}>
       <p
+        role="status"
+        aria-live="polite"
         className={cn(
           styles.textBase,
           syncErrorLevel === 'critical' ? styles.critical : styles.warning
