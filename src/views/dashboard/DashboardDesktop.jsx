@@ -89,7 +89,7 @@ export default function DashboardDesktop({
             </div>
             <div className="mt-4 space-y-2">
               {pendingToday.length === 0 && (
-                <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-4">
+                <div role="status" aria-live="polite" className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-4">
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100">
                     <CheckCircle className="size-4 text-green-700" />
                   </div>

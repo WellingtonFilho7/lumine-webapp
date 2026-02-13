@@ -4,7 +4,7 @@ import { cn } from '../utils/cn';
 
 function getAttendanceMeta(attendance) {
   if (attendance === 'present') return { label: 'Presente', className: 'bg-green-100 text-green-700' };
-  if (attendance === 'late') return { label: 'Atrasado', className: 'bg-yellow-100 text-yellow-700' };
+  if (attendance === 'late') return { label: 'Atrasado', className: 'bg-yellow-100 text-yellow-800' };
   return { label: 'Ausente', className: 'bg-red-100 text-red-700' };
 }
 
@@ -148,7 +148,7 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
           <h3 className="text-balance font-semibold text-gray-800">Consulta rapida de registros</h3>
           <p className="text-pretty text-xs text-gray-500">Busque informacoes sem precisar abrir o Supabase.</p>
         </div>
-        <div className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 tabular-nums">
+        <div role="status" aria-live="polite" className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 tabular-nums">
           {quickStats.total} encontrados
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
       </div>
 
       {copyError && (
-        <p className="mt-2 text-xs font-semibold text-red-600">{copyError}</p>
+        <p role="status" aria-live="polite" className="mt-2 text-xs font-semibold text-red-600">{copyError}</p>
       )}
 
       <div className="mt-4 max-h-72 space-y-2 overflow-auto">
@@ -245,6 +245,7 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
                 <button
                   type="button"
                   onClick={() => copyRecordSummary(record, child?.name)}
+                  aria-label="Copiar resumo do registro"
                   className={cn(
                     'rounded-lg border px-3 py-1 text-xs font-semibold transition-colors',
                     copiedRecordId === record.id

@@ -129,7 +129,7 @@ function DailyRecordView({
       {/* Toast de sucesso */}
       {toastMessage && (
         <div
-          className="fixed left-4 right-4 z-50 flex items-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg"
+          role="status" aria-live="polite" className="fixed left-4 right-4 z-50 flex items-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg"
           style={{ top: 'calc(env(safe-area-inset-top) + 5rem)' }}
         >
           <CheckCircle size={20} />
@@ -162,7 +162,7 @@ function DailyRecordView({
       </div>
 
       {allDoneToday && (
-        <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+        <div role="status" aria-live="polite" className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="size-5 text-green-700" />
           </div>
@@ -236,12 +236,14 @@ function DailyRecordView({
                     <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
                     <button
                       onClick={() => quickRecord(child.id, 'present')}
+                      aria-label={`Marcar ${child.name} como presente`}
                       className="rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-800"
                     >
                       Presente
                     </button>
                     <button
                       onClick={() => quickRecord(child.id, 'absent')}
+                      aria-label={`Marcar ${child.name} como ausente`}
                       className="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800"
                     >
                       Ausente

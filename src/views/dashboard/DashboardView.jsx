@@ -41,20 +41,22 @@ export default function DashboardView({
             <AlertTriangle size={18} className="text-orange-600" />
             <span className="text-balance text-sm font-semibold text-orange-800">Alertas</span>
           </div>
-          {alerts.map((a, i) => (
-            <div
-              key={i}
+          {alerts.map((alert, index) => (
+            <button
+              key={`${alert.childId}-${index}`}
+              type="button"
               onClick={() => {
-                const child = children.find(c => c.id === a.childId);
+                const child = children.find(c => c.id === alert.childId);
                 if (child) {
                   setSelectedChild(child);
                   setView('child-detail');
                 }
               }}
-              className="cursor-pointer py-1 text-sm text-orange-700 hover:underline"
+              className="block w-full py-1 text-left text-sm text-orange-700 hover:underline"
+              aria-label={`Ver alerta de ${alert.childName}`}
             >
-              <strong>{a.childName}:</strong> {a.msg}
-            </div>
+              <strong>{alert.childName}:</strong> {alert.msg}
+            </button>
           ))}
         </div>
       )}
@@ -83,7 +85,7 @@ export default function DashboardView({
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3">
+          <div role="status" aria-live="polite" className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="size-4 text-green-700" />
             </div>
@@ -99,16 +101,16 @@ export default function DashboardView({
         <h3 className="text-balance mb-3 font-semibold text-gray-900">Registros de hoje</h3>
         {todayRecords.length > 0 ? (
           <div className="space-y-2">
-            {todayRecords.slice(0, 5).map(rec => {
-              const child = children.find(c => c.id === rec.childInternalId);
+            {todayRecords.slice(0, 5).map(record => {
+              const child = children.find(c => c.id === record.childInternalId);
               return (
-                <div key={rec.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-2">
+                <div key={record.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-2">
                   <div
                     className={cn(
                       'size-2 rounded-full',
-                      rec.attendance === 'present'
+                      record.attendance === 'present'
                         ? 'bg-green-500'
-                        : rec.attendance === 'late'
+                        : record.attendance === 'late'
                         ? 'bg-yellow-500'
                         : 'bg-red-500'
                     )}
@@ -119,16 +121,16 @@ export default function DashboardView({
                   <span
                     className={cn(
                       'rounded-full px-2 py-1 text-xs font-semibold',
-                      rec.attendance === 'present'
+                      record.attendance === 'present'
                         ? 'bg-green-100 text-green-800'
-                        : rec.attendance === 'late'
+                        : record.attendance === 'late'
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
                     )}
                   >
-                    {rec.attendance === 'present'
+                    {record.attendance === 'present'
                       ? 'Presente ✔'
-                      : rec.attendance === 'late'
+                      : record.attendance === 'late'
                       ? 'Atrasado'
                       : 'Ausente'}
                   </span>

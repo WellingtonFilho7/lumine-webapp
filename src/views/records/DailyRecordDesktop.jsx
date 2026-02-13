@@ -125,7 +125,7 @@ function DailyRecordDesktop({
     <div className="space-y-6">
       {toastMessage && (
         <div
-          className="fixed right-10 z-50 rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+          role="status" aria-live="polite" className="fixed right-10 z-50 rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-lg"
           style={{ top: 'calc(env(safe-area-inset-top) + 6rem)' }}
         >
           {toastMessage}
@@ -151,7 +151,7 @@ function DailyRecordDesktop({
       </div>
 
       {allDoneToday && (
-        <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+        <div role="status" aria-live="polite" className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="size-5 text-green-700" />
           </div>
@@ -207,12 +207,14 @@ function DailyRecordDesktop({
                 </button>
                 <button
                   onClick={() => quickRecord(child.id, 'present')}
+                  aria-label={`Marcar ${child.name} como presente`}
                   className="rounded-lg bg-green-100 px-3 py-1 text-xs font-semibold text-green-800"
                 >
                   Presente
                 </button>
                 <button
                   onClick={() => quickRecord(child.id, 'absent')}
+                  aria-label={`Marcar ${child.name} como ausente`}
                   className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-800"
                 >
                   Ausente
