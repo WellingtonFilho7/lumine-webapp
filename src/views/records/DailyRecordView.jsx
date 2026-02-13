@@ -319,6 +319,7 @@ function DailyRecordView({
               ].map(opt => (
                 <button type="button"
                   key={opt.value}
+                  aria-pressed={form.attendance === opt.value}
                   onClick={() => setForm({ ...form, attendance: opt.value })}
                   className={cn(
                     'rounded-lg py-3 text-sm font-medium transition-all',
@@ -352,6 +353,8 @@ function DailyRecordView({
                   ].map(opt => (
                     <button type="button"
                       key={opt.value}
+                      aria-label={`Selecionar humor ${opt.value}`}
+                      aria-pressed={form.mood === opt.value}
                       onClick={() => setForm({ ...form, mood: opt.value })}
                       className={cn(
                         'rounded-lg py-3 text-2xl transition-all',

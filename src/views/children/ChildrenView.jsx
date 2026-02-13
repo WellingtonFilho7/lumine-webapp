@@ -53,6 +53,7 @@ export default function ChildrenView({
           <button
             key={option.value}
             type="button"
+            aria-pressed={statusFilter === option.value}
             onClick={() => setStatusFilter(option.value)}
             className={cn(
               'rounded-full px-3 py-1 text-xs font-semibold',

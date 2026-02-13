@@ -353,6 +353,7 @@ function ChildDetailDesktop({
                             <button
                               key={day.value}
                               type="button"
+                              aria-pressed={statusFormData.participationDays.includes(day.value)}
                               onClick={() =>
                                 updateStatusField(
                                   'participationDays',

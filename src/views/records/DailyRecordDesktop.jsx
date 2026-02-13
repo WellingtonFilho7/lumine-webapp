@@ -315,6 +315,7 @@ function DailyRecordDesktop({
                 ].map(option => (
                   <button type="button"
                     key={option.value}
+                    aria-pressed={form.attendance === option.value}
                     onClick={() => setForm({ ...form, attendance: option.value })}
                     className={cn(
                       'rounded-lg py-2 text-xs font-semibold',

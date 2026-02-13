@@ -558,6 +558,7 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                   <button
                     key={day.value}
                     type="button"
+                    aria-pressed={form.participationDays.includes(day.value)}
                     onClick={() => toggleParticipationDay(day.value)}
                     className={cn(
                       'rounded-full px-3 py-1 text-sm font-medium transition-all',
