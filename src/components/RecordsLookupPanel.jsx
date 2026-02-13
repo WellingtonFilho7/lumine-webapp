@@ -208,6 +208,11 @@ export default function RecordsLookupPanel({ children, activeChildren, dailyReco
       {copyError && (
         <p role="status" aria-live="polite" className="mt-2 text-xs font-semibold text-red-600">{copyError}</p>
       )}
+      {copiedRecordId && (
+        <p role="status" aria-live="polite" className="sr-only">
+          Resumo copiado para a area de transferencia.
+        </p>
+      )}
 
       <div className="mt-4 max-h-72 space-y-2 overflow-auto">
         {filteredRecords.slice(0, 20).map(record => {
