@@ -109,12 +109,23 @@ export default function ChildrenView({
           <p className="text-pretty text-gray-500">
             {searchTerm ? 'Nenhuma criança encontrada' : 'Nenhuma criança cadastrada'}
           </p>
-          <button
-            onClick={() => setView('add-child')}
-            className="mt-4 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            Cadastrar criança
-          </button>
+          {searchTerm ? (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="mt-4 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Limpar busca
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setView('add-child')}
+              className="mt-4 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Cadastrar criança
+            </button>
+          )}
         </div>
       )}
     </div>
