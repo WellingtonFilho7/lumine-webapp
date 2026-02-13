@@ -4,7 +4,7 @@ import { cn } from '../../utils/cn';
 
 function NavItem({ icon: Icon, label, active, onClick }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={cn(
         'flex h-full w-16 flex-col items-center justify-center transition-colors',

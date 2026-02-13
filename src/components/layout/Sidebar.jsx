@@ -4,7 +4,7 @@ import { cn } from '../../utils/cn';
 
 function SidebarItem({ icon: Icon, label, active, onClick }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={cn(
         'flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-sm font-medium transition',

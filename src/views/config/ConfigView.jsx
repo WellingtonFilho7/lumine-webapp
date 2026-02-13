@@ -146,7 +146,7 @@ function ConfigView({
           <span className="text-pretty">Sincronização: baixe antes se o servidor estiver mais recente.</span>
         </li>
       </ol>
-      <button
+      <button type="button"
         onClick={handleOnboardingOpen}
         className="w-full rounded-lg bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400"
       >
@@ -173,11 +173,11 @@ function ConfigView({
             </Dialog.Description>
             <div className="mt-6 flex gap-3">
               <Dialog.Close asChild>
-                <button className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">
+                <button type="button" className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">
                   Cancelar
                 </button>
               </Dialog.Close>
-              <button
+              <button type="button"
                 onClick={() => confirmAction?.()}
                 className="flex-1 rounded-lg bg-orange-500 py-3 font-medium text-gray-900 hover:bg-orange-400"
               >
@@ -203,7 +203,7 @@ function ConfigView({
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <button
+          <button type="button"
             onClick={() => syncWithServer()}
             disabled={!isOnline || overwriteBlocked}
             className="flex items-center justify-center gap-2 rounded-lg bg-green-100 py-3 font-medium text-green-700 disabled:opacity-50"
@@ -211,7 +211,7 @@ function ConfigView({
             <Upload size={18} />
             Enviar
           </button>
-          <button
+          <button type="button"
             onClick={downloadFromServer}
             disabled={!isOnline}
             className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-3 font-medium text-cyan-700 disabled:opacity-50"
@@ -246,7 +246,7 @@ function ConfigView({
       <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
         <h3 className="text-balance font-semibold text-gray-800">Backup Local</h3>
         <div className="grid grid-cols-2 gap-3">
-          <button
+          <button type="button"
             onClick={exportJSON}
             className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-3 font-medium text-cyan-800"
           >
@@ -365,7 +365,7 @@ function ConfigView({
             </div>
             <p className="mt-2 text-sm text-gray-500">Envie e baixe dados da planilha.</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
+              <button type="button"
                 onClick={() => syncWithServer()}
                 disabled={!isOnline}
                 className="flex items-center justify-center gap-2 rounded-lg bg-green-100 py-2 text-sm font-semibold text-green-700 disabled:opacity-50"
@@ -373,7 +373,7 @@ function ConfigView({
                 <Upload size={16} />
                 Enviar
               </button>
-              <button
+              <button type="button"
                 onClick={downloadFromServer}
                 disabled={!isOnline}
                 className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-2 text-sm font-semibold text-cyan-700 disabled:opacity-50"
@@ -388,7 +388,7 @@ function ConfigView({
             <h3 className="text-balance font-semibold text-gray-800">Backup Local</h3>
             <p className="mt-2 text-sm text-gray-500">Exporte ou restaure um arquivo JSON.</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
+              <button type="button"
                 onClick={exportJSON}
                 className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-2 text-sm font-semibold text-cyan-800"
               >
@@ -500,7 +500,7 @@ function ConfigView({
                 <tr>
                   <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={4}>
                     <p className="text-pretty">Nenhum dado disponível para este mês.</p>
-                    <button
+                    <button type="button"
                       onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))}
                       className="mt-4 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                     >

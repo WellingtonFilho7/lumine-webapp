@@ -15,7 +15,7 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
       >
         {showFABMenu && (
           <div className="absolute bottom-16 right-0 mb-2 w-48 overflow-hidden rounded-lg border bg-white shadow-xl">
-            <button
+            <button type="button"
               onClick={() => {
                 setView('add-child');
                 setShowFABMenu(false);
@@ -25,7 +25,7 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
               <Users size={18} className="text-cyan-700" />
               <span className="text-sm font-medium">Nova Criança</span>
             </button>
-            <button
+            <button type="button"
               onClick={() => {
                 setView('daily');
                 setShowFABMenu(false);
@@ -37,7 +37,7 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
             </button>
           </div>
         )}
-        <button
+        <button type="button"
           onClick={() => setShowFABMenu(!showFABMenu)}
           className={cn(
             'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',

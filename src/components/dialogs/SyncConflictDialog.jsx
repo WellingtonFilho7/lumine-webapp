@@ -22,9 +22,9 @@ export default function SyncConflictDialog({ syncModal, setSyncModal, downloadFr
           <Dialog.Description className="mt-2 text-sm text-gray-600">{syncModal?.message}</Dialog.Description>
           <div className="mt-6 flex gap-3">
             <Dialog.Close asChild>
-              <button className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">Cancelar</button>
+              <button type="button" className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">Cancelar</button>
             </Dialog.Close>
-            <button
+            <button type="button"
               onClick={async () => {
                 try {
                   if (syncModal?.type === 'revision-mismatch') {

@@ -183,7 +183,7 @@ function DailyRecordDesktop({
             {pendingExpectedCount === 0 && (
               <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
                 <p className="text-pretty">Nenhuma pendência para esta data.</p>
-                <button
+                <button type="button"
                   onClick={() => setSelectedChildId('')}
                   className="mt-3 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                 >
@@ -199,20 +199,20 @@ function DailyRecordDesktop({
                   selectedChildId === child.id ? 'border-cyan-200 bg-cyan-50' : 'border-gray-100'
                 )}
               >
-                <button
+                <button type="button"
                   onClick={() => setSelectedChildId(child.id)}
                   className="flex-1 text-left text-sm font-semibold text-gray-900"
                 >
                   {child.name}
                 </button>
-                <button
+                <button type="button"
                   onClick={() => quickRecord(child.id, 'present')}
                   aria-label={`Marcar ${child.name} como presente`}
                   className="rounded-lg bg-green-100 px-3 py-1 text-xs font-semibold text-green-800"
                 >
                   Presente
                 </button>
-                <button
+                <button type="button"
                   onClick={() => quickRecord(child.id, 'absent')}
                   aria-label={`Marcar ${child.name} como ausente`}
                   className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-800"
@@ -313,7 +313,7 @@ function DailyRecordDesktop({
                   { value: 'late', label: 'Atrasado', color: 'yellow' },
                   { value: 'absent', label: 'Ausente', color: 'red' },
                 ].map(option => (
-                  <button
+                  <button type="button"
                     key={option.value}
                     onClick={() => setForm({ ...form, attendance: option.value })}
                     className={cn(
@@ -436,7 +436,7 @@ function DailyRecordDesktop({
               )}
             </div>
 
-            <button
+            <button type="button"
               onClick={handleDetailedRecord}
               disabled={!selectedChildId}
               className="w-full rounded-lg bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400 disabled:bg-gray-300 disabled:text-gray-500"

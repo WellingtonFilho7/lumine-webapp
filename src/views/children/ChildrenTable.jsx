@@ -136,13 +136,16 @@ export default function ChildrenTable({
                   <p className="text-pretty">
                     {searchTerm ? 'Nenhuma criança encontrada' : 'Nenhuma criança cadastrada'}
                   </p>
-                  {searchTerm ? (
+                  {searchTerm || statusFilter !== 'all' ? (
                     <button
                       type="button"
-                      onClick={() => setSearchTerm('')}
+                      onClick={() => {
+                        setSearchTerm('');
+                        setStatusFilter('all');
+                      }}
                       className="mt-4 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                     >
-                      Limpar busca
+                      Limpar filtros
                     </button>
                   ) : (
                     <button

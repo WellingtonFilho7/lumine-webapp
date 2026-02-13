@@ -40,10 +40,10 @@ export default function OnboardingModal({ open, onOpenChange, onLater, onDone })
             </li>
           </ol>
           <div className="mt-6 flex gap-3">
-            <button onClick={onLater} className="flex-1 rounded-lg bg-teal-50 py-3 text-sm font-semibold text-gray-700">
+            <button type="button" onClick={onLater} className="flex-1 rounded-lg bg-teal-50 py-3 text-sm font-semibold text-gray-700">
               Ver depois
             </button>
-            <button onClick={onDone} className="flex-1 rounded-lg bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400">
+            <button type="button" onClick={onDone} className="flex-1 rounded-lg bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400">
               Entendi
             </button>
           </div>

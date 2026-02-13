@@ -233,7 +233,7 @@ export default function LumineTracker() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {(view === 'add-child' || view === 'child-detail') && (
-              <button
+              <button type="button"
                 onClick={() => setView('children')}
                 className="p-1"
                 aria-label={UI_TEXT.backAriaLabel}

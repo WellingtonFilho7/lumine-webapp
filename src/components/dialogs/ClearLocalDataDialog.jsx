@@ -5,7 +5,7 @@ export default function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
   return (
     <AlertDialog.Root>
       <AlertDialog.Trigger asChild>
-        <button className={triggerClassName}>Sair e limpar dados deste dispositivo</button>
+        <button type="button" className={triggerClassName}>Sair e limpar dados deste dispositivo</button>
       </AlertDialog.Trigger>
       <AlertDialog.Portal>
         <AlertDialog.Overlay
@@ -22,10 +22,10 @@ export default function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
           </AlertDialog.Description>
           <div className="mt-6 flex gap-3">
             <AlertDialog.Cancel asChild>
-              <button className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">Cancelar</button>
+              <button type="button" className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">Cancelar</button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
-              <button onClick={onConfirm} className="flex-1 rounded-lg bg-rose-600 py-3 font-medium text-white">
+              <button type="button" onClick={onConfirm} className="flex-1 rounded-lg bg-rose-600 py-3 font-medium text-white">
                 Confirmar e limpar
               </button>
             </AlertDialog.Action>

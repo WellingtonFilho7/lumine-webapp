@@ -59,7 +59,7 @@ export default function DashboardDesktop({
               </div>
               <div className="space-y-2">
                 {alerts.map((alert, index) => (
-                  <button
+                  <button type="button"
                     key={`${alert.childId}-${index}`}
                     onClick={() => {
                       const child = children.find(c => c.id === alert.childId);
@@ -107,7 +107,7 @@ export default function DashboardDesktop({
               ))}
             </div>
             {pendingToday.length > 0 && (
-              <button
+              <button type="button"
                 onClick={() => setView('daily')}
                 className="mt-4 w-full rounded-lg border border-cyan-200 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50"
               >
@@ -126,7 +126,7 @@ export default function DashboardDesktop({
             {todayRecords.length === 0 && (
               <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
                 <p className="text-pretty">Nenhum registro feito hoje.</p>
-                <button
+                <button type="button"
                   onClick={() => setView('daily')}
                   className="mt-3 w-full rounded-lg border border-cyan-200 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50"
                 >

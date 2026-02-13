@@ -455,13 +455,13 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
           </div>
 
           <div className="flex gap-3">
-            <button
+            <button type="button"
               onClick={handleSaveTriagem}
               className="flex-1 rounded-lg bg-teal-50 py-4 font-semibold text-gray-700"
             >
               {triageComplete ? 'Concluir triagem' : 'Salvar rascunho'}
             </button>
-            <button
+            <button type="button"
               onClick={() => {
                 setTriageError('');
                 if (form.triageResult !== 'aprovado') {
@@ -703,13 +703,13 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
           </div>
 
           <div className="flex gap-3">
-            <button
+            <button type="button"
               onClick={() => setStep(1)}
               className="flex-1 rounded-lg bg-teal-50 py-4 font-semibold text-gray-700"
             >
               Voltar
             </button>
-            <button
+            <button type="button"
               onClick={handleMatricular}
               disabled={!matriculaComplete}
               className={cn(

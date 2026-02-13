@@ -77,7 +77,7 @@ export default function DashboardView({
                 <ChevronRight size={18} className="text-gray-400" />
               </div>
             ))}
-            <button
+            <button type="button"
               onClick={() => setView('daily')}
               className="w-full py-2 text-center text-sm font-semibold text-cyan-700"
             >
@@ -141,7 +141,7 @@ export default function DashboardView({
         ) : (
           <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
             <p className="text-pretty">Nenhum registro feito hoje.</p>
-            <button
+            <button type="button"
               onClick={() => setView('daily')}
               className="mt-3 w-full rounded-lg border border-cyan-200 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50"
             >

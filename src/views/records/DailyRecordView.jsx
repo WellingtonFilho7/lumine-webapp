@@ -234,14 +234,14 @@ function DailyRecordView({
                 {expectedChildren.filter(c => !recordedIds.includes(c.id)).map(child => (
                   <div key={child.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
                     <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
-                    <button
+                    <button type="button"
                       onClick={() => quickRecord(child.id, 'present')}
                       aria-label={`Marcar ${child.name} como presente`}
                       className="rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-800"
                     >
                       Presente
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => quickRecord(child.id, 'absent')}
                       aria-label={`Marcar ${child.name} como ausente`}
                       className="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800"
@@ -269,7 +269,7 @@ function DailyRecordView({
                 </option>
               ))}
             </select>
-            <button
+            <button type="button"
               onClick={() => selectedChildId && setStep('details')}
               disabled={!selectedChildId}
               className="w-full rounded-lg bg-orange-500 py-3 font-semibold text-gray-900 hover:bg-orange-400 disabled:bg-gray-300 disabled:text-gray-500"
@@ -293,7 +293,7 @@ function DailyRecordView({
                 </span>
               )}
             </div>
-            <button
+            <button type="button"
               onClick={() => {
                 if (editingRecordId) {
                   clearEditing();
@@ -317,7 +317,7 @@ function DailyRecordView({
                 { value: 'late', label: 'Atrasado', color: 'yellow' },
                 { value: 'absent', label: 'Ausente', color: 'red' },
               ].map(opt => (
-                <button
+                <button type="button"
                   key={opt.value}
                   onClick={() => setForm({ ...form, attendance: opt.value })}
                   className={cn(
@@ -350,7 +350,7 @@ function DailyRecordView({
                     { value: 'neutral', label: '😐' },
                     { value: 'sad', label: '😢' },
                   ].map(opt => (
-                    <button
+                    <button type="button"
                       key={opt.value}
                       onClick={() => setForm({ ...form, mood: opt.value })}
                       className={cn(
@@ -459,7 +459,7 @@ function DailyRecordView({
           </div>
 
           {/* Botão salvar */}
-          <button
+          <button type="button"
             onClick={handleDetailedRecord}
             className="w-full rounded-lg bg-green-600 py-4 font-semibold text-white shadow-lg"
           >
