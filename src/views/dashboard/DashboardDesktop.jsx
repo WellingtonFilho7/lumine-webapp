@@ -109,7 +109,7 @@ export default function DashboardDesktop({
             {pendingToday.length > 0 && (
               <button
                 onClick={() => setView('daily')}
-                className="mt-4 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="mt-4 w-full rounded-lg border border-cyan-200 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50"
               >
                 Ir para registros
               </button>
