@@ -71,7 +71,7 @@ export default function DashboardView({
         </div>
       )}
 
-      {pendingToday.length > 0 && (
+      {true && (
         <div className="rounded-lg bg-white p-4 shadow-md">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-balance font-semibold text-gray-900">Registrar hoje</h3>
@@ -79,22 +79,35 @@ export default function DashboardView({
               {pendingToday.length} pendentes
             </span>
           </div>
-          <div className="space-y-2">
-            {pendingToday.slice(0, 5).map(child => (
-              <div key={child.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-2">
-                <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
-                <ChevronRight size={18} className="text-gray-400" />
+
+          {pendingToday.length > 0 ? (
+            <div className="space-y-2">
+              {pendingToday.slice(0, 5).map(child => (
+                <div key={child.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-2">
+                  <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
+                  <ChevronRight size={18} className="text-gray-400" />
+                </div>
+              ))}
+              {pendingToday.length > 5 && (
+                <button
+                  onClick={() => setView('daily')}
+                  className="w-full py-2 text-center text-sm font-semibold text-cyan-700"
+                >
+                  Ver todos ({pendingToday.length})
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3">
+              <div className="flex size-8 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle className="size-4 text-green-700" />
               </div>
-            ))}
-            {pendingToday.length > 5 && (
-              <button
-                onClick={() => setView('daily')}
-                className="w-full py-2 text-center text-sm font-semibold text-cyan-700"
-              >
-                Ver todos ({pendingToday.length})
-              </button>
-            )}
-          </div>
+              <div>
+                <p className="text-sm font-semibold text-green-900">Dia em dia</p>
+                <p className="text-xs text-green-700">Todas as crianças já foram registradas.</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -119,9 +132,18 @@ export default function DashboardView({
                   <span className="flex-1 truncate text-sm font-semibold text-gray-900">
                     {child?.name || 'Criança'}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-1 text-xs font-semibold',
+                      rec.attendance === 'present'
+                        ? 'bg-green-100 text-green-800'
+                        : rec.attendance === 'late'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    )}
+                  >
                     {rec.attendance === 'present'
-                      ? 'Presente'
+                      ? 'Presente ✔'
                       : rec.attendance === 'late'
                       ? 'Atrasado'
                       : 'Ausente'}

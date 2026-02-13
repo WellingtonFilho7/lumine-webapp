@@ -89,8 +89,14 @@ export default function DashboardDesktop({
             </div>
             <div className="mt-4 space-y-2">
               {pendingToday.length === 0 && (
-                <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
-                  Tudo registrado por hoje.
+                <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-4">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle className="size-4 text-green-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-green-900">Dia em dia</p>
+                    <p className="text-xs text-green-700">Tudo registrado por hoje.</p>
+                  </div>
                 </div>
               )}
               {pendingToday.slice(0, 6).map(child => (
@@ -122,7 +128,7 @@ export default function DashboardDesktop({
                 <p className="text-pretty">Nenhum registro feito hoje.</p>
                 <button
                   onClick={() => setView('daily')}
-                  className="mt-3 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  className="mt-3 w-full rounded-lg border border-cyan-200 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50"
                 >
                   Ir para registro
                 </button>
@@ -143,14 +149,14 @@ export default function DashboardDesktop({
                     className={cn(
                       'rounded-full px-2 py-1 text-xs font-semibold',
                       record.attendance === 'present'
-                        ? 'bg-green-100 text-green-700'
+                        ? 'bg-green-100 text-green-800'
                         : record.attendance === 'late'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
                     )}
                   >
                     {record.attendance === 'present'
-                      ? 'Presente'
+                      ? 'Presente ✔'
                       : record.attendance === 'late'
                       ? 'Atrasado'
                       : 'Ausente'}
