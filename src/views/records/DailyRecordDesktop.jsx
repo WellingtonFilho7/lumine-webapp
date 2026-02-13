@@ -38,7 +38,6 @@ function DailyRecordDesktop({
   const activeChildren = children.filter(isMatriculated);
   const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
   const recordedIds = dateRecords.map(r => r.childInternalId);
-  const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
   const selectedChild =
     children.find(c => c.id === selectedChildId) ||
     activeChildren.find(c => c.id === selectedChildId);
@@ -177,11 +176,11 @@ function DailyRecordDesktop({
           <div className="flex items-center justify-between">
             <h3 className="text-balance font-semibold text-gray-900">Pendentes</h3>
             <span className="rounded-full bg-teal-50 px-2 py-1 text-xs text-gray-500 tabular-nums">
-              {pending.length} pendentes
+              {pendingExpectedCount} pendentes
             </span>
           </div>
           <div className="mt-4 max-h-[360px] space-y-2 overflow-auto">
-            {pending.length === 0 && (
+            {pendingExpectedCount === 0 && (
               <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
                 <p className="text-pretty">Nenhuma pendência para esta data.</p>
                 <button
@@ -192,7 +191,7 @@ function DailyRecordDesktop({
                 </button>
               </div>
             )}
-            {pending.map(child => (
+            {expectedChildren.filter(c => !recordedIds.includes(c.id)).map(child => (
               <div
                 key={child.id}
                 className={cn(
@@ -208,13 +207,13 @@ function DailyRecordDesktop({
                 </button>
                 <button
                   onClick={() => quickRecord(child.id, 'present')}
-                  className="rounded-lg bg-green-100 px-3 py-1 text-xs font-semibold text-green-700"
+                  className="rounded-lg bg-green-100 px-3 py-1 text-xs font-semibold text-green-800"
                 >
                   Presente
                 </button>
                 <button
                   onClick={() => quickRecord(child.id, 'absent')}
-                  className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700"
+                  className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-800"
                 >
                   Ausente
                 </button>
@@ -252,7 +251,7 @@ function DailyRecordDesktop({
                       <span className="flex-1 truncate text-sm font-semibold text-gray-900">{label}</span>
                       <span className="text-xs text-gray-500">
                         {record.attendance === 'present'
-                          ? 'Presente'
+                          ? 'Presente ✔'
                           : record.attendance === 'late'
                           ? 'Atrasado'
                           : 'Ausente'}

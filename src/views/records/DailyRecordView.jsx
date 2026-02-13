@@ -39,7 +39,6 @@ function DailyRecordView({
   const activeChildren = children.filter(isMatriculated);
   const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
   const recordedIds = dateRecords.map(r => r.childInternalId);
-  const pending = activeChildren.filter(c => !recordedIds.includes(c.id));
   const selectedChild =
     children.find(c => c.id === selectedChildId) ||
     activeChildren.find(c => c.id === selectedChildId);
@@ -158,7 +157,7 @@ function DailyRecordView({
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-cyan-700 tabular-nums">{pending.length} pendentes</p>
+          <p className="text-sm text-cyan-700 tabular-nums">{pendingExpectedCount} pendentes</p>
         </div>
       </div>
 
@@ -215,7 +214,7 @@ function DailyRecordView({
                       <span className="flex-1 truncate text-sm font-semibold text-gray-900">{label}</span>
                       <span className="text-xs text-gray-500">
                         {record.attendance === 'present'
-                          ? 'Presente'
+                          ? 'Presente ✔'
                           : record.attendance === 'late'
                           ? 'Atrasado'
                           : 'Ausente'}
@@ -228,22 +227,22 @@ function DailyRecordView({
           )}
 
           {/* Registro rápido */}
-          {pending.length > 0 && (
+          {pendingExpectedCount > 0 && (
             <div className="rounded-lg bg-white p-4 shadow-md">
               <h3 className="text-balance mb-3 font-semibold text-gray-900">Registro rápido</h3>
               <div className="max-h-60 space-y-2 overflow-y-auto">
-                {pending.map(child => (
+                {expectedChildren.filter(c => !recordedIds.includes(c.id)).map(child => (
                   <div key={child.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
                     <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
                     <button
                       onClick={() => quickRecord(child.id, 'present')}
-                      className="rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-700"
+                      className="rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-800"
                     >
                       Presente
                     </button>
                     <button
                       onClick={() => quickRecord(child.id, 'absent')}
-                      className="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700"
+                      className="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800"
                     >
                       Ausente
                     </button>
