@@ -57,3 +57,15 @@ describe('statusWorkflow helpers', () => {
     );
   });
 });
+
+test('normalizes legacy triage values for status form editing', () => {
+  const result = buildStatusFormData({
+    schoolShift: 'Manhã',
+    referralSource: 'indicação',
+    renovacao: false,
+  });
+
+  expect(result.schoolShift).toBe('manha');
+  expect(result.referralSource).toBe('indicacao');
+  expect(result.renovacao).toBe('nao');
+});

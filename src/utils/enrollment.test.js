@@ -155,3 +155,25 @@ test('matricula complete with legal fields and conditional leave alone confirmat
   };
   expect(isMatriculaComplete(data)).toBe(true);
 });
+
+test('triage accepts renovacao boolean false as filled value', () => {
+  const data = {
+    name: 'Joao',
+    sexo: 'M',
+    birthDate: '2026-01-01',
+    guardianName: 'Ana',
+    parentesco: 'mae',
+    guardianPhone: '9999',
+    contatoEmergenciaNome: 'Carlos',
+    contatoEmergenciaTelefone: '8888',
+    neighborhood: 'Centro',
+    school: 'Escola A',
+    schoolShift: 'manha',
+    referralSource: 'igreja',
+    schoolCommuteAlone: 'nao',
+    renovacao: false,
+    termoLgpdAssinado: true,
+  };
+
+  expect(getMissingTriageFields(data)).toEqual([]);
+});

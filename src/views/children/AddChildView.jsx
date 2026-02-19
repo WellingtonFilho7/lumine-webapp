@@ -14,18 +14,6 @@ import {
 
 const STRICT_UI_MODE = (process.env.REACT_APP_ENROLLMENT_STRICT_UI || 'true').toLowerCase() !== 'false';
 
-const NEIGHBORHOOD_OPTIONS = [
-  { value: 'centro', label: 'Centro' },
-  { value: 'catole', label: 'Catolé' },
-  { value: 'jardim_oceania', label: 'Jardim Oceania' },
-  { value: 'bodocongo', label: 'Bodocongó' },
-  { value: 'pedregal', label: 'Pedregal' },
-  { value: 'liberdade', label: 'Liberdade' },
-  { value: 'prata', label: 'Prata' },
-  { value: 'serrotao', label: 'Serrotão' },
-  { value: 'outro', label: 'Outro' },
-];
-
 function AddChildView({ addChild, setView, triageResultOptions, participationDays, statusFieldLabels }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -38,7 +26,6 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
     contatoEmergenciaNome: '',
     contatoEmergenciaTelefone: '',
     neighborhood: '',
-    neighborhoodOther: '',
     school: '',
     schoolShift: '',
     referralSource: '',
@@ -153,14 +140,13 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
 
     const normalized = normalizeEnrollmentPayload({
       ...form,
-      neighborhood: form.neighborhood === 'outro' ? form.neighborhoodOther : form.neighborhood,
+      neighborhood: form.neighborhood,
       termoLgpdData: form.termoLgpdAssinado ? now : '',
     });
 
     const {
       termsAccepted,
       triageResult,
-      neighborhoodOther,
       ...rest
     } = normalized;
 
@@ -432,32 +418,14 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
 
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Bairro/Comunidade *</label>
-              <select
+              <input
+                type="text"
                 value={form.neighborhood}
                 onChange={e => updateField('neighborhood', e.target.value)}
                 className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-              >
-                <option value="">Selecione</option>
-                {NEIGHBORHOOD_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="Digite o bairro/comunidade"
+              />
             </div>
-
-            {form.neighborhood === 'outro' && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Informe o bairro</label>
-                <input
-                  type="text"
-                  value={form.neighborhoodOther}
-                  onChange={e => updateField('neighborhoodOther', e.target.value)}
-                  className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-                  placeholder="Digite o bairro"
-                />
-              </div>
-            )}
 
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Como conheceu o Lumine? *</label>

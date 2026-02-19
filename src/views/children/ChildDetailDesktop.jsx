@@ -115,14 +115,20 @@ function ChildDetailDesktop({
 
     if (requiresTriage) {
       updates.name = statusFormData.name.trim();
+      updates.sexo = statusFormData.sexo;
       updates.birthDate = statusFormData.birthDate;
       updates.guardianName = statusFormData.guardianName.trim();
+      updates.parentesco = statusFormData.parentesco;
       updates.guardianPhone = statusFormData.guardianPhone.trim();
+      updates.contatoEmergenciaNome = statusFormData.contatoEmergenciaNome.trim();
+      updates.contatoEmergenciaTelefone = statusFormData.contatoEmergenciaTelefone.trim();
       updates.neighborhood = statusFormData.neighborhood.trim();
       updates.school = statusFormData.school.trim();
       updates.schoolShift = statusFormData.schoolShift;
       updates.referralSource = statusFormData.referralSource;
       updates.schoolCommuteAlone = statusFormData.schoolCommuteAlone;
+      updates.renovacao = statusFormData.renovacao;
+      updates.termoLgpdAssinado = statusFormData.termoLgpdAssinado === true;
     }
 
     if (!child.enrollmentDate) updates.enrollmentDate = now;
@@ -244,6 +250,19 @@ function ChildDetailDesktop({
                         />
                       </div>
                       <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Sexo da criança</label>
+                        <select
+                          value={statusFormData.sexo}
+                          onChange={e => updateStatusField('sexo', e.target.value)}
+                          className={fieldClass('sexo')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="M">Masculino</option>
+                          <option value="F">Feminino</option>
+                          <option value="nao_declarado">Não declarado</option>
+                        </select>
+                      </div>
+                      <div>
                         <label className="mb-1 block text-xs font-medium text-gray-700">Data de nascimento</label>
                         <input
                           type="date"
@@ -262,12 +281,46 @@ function ChildDetailDesktop({
                         />
                       </div>
                       <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Parentesco do responsável</label>
+                        <select
+                          value={statusFormData.parentesco}
+                          onChange={e => updateStatusField('parentesco', e.target.value)}
+                          className={fieldClass('parentesco')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="mae">Mãe</option>
+                          <option value="pai">Pai</option>
+                          <option value="avo">Avó/Avô</option>
+                          <option value="tio">Tio/Tia</option>
+                          <option value="responsavel_legal">Responsável legal</option>
+                          <option value="outro">Outro</option>
+                        </select>
+                      </div>
+                      <div>
                         <label className="mb-1 block text-xs font-medium text-gray-700">Telefone (WhatsApp)</label>
                         <input
                           type="tel"
                           value={statusFormData.guardianPhone}
                           onChange={e => updateStatusField('guardianPhone', e.target.value)}
                           className={fieldClass('guardianPhone')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Contato de emergência (nome)</label>
+                        <input
+                          type="text"
+                          value={statusFormData.contatoEmergenciaNome}
+                          onChange={e => updateStatusField('contatoEmergenciaNome', e.target.value)}
+                          className={fieldClass('contatoEmergenciaNome')}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Contato de emergência (telefone)</label>
+                        <input
+                          type="tel"
+                          value={statusFormData.contatoEmergenciaTelefone}
+                          onChange={e => updateStatusField('contatoEmergenciaTelefone', e.target.value)}
+                          className={fieldClass('contatoEmergenciaTelefone')}
                         />
                       </div>
                       <div>
@@ -296,7 +349,7 @@ function ChildDetailDesktop({
                           className={fieldClass('schoolShift')}
                         >
                           <option value="">Selecione</option>
-                          <option value="manhã">Manhã</option>
+                          <option value="manha">Manhã</option>
                           <option value="tarde">Tarde</option>
                           <option value="integral">Integral</option>
                         </select>
@@ -312,7 +365,7 @@ function ChildDetailDesktop({
                           <option value="igreja">Igreja</option>
                           <option value="escola">Escola</option>
                           <option value="CRAS">CRAS</option>
-                          <option value="indicação">Indicação</option>
+                          <option value="indicacao">Indicação</option>
                           <option value="redes_sociais">Redes sociais</option>
                           <option value="outro">Outro</option>
                         </select>
@@ -331,6 +384,32 @@ function ChildDetailDesktop({
                           <option value="nao">Não</option>
                         </select>
                       </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Renovação de matrícula</label>
+                        <select
+                          value={statusFormData.renovacao}
+                          onChange={e => updateStatusField('renovacao', e.target.value)}
+                          className={fieldClass('renovacao')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="sim">Sim</option>
+                          <option value="nao">Não</option>
+                        </select>
+                      </div>
+                      <label
+                        className={cn(
+                          'flex items-center gap-2 rounded-lg border p-2 text-xs',
+                          missingSet.has('termoLgpdAssinado') ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-700'
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={statusFormData.termoLgpdAssinado}
+                          onChange={e => updateStatusField('termoLgpdAssinado', e.target.checked)}
+                          className="size-4"
+                        />
+                        Responsável assinou o termo LGPD físico
+                      </label>
                     </div>
                   )}
 

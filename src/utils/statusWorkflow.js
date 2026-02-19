@@ -12,6 +12,41 @@ import {
   TRIAGE_REQUIRED_STATUSES,
 } from '../constants/enrollment';
 
+function normalizeAsciiToken(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function normalizeSchoolShiftValue(value) {
+  const token = normalizeAsciiToken(value);
+  if (!token) return '';
+  if (token === 'manha') return 'manha';
+  if (token === 'tarde') return 'tarde';
+  if (token === 'integral') return 'integral';
+  return token;
+}
+
+function normalizeReferralSourceValue(value) {
+  const token = normalizeAsciiToken(value);
+  if (!token) return '';
+  if (token === 'cras') return 'CRAS';
+  if (token === 'indicacao') return 'indicacao';
+  if (token === 'redes_sociais') return 'redes_sociais';
+  return token;
+}
+
+function normalizeRenovacaoValue(value) {
+  if (value === true) return 'sim';
+  if (value === false) return 'nao';
+  const token = normalizeAsciiToken(value);
+  if (['sim', 'true', '1', 'yes'].includes(token)) return 'sim';
+  if (['nao', 'false', '0', 'no'].includes(token)) return 'nao';
+  return '';
+}
+
 export function getStatusMeta(child) {
   const status = getEnrollmentStatus(child);
   return {
@@ -24,7 +59,8 @@ export function getStatusMeta(child) {
 }
 
 export function buildStatusFormData(child) {
-  const leaveAloneConfirmado = parseBoolean(child?.leaveAloneConfirmado) || parseBoolean(child?.leaveAloneConsent);
+  const leaveAloneConfirmado =
+    parseBoolean(child?.leaveAloneConfirmado) || parseBoolean(child?.leaveAloneConsent);
 
   return {
     name: child?.name || '',
@@ -37,10 +73,10 @@ export function buildStatusFormData(child) {
     contatoEmergenciaTelefone: child?.contatoEmergenciaTelefone || '',
     neighborhood: child?.neighborhood || '',
     school: child?.school || '',
-    schoolShift: child?.schoolShift || '',
-    referralSource: child?.referralSource || '',
+    schoolShift: normalizeSchoolShiftValue(child?.schoolShift),
+    referralSource: normalizeReferralSourceValue(child?.referralSource),
     schoolCommuteAlone: child?.schoolCommuteAlone || '',
-    renovacao: child?.renovacao ?? '',
+    renovacao: normalizeRenovacaoValue(child?.renovacao),
     termoLgpdAssinado: parseBoolean(child?.termoLgpdAssinado),
     startDate: child?.startDate || child?.entryDate || '',
     participationDays: parseParticipationDays(child?.participationDays),

@@ -26,8 +26,26 @@ export const MATRICULA_REQUIRED_FIELDS = [
   'termsAccepted',
 ];
 
+function normalizeAsciiToken(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function hasRenovacaoValue(value) {
+  if (value === true || value === false) return true;
+  const token = normalizeAsciiToken(value);
+  return ['sim', 'nao', 'true', 'false', '1', '0'].includes(token);
+}
+
 export function getMissingTriageFields(data) {
-  return TRIAGE_REQUIRED_FIELDS.filter(field => !data?.[field]);
+  return TRIAGE_REQUIRED_FIELDS.filter(field => {
+    if (field === 'renovacao') return !hasRenovacaoValue(data?.[field]);
+    if (field === 'termoLgpdAssinado') return data?.[field] !== true;
+    return !data?.[field];
+  });
 }
 
 function hasLeaveAloneConfirmation(data) {
@@ -69,6 +87,10 @@ export function buildChecklist(fields, data, labels = {}) {
       complete = Boolean(data?.participationDays?.length);
     } else if (field === 'leaveAloneConfirmado') {
       complete = hasLeaveAloneConfirmation(data);
+    } else if (field === 'renovacao') {
+      complete = hasRenovacaoValue(data?.[field]);
+    } else if (field === 'termoLgpdAssinado') {
+      complete = data?.[field] === true;
     } else {
       complete = Boolean(data?.[field]);
     }
