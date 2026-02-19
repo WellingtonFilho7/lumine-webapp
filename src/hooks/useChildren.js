@@ -4,6 +4,7 @@ export default function useChildren({
   apiUrl,
   jsonHeaders,
   isOnline,
+  onlineOnly = false,
   normalizeChild,
   setChildren,
   setSelectedChild,
@@ -13,6 +14,8 @@ export default function useChildren({
 }) {
   const addChild = useCallback(
     async data => {
+      if (onlineOnly && !isOnline) return false;
+
       const now = new Date().toISOString();
       const enrollmentStatus = data.enrollmentStatus || 'matriculado';
       const entryDate =
@@ -70,14 +73,17 @@ export default function useChildren({
           setPendingChanges(prev => Math.max(0, prev - 1));
           setLastSync(new Date().toISOString());
         } catch {
-          return;
+          return true;
         }
       }
+
+      return true;
     },
     [
       apiUrl,
       jsonHeaders,
       isOnline,
+      onlineOnly,
       normalizeChild,
       setChildren,
       setPendingChanges,
@@ -88,6 +94,8 @@ export default function useChildren({
 
   const updateChild = useCallback(
     (childId, updatedData) => {
+      if (onlineOnly && !isOnline) return false;
+
       setChildren(prev =>
         prev.map(child => {
           if (child.id !== childId) return child;
@@ -103,8 +111,9 @@ export default function useChildren({
       });
 
       setPendingChanges(p => p + 1);
+      return true;
     },
-    [setChildren, setSelectedChild, setPendingChanges, normalizeChild]
+    [onlineOnly, isOnline, setChildren, setSelectedChild, setPendingChanges, normalizeChild]
   );
 
   return {

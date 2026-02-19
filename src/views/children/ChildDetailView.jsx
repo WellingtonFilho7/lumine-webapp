@@ -10,6 +10,8 @@ function ChildDetailView({
   child,
   dailyRecords,
   onUpdateChild,
+  isOnline = true,
+  onlineOnly = false,
   getStatusMeta,
   parseEnrollmentHistory,
   buildStatusFormData,
@@ -38,6 +40,9 @@ function ChildDetailView({
   const [statusNotes, setStatusNotes] = useState('');
   const [statusError, setStatusError] = useState('');
   const [statusFormData, setStatusFormData] = useState(() => buildStatusFormData(child));
+  const writeBlocked = onlineOnly && !isOnline;
+  const offlineWriteMessage =
+    'Sem internet no momento. No modo online-only, conecte-se para salvar.';
 
   useEffect(() => {
     setStatusFormData(buildStatusFormData(child));
@@ -96,6 +101,11 @@ function ChildDetailView({
   };
 
   const applyStatusChange = () => {
+    if (writeBlocked) {
+      setStatusError(offlineWriteMessage);
+      return;
+    }
+
     const error = validateStatusTransition(nextStatus);
     if (error) {
       setStatusError(error);
@@ -155,7 +165,11 @@ function ChildDetailView({
       if (!child.matriculationDate) updates.matriculationDate = now;
     }
 
-    if (onUpdateChild) onUpdateChild(child.id, updates);
+    const updated = onUpdateChild ? onUpdateChild(child.id, updates) : false;
+    if (updated === false) {
+      setStatusError(offlineWriteMessage);
+      return;
+    }
     setShowStatusForm(false);
     setStatusNotes('');
   };
@@ -578,7 +592,11 @@ function ChildDetailView({
               <button
                 type="button"
                 onClick={applyStatusChange}
-                className="flex-1 rounded-lg bg-orange-500 py-2 text-sm font-semibold text-gray-900 hover:bg-orange-400"
+                disabled={writeBlocked}
+                className={cn(
+                  'flex-1 rounded-lg bg-orange-500 py-2 text-sm font-semibold text-gray-900 hover:bg-orange-400',
+                  writeBlocked && 'cursor-not-allowed opacity-50'
+                )}
               >
                 Salvar
               </button>

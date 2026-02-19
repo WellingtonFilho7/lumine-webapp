@@ -14,7 +14,15 @@ import {
 
 const STRICT_UI_MODE = (process.env.REACT_APP_ENROLLMENT_STRICT_UI || 'true').toLowerCase() !== 'false';
 
-function AddChildView({ addChild, setView, triageResultOptions, participationDays, statusFieldLabels }) {
+function AddChildView({
+  addChild,
+  setView,
+  isOnline = true,
+  onlineOnly = false,
+  triageResultOptions,
+  participationDays,
+  statusFieldLabels,
+}) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: '',
@@ -65,6 +73,9 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
 
   const [triageError, setTriageError] = useState('');
   const [matriculaError, setMatriculaError] = useState('');
+  const writeBlocked = onlineOnly && !isOnline;
+  const offlineWriteMessage =
+    'Sem internet no momento. No modo online-only, conecte-se para salvar.';
 
   const updateField = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -166,6 +177,10 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
 
   const handleSaveTriagem = () => {
     setTriageError('');
+    if (writeBlocked) {
+      setTriageError(offlineWriteMessage);
+      return;
+    }
     if (form.triageResult && !triageComplete) {
       setTriageError('Complete os itens obrigatórios da triagem para definir o resultado.');
       return;
@@ -178,6 +193,10 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
   const handleMatricular = () => {
     setTriageError('');
     setMatriculaError('');
+    if (writeBlocked) {
+      setMatriculaError(offlineWriteMessage);
+      return;
+    }
     if (!triageComplete) {
       setTriageError('Complete os itens obrigatórios da triagem para concluir.');
       return;
@@ -621,13 +640,21 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
           <div className="flex gap-3">
             <button type="button"
               onClick={handleSaveTriagem}
-              className="flex-1 rounded-lg bg-teal-50 py-4 font-semibold text-gray-700"
+              disabled={writeBlocked}
+              className={cn(
+                'flex-1 rounded-lg bg-teal-50 py-4 font-semibold text-gray-700',
+                writeBlocked && 'cursor-not-allowed opacity-50'
+              )}
             >
               {triageComplete ? 'Concluir triagem' : 'Salvar rascunho'}
             </button>
             <button type="button"
               onClick={() => {
                 setTriageError('');
+                if (writeBlocked) {
+                  setTriageError(offlineWriteMessage);
+                  return;
+                }
                 if (form.triageResult !== 'aprovado') {
                   setTriageError("Selecione 'Aprovada para matrícula' para continuar.");
                   return;
@@ -638,7 +665,11 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
                 }
                 setStep(2);
               }}
-              className="flex-1 rounded-lg bg-orange-500 py-4 font-semibold text-gray-900 hover:bg-orange-400"
+              disabled={writeBlocked}
+              className={cn(
+                'flex-1 rounded-lg bg-orange-500 py-4 font-semibold text-gray-900 hover:bg-orange-400',
+                writeBlocked && 'cursor-not-allowed opacity-50'
+              )}
             >
               Continuar para matrícula
             </button>
@@ -923,10 +954,10 @@ function AddChildView({ addChild, setView, triageResultOptions, participationDay
             </button>
             <button type="button"
               onClick={handleMatricular}
-              disabled={!matriculaComplete}
+              disabled={!matriculaComplete || writeBlocked}
               className={cn(
                 'flex-1 rounded-lg bg-green-600 py-4 font-semibold text-white',
-                !matriculaComplete && 'opacity-50'
+                (!matriculaComplete || writeBlocked) && 'cursor-not-allowed opacity-50'
               )}
             >
               Matricular

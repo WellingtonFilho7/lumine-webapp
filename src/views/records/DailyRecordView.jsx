@@ -23,6 +23,8 @@ function DailyRecordView({
   children,
   dailyRecords,
   addDailyRecord,
+  isOnline = true,
+  onlineOnly = false,
   isMatriculated = defaultIsMatriculated,
   formatDate = defaultFormatDate,
 }) {
@@ -35,6 +37,9 @@ function DailyRecordView({
   const [toastMessage, setToastMessage] = useState('');
   const toastTimerRef = useRef(null);
   const resetTimerRef = useRef(null);
+  const writeBlocked = onlineOnly && !isOnline;
+  const offlineWriteMessage =
+    'Sem internet no momento. No modo online-only, conecte-se para salvar.';
 
   const activeChildren = children.filter(isMatriculated);
   const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
@@ -96,6 +101,11 @@ function DailyRecordView({
   };
 
   const quickRecord = (childId, attendance) => {
+    if (writeBlocked) {
+      showToast(offlineWriteMessage);
+      return;
+    }
+
     addDailyRecord({
       childInternalId: childId,
       date,
@@ -113,6 +123,10 @@ function DailyRecordView({
   };
 
   const handleDetailedRecord = () => {
+    if (writeBlocked) {
+      showToast(offlineWriteMessage);
+      return;
+    }
     if (!selectedChildId) return;
     const isEditing = Boolean(editingRecordId);
     addDailyRecord({ childInternalId: selectedChildId, date, ...form });
@@ -147,6 +161,12 @@ function DailyRecordView({
           className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
         />
       </div>
+
+      {writeBlocked && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-700">
+          {offlineWriteMessage}
+        </div>
+      )}
 
       {/* Status do dia */}
       <div className="flex items-center justify-between rounded-lg bg-cyan-50 p-4">
@@ -236,15 +256,23 @@ function DailyRecordView({
                     <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
                     <button type="button"
                       onClick={() => quickRecord(child.id, 'present')}
+                      disabled={writeBlocked}
                       aria-label={`Marcar ${child.name} como presente`}
-                      className="rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-800"
+                      className={cn(
+                        'rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-800',
+                        writeBlocked && 'cursor-not-allowed opacity-50'
+                      )}
                     >
                       Presente
                     </button>
                     <button type="button"
                       onClick={() => quickRecord(child.id, 'absent')}
+                      disabled={writeBlocked}
                       aria-label={`Marcar ${child.name} como ausente`}
-                      className="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800"
+                      className={cn(
+                        'rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800',
+                        writeBlocked && 'cursor-not-allowed opacity-50'
+                      )}
                     >
                       Ausente
                     </button>
@@ -271,8 +299,8 @@ function DailyRecordView({
             </select>
             <button type="button"
               onClick={() => selectedChildId && setStep('details')}
-              disabled={!selectedChildId}
-              className="w-full rounded-lg bg-orange-500 py-3 font-semibold text-gray-900 hover:bg-orange-400 disabled:bg-gray-300 disabled:text-gray-500"
+              disabled={!selectedChildId || writeBlocked}
+              className="w-full rounded-lg bg-orange-500 py-3 font-semibold text-gray-900 hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
             >
               Continuar
             </button>
@@ -464,7 +492,8 @@ function DailyRecordView({
           {/* Botão salvar */}
           <button type="button"
             onClick={handleDetailedRecord}
-            className="w-full rounded-lg bg-green-600 py-4 font-semibold text-white shadow-lg"
+            disabled={writeBlocked}
+            className="w-full rounded-lg bg-green-600 py-4 font-semibold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
             {editingRecordId ? 'Atualizar registro' : 'Salvar Registro'}
           </button>

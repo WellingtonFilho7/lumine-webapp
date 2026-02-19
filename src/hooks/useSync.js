@@ -24,6 +24,7 @@ export default function useSync({
   pendingChanges,
   setPendingChanges,
   reviewMode,
+  onlineOnly = false,
 }) {
   const [syncStatus, setSyncStatus] = useState('idle');
   const [syncError, setSyncError] = useState('');
@@ -93,7 +94,9 @@ export default function useSync({
 
       if (overwriteBlocked && !payload) {
         applySyncError({
-          message: 'Baixe os dados antes de sincronizar.',
+          message: onlineOnly
+            ? 'Atualize a página para carregar a versão mais recente antes de sincronizar.'
+            : 'Baixe os dados antes de sincronizar.',
           level: 'warning',
           autoDismissMs: SYNC_WARNING_RESET_TIMEOUT_MS,
         });
@@ -129,7 +132,9 @@ export default function useSync({
             } else {
               setOverwriteBlocked(true);
               applySyncError({
-                message: 'Há dados novos no servidor. Toque em Baixar para atualizar.',
+                message: onlineOnly
+                  ? 'Há dados novos no servidor. Atualize a página para continuar.'
+                  : 'Há dados novos no servidor. Toque em Baixar para atualizar.',
                 level: 'warning',
                 autoDismissMs: SYNC_WARNING_RESET_TIMEOUT_MS,
               });
@@ -176,7 +181,15 @@ export default function useSync({
               });
             } else {
               setOverwriteBlocked(true);
-              applySyncError(classifiedError);
+              applySyncError(
+                onlineOnly
+                  ? {
+                      ...classifiedError,
+                      message:
+                        'Os dados foram alterados por outro dispositivo. Atualize a página para continuar.',
+                    }
+                  : classifiedError
+              );
             }
             return false;
           }
@@ -211,10 +224,10 @@ export default function useSync({
         applySyncSuccess();
         return true;
       } catch (error) {
-        applySyncError(
-          classifySyncError({
-            isOnline,
-            fallbackMessage: error?.message || 'Erro na sincronização',
+      applySyncError(
+        classifySyncError({
+          isOnline,
+          fallbackMessage: error?.message || 'Erro na sincronização',
           })
         );
         return false;
@@ -229,6 +242,7 @@ export default function useSync({
       baseHeaders,
       setDataRev,
       applySyncError,
+      onlineOnly,
       jsonHeaders,
       children,
       dailyRecords,

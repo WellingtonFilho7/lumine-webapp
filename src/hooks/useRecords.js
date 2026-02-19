@@ -4,6 +4,7 @@ export default function useRecords({
   apiUrl,
   jsonHeaders,
   isOnline,
+  onlineOnly = false,
   reviewMode,
   children,
   dailyRecords,
@@ -16,19 +17,21 @@ export default function useRecords({
 }) {
   const addDailyRecord = useCallback(
     async data => {
+      if (onlineOnly && !isOnline) return false;
+
       const now = new Date().toISOString();
       const { recordPayload, nextRecords, existed } = upsertDailyRecord(dailyRecords, data, now);
 
       setDailyRecords(nextRecords);
       setPendingChanges(p => p + 1);
 
-      if (!isOnline) return;
+      if (!isOnline) return true;
 
       if (existed) {
         if (!reviewMode) {
           await syncWithServer({ children, records: nextRecords }, 'auto');
         }
-        return;
+        return true;
       }
 
       try {
@@ -47,14 +50,17 @@ export default function useRecords({
         setPendingChanges(prev => Math.max(0, prev - 1));
         setLastSync(new Date().toISOString());
       } catch {
-        return;
+        return true;
       }
+
+      return true;
     },
     [
       upsertDailyRecord,
       dailyRecords,
       setDailyRecords,
       setPendingChanges,
+      onlineOnly,
       isOnline,
       reviewMode,
       syncWithServer,

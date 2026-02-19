@@ -37,6 +37,8 @@ function ConfigView({
   clearLocalData,
   reviewMode,
   setReviewMode,
+  onlineOnly = false,
+  showLegacySyncUi = true,
   onOpenOnboarding,
   normalizeChildren = defaultNormalizeChildren,
   normalizeRecords = defaultNormalizeRecords,
@@ -143,7 +145,11 @@ function ConfigView({
           <span className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-cyan-100 text-xs font-semibold tabular-nums text-cyan-800">
             3
           </span>
-          <span className="text-pretty">Sincronização: baixe antes se o servidor estiver mais recente.</span>
+          <span className="text-pretty">
+            {onlineOnly
+              ? 'Conectado: os dados são enviados automaticamente.'
+              : 'Sincronização: baixe antes se o servidor estiver mais recente.'}
+          </span>
         </li>
       </ol>
       <button type="button"
@@ -189,56 +195,60 @@ function ConfigView({
       </Dialog.Root>
 
       <div className="space-y-4 lg:hidden">
-        {/* Sincronização */}
-      <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className={cn('size-3 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
-          <h3 className="text-balance font-semibold text-gray-800">Sincronização</h3>
-        </div>
+        {showLegacySyncUi && (
+          <>
+            {/* Sincronização */}
+            <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className={cn('size-3 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
+                <h3 className="text-balance font-semibold text-gray-800">Sincronização</h3>
+              </div>
 
-        {lastSync && (
-          <p className="text-sm text-gray-500">
-            Última sync: {formatDate(lastSync)} às {formatTime(lastSync)}
-          </p>
+              {lastSync && (
+                <p className="text-sm text-gray-500">
+                  Última sync: {formatDate(lastSync)} às {formatTime(lastSync)}
+                </p>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button"
+                  onClick={() => syncWithServer()}
+                  disabled={!isOnline || overwriteBlocked}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-green-100 py-3 font-medium text-green-700 disabled:opacity-50"
+                >
+                  <Upload size={18} />
+                  Enviar
+                </button>
+                <button type="button"
+                  onClick={downloadFromServer}
+                  disabled={!isOnline}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-3 font-medium text-cyan-700 disabled:opacity-50"
+                >
+                  <Download size={18} />
+                  Baixar
+                </button>
+              </div>
+            </div>
+
+            {/* Modo revisão */}
+            <div className="space-y-3 rounded-lg bg-white p-4 shadow-md">
+              <div className="flex items-center justify-between">
+                <h3 className="text-balance font-semibold text-gray-800">Modo revisão</h3>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={reviewMode}
+                    onChange={e => setReviewMode(e.target.checked)}
+                    className="h-5 w-5 rounded border-gray-300 text-cyan-700"
+                  />
+                </label>
+              </div>
+              <p className="text-sm text-gray-500">
+                Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
+              </p>
+            </div>
+          </>
         )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button"
-            onClick={() => syncWithServer()}
-            disabled={!isOnline || overwriteBlocked}
-            className="flex items-center justify-center gap-2 rounded-lg bg-green-100 py-3 font-medium text-green-700 disabled:opacity-50"
-          >
-            <Upload size={18} />
-            Enviar
-          </button>
-          <button type="button"
-            onClick={downloadFromServer}
-            disabled={!isOnline}
-            className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-3 font-medium text-cyan-700 disabled:opacity-50"
-          >
-            <Download size={18} />
-            Baixar
-          </button>
-        </div>
-      </div>
-
-      {/* Modo revisão */}
-      <div className="space-y-3 rounded-lg bg-white p-4 shadow-md">
-        <div className="flex items-center justify-between">
-          <h3 className="text-balance font-semibold text-gray-800">Modo revisão</h3>
-          <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={reviewMode}
-              onChange={e => setReviewMode(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300 text-cyan-700"
-            />
-          </label>
-        </div>
-        <p className="text-sm text-gray-500">
-          Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
-        </p>
-      </div>
 
       {renderOnboardingCard()}
 
@@ -353,36 +363,49 @@ function ConfigView({
 
       <div className="hidden lg:block space-y-6">
         <div className="grid grid-cols-3 gap-6">
-          <div className="rounded-2xl bg-white p-5 shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={cn('size-2 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
-                <h3 className="text-balance font-semibold text-gray-800">Sincronização</h3>
+          {showLegacySyncUi ? (
+            <div className="rounded-2xl bg-white p-5 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={cn('size-2 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
+                  <h3 className="text-balance font-semibold text-gray-800">Sincronização</h3>
+                </div>
+                <span className="text-xs text-gray-400">
+                  {lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : 'Sem sync'}
+                </span>
               </div>
-              <span className="text-xs text-gray-400">
-                {lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : 'Sem sync'}
-              </span>
+              <p className="mt-2 text-sm text-gray-500">Envie e baixe dados da planilha.</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button type="button"
+                  onClick={() => syncWithServer()}
+                  disabled={!isOnline}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-green-100 py-2 text-sm font-semibold text-green-700 disabled:opacity-50"
+                >
+                  <Upload size={16} />
+                  Enviar
+                </button>
+                <button type="button"
+                  onClick={downloadFromServer}
+                  disabled={!isOnline}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-2 text-sm font-semibold text-cyan-700 disabled:opacity-50"
+                >
+                  <Download size={16} />
+                  Baixar
+                </button>
+              </div>
             </div>
-            <p className="mt-2 text-sm text-gray-500">Envie e baixe dados da planilha.</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button type="button"
-                onClick={() => syncWithServer()}
-                disabled={!isOnline}
-                className="flex items-center justify-center gap-2 rounded-lg bg-green-100 py-2 text-sm font-semibold text-green-700 disabled:opacity-50"
-              >
-                <Upload size={16} />
-                Enviar
-              </button>
-              <button type="button"
-                onClick={downloadFromServer}
-                disabled={!isOnline}
-                className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-2 text-sm font-semibold text-cyan-700 disabled:opacity-50"
-              >
-                <Download size={16} />
-                Baixar
-              </button>
+          ) : (
+            <div className="rounded-2xl bg-white p-5 shadow-md">
+              <h3 className="text-balance font-semibold text-gray-800">Conectividade</h3>
+              <p className="mt-2 text-sm text-gray-500">
+                Modo online-only ativo. Os dados são enviados automaticamente quando você salva.
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-2 text-sm text-gray-700">
+                <span className={cn('size-2 rounded-full', isOnline ? 'bg-green-500' : 'bg-red-500')} />
+                {isOnline ? 'Online' : 'Offline'}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="rounded-2xl bg-white p-5 shadow-md">
             <h3 className="text-balance font-semibold text-gray-800">Backup Local</h3>
@@ -430,24 +453,26 @@ function ConfigView({
 
         {renderOnboardingCard('rounded-2xl p-5')}
 
-        <div className="rounded-2xl bg-white p-5 shadow-md">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-balance font-semibold text-gray-800">Modo revisão</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
-              </p>
+        {showLegacySyncUi && (
+          <div className="rounded-2xl bg-white p-5 shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-balance font-semibold text-gray-800">Modo revisão</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Quando ativo, o app não faz overwrite automático. Use o botão Sync quando estiver pronto.
+                </p>
+              </div>
+              <label className="inline-flex items-center">
+                <input
+                  type="checkbox"
+                  checked={reviewMode}
+                  onChange={e => setReviewMode(e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300 text-cyan-700"
+                />
+              </label>
             </div>
-            <label className="inline-flex items-center">
-              <input
-                type="checkbox"
-                checked={reviewMode}
-                onChange={e => setReviewMode(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-cyan-700"
-              />
-            </label>
           </div>
-        </div>
+        )}
 
         <div className="rounded-2xl bg-rose-50 p-5 shadow-md">
           <div className="flex flex-wrap items-center justify-between gap-3">

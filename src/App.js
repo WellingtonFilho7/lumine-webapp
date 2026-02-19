@@ -27,7 +27,7 @@ import { upsertDailyRecord } from './utils/records';
 import { getDashboardStats, getAttendanceAlerts } from './utils/dashboardMetrics';
 import { getOrCreateDeviceId } from './utils/device';
 import { buildApiHeaders } from './utils/apiHeaders';
-import { DEFAULT_API_URL } from './constants';
+import { DEFAULT_API_URL, ONLINE_ONLY_MODE, SHOW_LEGACY_SYNC_UI } from './constants';
 import { VIEW_TITLES, UI_TEXT } from './constants/ui';
 import {
   getSyncStateKey,
@@ -132,12 +132,14 @@ export default function LumineTracker() {
     pendingChanges,
     setPendingChanges,
     reviewMode,
+    onlineOnly: ONLINE_ONLY_MODE,
   });
 
   const { addChild, updateChild } = useChildren({
     apiUrl: API_URL,
     jsonHeaders: JSON_HEADERS,
     isOnline,
+    onlineOnly: ONLINE_ONLY_MODE,
     normalizeChild,
     setChildren,
     setSelectedChild,
@@ -150,6 +152,7 @@ export default function LumineTracker() {
     apiUrl: API_URL,
     jsonHeaders: JSON_HEADERS,
     isOnline,
+    onlineOnly: ONLINE_ONLY_MODE,
     reviewMode,
     children,
     dailyRecords,
@@ -212,7 +215,9 @@ export default function LumineTracker() {
       : VIEW_TITLES[view] || 'Lumine';
 
   const syncStateKey = getSyncStateKey(syncStatus);
-  const showPendingSyncBadge = shouldShowPendingSyncBadge(pendingChanges, syncStatus);
+  const showLegacySyncUi = !ONLINE_ONLY_MODE || SHOW_LEGACY_SYNC_UI;
+  const showPendingSyncBadge =
+    showLegacySyncUi && shouldShowPendingSyncBadge(pendingChanges, syncStatus);
   const syncActionDisabled = isSyncActionDisabled(syncStatus, overwriteBlocked);
   const isSyncing = syncStateKey === 'syncing';
 
@@ -259,13 +264,15 @@ export default function LumineTracker() {
             />
 
             {/* Botão Sync */}
-            <SyncActionButton
-              variant="mobile"
-              syncStateKey={syncStateKey}
-              isSyncing={isSyncing}
-              disabled={syncActionDisabled}
-              onSync={() => syncWithServer()}
-            />
+            {showLegacySyncUi && (
+              <SyncActionButton
+                variant="mobile"
+                syncStateKey={syncStateKey}
+                isSyncing={isSyncing}
+                disabled={syncActionDisabled}
+                onSync={() => syncWithServer()}
+              />
+            )}
           </div>
         </div>
 
@@ -314,13 +321,15 @@ export default function LumineTracker() {
             />
             {getConnectionLabel(isOnline)}
           </div>
-          <SyncActionButton
-            variant="desktop"
-            syncStateKey={syncStateKey}
-            isSyncing={isSyncing}
-            disabled={syncActionDisabled}
-            onSync={() => syncWithServer()}
-          />
+          {showLegacySyncUi && (
+            <SyncActionButton
+              variant="desktop"
+              syncStateKey={syncStateKey}
+              isSyncing={isSyncing}
+              disabled={syncActionDisabled}
+              onSync={() => syncWithServer()}
+            />
+          )}
         </div>
       </header>
 
@@ -388,6 +397,8 @@ export default function LumineTracker() {
             <AddChildView
               addChild={addChild}
               setView={setView}
+              isOnline={isOnline}
+              onlineOnly={ONLINE_ONLY_MODE}
               triageResultOptions={TRIAGE_RESULT_OPTIONS}
               participationDays={PARTICIPATION_DAYS}
               statusFieldLabels={STATUS_FIELD_LABELS}
@@ -401,6 +412,8 @@ export default function LumineTracker() {
                 child={selectedChild}
                 dailyRecords={dailyRecords}
                 onUpdateChild={updateChild}
+                isOnline={isOnline}
+                onlineOnly={ONLINE_ONLY_MODE}
                 getStatusMeta={getStatusMeta}
                 parseEnrollmentHistory={parseEnrollmentHistory}
                 buildStatusFormData={buildStatusFormData}
@@ -419,6 +432,8 @@ export default function LumineTracker() {
                 child={selectedChild}
                 dailyRecords={dailyRecords}
                 onUpdateChild={updateChild}
+                isOnline={isOnline}
+                onlineOnly={ONLINE_ONLY_MODE}
                 getStatusMeta={getStatusMeta}
                 parseEnrollmentHistory={parseEnrollmentHistory}
                 buildStatusFormData={buildStatusFormData}
@@ -441,6 +456,8 @@ export default function LumineTracker() {
                 children={children}
                 dailyRecords={dailyRecords}
                 addDailyRecord={addDailyRecord}
+                isOnline={isOnline}
+                onlineOnly={ONLINE_ONLY_MODE}
                 isMatriculated={isMatriculated}
                 formatDate={formatDate}
               />
@@ -450,6 +467,8 @@ export default function LumineTracker() {
                 children={children}
                 dailyRecords={dailyRecords}
                 addDailyRecord={addDailyRecord}
+                isOnline={isOnline}
+                onlineOnly={ONLINE_ONLY_MODE}
                 isMatriculated={isMatriculated}
                 formatDate={formatDate}
               />
@@ -470,6 +489,8 @@ export default function LumineTracker() {
             clearLocalData={clearLocalData}
             reviewMode={reviewMode}
             setReviewMode={setReviewMode}
+            onlineOnly={ONLINE_ONLY_MODE}
+            showLegacySyncUi={showLegacySyncUi}
             onOpenOnboarding={handleOnboardingReopen}
             normalizeChildren={normalizeChildren}
             normalizeRecords={normalizeRecords}

@@ -23,6 +23,8 @@ function DailyRecordDesktop({
   children,
   dailyRecords,
   addDailyRecord,
+  isOnline = true,
+  onlineOnly = false,
   isMatriculated = defaultIsMatriculated,
   formatDate = defaultFormatDate,
 }) {
@@ -34,6 +36,9 @@ function DailyRecordDesktop({
   const [toastMessage, setToastMessage] = useState('');
   const toastTimerRef = useRef(null);
   const resetTimerRef = useRef(null);
+  const writeBlocked = onlineOnly && !isOnline;
+  const offlineWriteMessage =
+    'Sem internet no momento. No modo online-only, conecte-se para salvar.';
 
   const activeChildren = children.filter(isMatriculated);
   const dateRecords = dailyRecords.filter(r => r.date?.split('T')[0] === date);
@@ -93,6 +98,11 @@ function DailyRecordDesktop({
   };
 
   const quickRecord = (childId, attendance) => {
+    if (writeBlocked) {
+      showToast(offlineWriteMessage);
+      return;
+    }
+
     addDailyRecord({
       childInternalId: childId,
       date,
@@ -110,6 +120,10 @@ function DailyRecordDesktop({
   };
 
   const handleDetailedRecord = () => {
+    if (writeBlocked) {
+      showToast(offlineWriteMessage);
+      return;
+    }
     if (!selectedChildId) return;
     const isEditing = Boolean(editingRecordId);
     addDailyRecord({ childInternalId: selectedChildId, date, ...form });
@@ -149,6 +163,12 @@ function DailyRecordDesktop({
           />
         </div>
       </div>
+
+      {writeBlocked && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          {offlineWriteMessage}
+        </div>
+      )}
 
       {allDoneToday && (
         <div role="status" aria-live="polite" className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
@@ -207,15 +227,23 @@ function DailyRecordDesktop({
                 </button>
                 <button type="button"
                   onClick={() => quickRecord(child.id, 'present')}
+                  disabled={writeBlocked}
                   aria-label={`Marcar ${child.name} como presente`}
-                  className="rounded-lg bg-green-100 px-3 py-1 text-xs font-semibold text-green-800"
+                  className={cn(
+                    'rounded-lg bg-green-100 px-3 py-1 text-xs font-semibold text-green-800',
+                    writeBlocked && 'cursor-not-allowed opacity-50'
+                  )}
                 >
                   Presente
                 </button>
                 <button type="button"
                   onClick={() => quickRecord(child.id, 'absent')}
+                  disabled={writeBlocked}
                   aria-label={`Marcar ${child.name} como ausente`}
-                  className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-800"
+                  className={cn(
+                    'rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-800',
+                    writeBlocked && 'cursor-not-allowed opacity-50'
+                  )}
                 >
                   Ausente
                 </button>
@@ -439,8 +467,8 @@ function DailyRecordDesktop({
 
             <button type="button"
               onClick={handleDetailedRecord}
-              disabled={!selectedChildId}
-              className="w-full rounded-lg bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400 disabled:bg-gray-300 disabled:text-gray-500"
+              disabled={!selectedChildId || writeBlocked}
+              className="w-full rounded-lg bg-orange-500 py-3 text-sm font-semibold text-gray-900 hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
             >
               {editingRecordId ? 'Atualizar registro' : 'Salvar registro'}
             </button>
