@@ -252,13 +252,15 @@ export default function useSync({
     ]
   );
 
-  const downloadFromServer = useCallback(async () => {
+  const downloadFromServer = useCallback(async (options = {}) => {
+    const silent = Boolean(options?.silent);
+
     if (!isOnline) {
-      applySyncError(classifySyncError({ isOnline: false }));
+      if (!silent) applySyncError(classifySyncError({ isOnline: false }));
       return false;
     }
 
-    beginSync();
+    if (!silent) beginSync();
     try {
       const res = await fetch(apiUrl, { headers: baseHeaders });
       let result = null;
@@ -269,15 +271,17 @@ export default function useSync({
       }
 
       if (!res.ok || !result?.success) {
-        applySyncError(
-          classifySyncError({
-            isOnline,
-            status: res.status,
-            payloadError: result?.error,
-            details: result?.details,
-            fallbackMessage: result?.message || `Erro HTTP ${res.status}`,
-          })
-        );
+        if (!silent) {
+          applySyncError(
+            classifySyncError({
+              isOnline,
+              status: res.status,
+              payloadError: result?.error,
+              details: result?.details,
+              fallbackMessage: result?.message || `Erro HTTP ${res.status}`,
+            })
+          );
+        }
         return false;
       }
 
@@ -296,15 +300,17 @@ export default function useSync({
       if (typeof result?.dataRev === 'number') setDataRev(result.dataRev);
       setOverwriteBlocked(false);
       setLastSync(new Date().toISOString());
-      applySyncSuccess();
+      if (!silent) applySyncSuccess();
       return true;
     } catch (error) {
-      applySyncError(
-        classifySyncError({
-          isOnline,
-          fallbackMessage: error?.message || 'Erro ao baixar dados',
-        })
-      );
+      if (!silent) {
+        applySyncError(
+          classifySyncError({
+            isOnline,
+            fallbackMessage: error?.message || 'Erro ao baixar dados',
+          })
+        );
+      }
       return false;
     }
   }, [

@@ -1,12 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
 import { Download, Upload } from 'lucide-react';
 import { ATTENDANCE_THRESHOLDS } from '../../constants';
 import { cn } from '../../utils/cn';
 import ClearLocalDataDialog from '../../components/dialogs/ClearLocalDataDialog';
 
-const defaultNormalizeChildren = childrenList => ({ children: childrenList, changed: false });
-const defaultNormalizeRecords = recordsList => ({ records: recordsList, changed: false });
 const defaultIsMatriculated = child => {
   if (!child) return false;
   return child.enrollmentStatus ? child.enrollmentStatus === 'matriculado' : true;
@@ -26,9 +23,7 @@ const defaultFormatTime = value => {
 
 function ConfigView({
   children,
-  setChildren,
   dailyRecords,
-  setDailyRecords,
   syncWithServer,
   downloadFromServer,
   lastSync,
@@ -40,61 +35,10 @@ function ConfigView({
   onlineOnly = false,
   showLegacySyncUi = true,
   onOpenOnboarding,
-  normalizeChildren = defaultNormalizeChildren,
-  normalizeRecords = defaultNormalizeRecords,
   isMatriculated = defaultIsMatriculated,
   formatDate = defaultFormatDate,
   formatTime = defaultFormatTime,
 }) {
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-
-  const exportJSON = () => {
-    const data = {
-      exportDate: new Date().toISOString(),
-      children,
-      dailyRecords,
-      records: dailyRecords,
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `lumine-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const importJSON = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        const importedRecords = Array.isArray(data.dailyRecords)
-          ? data.dailyRecords
-          : Array.isArray(data.records)
-          ? data.records
-          : null;
-        if (Array.isArray(data.children) && importedRecords) {
-          const normalized = normalizeChildren(data.children).children;
-          setConfirmAction(() => () => {
-            setChildren(normalized);
-            const normalizedRecords = normalizeRecords(importedRecords).records;
-            setDailyRecords(normalizedRecords);
-            setShowConfirm(false);
-          });
-          setShowConfirm(true);
-        }
-      } catch {
-        alert('Arquivo inválido');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
-
   // Relatório em cards
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const activeChildren = children.filter(isMatriculated);
@@ -163,37 +107,6 @@ function ConfigView({
 
   return (
     <div className="space-y-4">
-      <Dialog.Root open={showConfirm} onOpenChange={setShowConfirm}>
-        <Dialog.Portal>
-          <Dialog.Overlay
-            className="fixed inset-0 z-50 bg-black/50"
-            style={{
-              paddingTop: 'env(safe-area-inset-top)',
-              paddingBottom: 'env(safe-area-inset-bottom)',
-            }}
-          />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
-            <Dialog.Title className="text-lg font-bold">Confirmar</Dialog.Title>
-            <Dialog.Description className="mt-2 text-sm text-gray-600">
-              Substituir dados atuais pelos importados?
-            </Dialog.Description>
-            <div className="mt-6 flex gap-3">
-              <Dialog.Close asChild>
-                <button type="button" className="flex-1 rounded-lg bg-teal-50 py-3 font-medium">
-                  Cancelar
-                </button>
-              </Dialog.Close>
-              <button type="button"
-                onClick={() => confirmAction?.()}
-                className="flex-1 rounded-lg bg-orange-500 py-3 font-medium text-gray-900 hover:bg-orange-400"
-              >
-                Confirmar
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-
       <div className="space-y-4 lg:hidden">
         {showLegacySyncUi && (
           <>
@@ -252,29 +165,12 @@ function ConfigView({
 
       {renderOnboardingCard()}
 
-      {/* Backup */}
-      <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
-        <h3 className="text-balance font-semibold text-gray-800">Backup Local</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button"
-            onClick={exportJSON}
-            className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-3 font-medium text-cyan-800"
-          >
-            <Download size={18} />
-            Exportar
-          </button>
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-teal-50 py-3 font-medium text-gray-700">
-            <Upload size={18} />
-            Importar
-            <input type="file" accept=".json" onChange={importJSON} className="hidden" />
-          </label>
-        </div>
-      </div>
-
       {/* Segurança */}
       <div className="space-y-3 rounded-lg bg-rose-50 p-4 shadow-md">
-        <h3 className="text-balance font-semibold text-rose-700">Segurança</h3>
-        <p className="text-sm text-rose-600">Remove todas as crianças e registros deste dispositivo.</p>
+        <h3 className="text-balance font-semibold text-rose-700">Reset de cache local</h3>
+        <p className="text-sm text-rose-600">
+          Limpa os dados deste dispositivo e recarrega a versão atual do servidor.
+        </p>
         <ClearLocalDataDialog
           onConfirm={clearLocalData}
           triggerClassName="w-full rounded-lg bg-rose-600 py-3 text-sm font-semibold text-white"
@@ -362,7 +258,7 @@ function ConfigView({
       </div>
 
       <div className="hidden lg:block space-y-6">
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 gap-6">
           {showLegacySyncUi ? (
             <div className="rounded-2xl bg-white p-5 shadow-md">
               <div className="flex items-center justify-between">
@@ -406,25 +302,6 @@ function ConfigView({
               </div>
             </div>
           )}
-
-          <div className="rounded-2xl bg-white p-5 shadow-md">
-            <h3 className="text-balance font-semibold text-gray-800">Backup Local</h3>
-            <p className="mt-2 text-sm text-gray-500">Exporte ou restaure um arquivo JSON.</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button type="button"
-                onClick={exportJSON}
-                className="flex items-center justify-center gap-2 rounded-lg bg-cyan-100 py-2 text-sm font-semibold text-cyan-800"
-              >
-                <Download size={16} />
-                Exportar
-              </button>
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-teal-50 py-2 text-sm font-semibold text-gray-700">
-                <Upload size={16} />
-                Importar
-                <input type="file" accept=".json" onChange={importJSON} className="hidden" />
-              </label>
-            </div>
-          </div>
 
           <div className="rounded-2xl bg-white p-5 shadow-md">
             <h3 className="text-balance font-semibold text-gray-800">Relatório Mensal</h3>
@@ -477,9 +354,9 @@ function ConfigView({
         <div className="rounded-2xl bg-rose-50 p-5 shadow-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-balance font-semibold text-rose-700">Segurança</h3>
+              <h3 className="text-balance font-semibold text-rose-700">Reset de cache local</h3>
               <p className="mt-1 text-sm text-rose-600">
-                Remove todas as crianças e registros deste dispositivo.
+                Limpa os dados deste dispositivo e recarrega a versão atual do servidor.
               </p>
             </div>
             <ClearLocalDataDialog

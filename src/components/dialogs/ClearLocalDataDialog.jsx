@@ -5,7 +5,7 @@ export default function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
   return (
     <AlertDialog.Root>
       <AlertDialog.Trigger asChild>
-        <button type="button" className={triggerClassName}>Sair e limpar dados deste dispositivo</button>
+        <button type="button" className={triggerClassName}>Resetar cache local</button>
       </AlertDialog.Trigger>
       <AlertDialog.Portal>
         <AlertDialog.Overlay
@@ -16,9 +16,9 @@ export default function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
           }}
         />
         <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6">
-          <AlertDialog.Title className="text-lg font-bold">Confirmar</AlertDialog.Title>
+          <AlertDialog.Title className="text-lg font-bold">Resetar cache local</AlertDialog.Title>
           <AlertDialog.Description className="mt-2 text-sm text-gray-600">
-            Isso vai apagar todos os dados locais. Os dados no servidor não serão afetados.
+            Isso remove os dados deste dispositivo e recarrega a versão atual do servidor.
           </AlertDialog.Description>
           <div className="mt-6 flex gap-3">
             <AlertDialog.Cancel asChild>
@@ -26,7 +26,7 @@ export default function ClearLocalDataDialog({ onConfirm, triggerClassName }) {
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <button type="button" onClick={onConfirm} className="flex-1 rounded-lg bg-rose-600 py-3 font-medium text-white">
-                Confirmar e limpar
+                Resetar
               </button>
             </AlertDialog.Action>
           </div>

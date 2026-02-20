@@ -200,10 +200,65 @@ export default function LumineTracker() {
     if (changed) setDailyRecords(normalized);
   }, [dailyRecords, setDailyRecords]);
 
-  const clearLocalData = useCallback(() => {
-    localStorage.clear();
-    window.location.reload();
-  }, []);
+  const refreshFromServer = useCallback(async () => {
+    if (!ONLINE_ONLY_MODE || !isOnline) return;
+    if (pendingChanges > 0 || syncStatus === 'syncing') return;
+    await downloadFromServer({ silent: true });
+  }, [isOnline, pendingChanges, syncStatus, downloadFromServer]);
+
+  useEffect(() => {
+    if (!ONLINE_ONLY_MODE || !isOnline) return;
+    refreshFromServer();
+  }, [isOnline, refreshFromServer]);
+
+  useEffect(() => {
+    if (!ONLINE_ONLY_MODE) return undefined;
+
+    const handleFocus = () => {
+      refreshFromServer();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshFromServer();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    const interval = setInterval(() => {
+      refreshFromServer();
+    }, 60 * 1000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
+    };
+  }, [refreshFromServer]);
+
+  const clearLocalData = useCallback(async () => {
+    setChildren([]);
+    setDailyRecords([]);
+    setDataRev(0);
+    setLastSync(null);
+    setPendingChanges(0);
+    setSelectedChild(null);
+    setSearchTerm('');
+
+    if (isOnline) {
+      await downloadFromServer({ silent: true });
+    }
+  }, [
+    isOnline,
+    downloadFromServer,
+    setChildren,
+    setDailyRecords,
+    setDataRev,
+    setLastSync,
+    setPendingChanges,
+    setSelectedChild,
+    setSearchTerm,
+  ]);
 
   const stats = getDashboardStats(children, dailyRecords);
   const alerts = getAttendanceAlerts(children, dailyRecords);
@@ -478,9 +533,7 @@ export default function LumineTracker() {
         {view === 'config' && (
           <ConfigView
             children={children}
-            setChildren={setChildren}
             dailyRecords={dailyRecords}
-            setDailyRecords={setDailyRecords}
             syncWithServer={syncWithServer}
             downloadFromServer={downloadFromServer}
             lastSync={lastSync}
@@ -492,8 +545,6 @@ export default function LumineTracker() {
             onlineOnly={ONLINE_ONLY_MODE}
             showLegacySyncUi={showLegacySyncUi}
             onOpenOnboarding={handleOnboardingReopen}
-            normalizeChildren={normalizeChildren}
-            normalizeRecords={normalizeRecords}
             isMatriculated={isMatriculated}
             formatDate={formatDate}
             formatTime={formatTime}
