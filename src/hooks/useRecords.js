@@ -22,6 +22,36 @@ export default function useRecords({
       const now = new Date().toISOString();
       const { recordPayload, nextRecords, existed } = upsertDailyRecord(dailyRecords, data, now);
 
+      if (onlineOnly) {
+        if (existed) {
+          const ok = await syncWithServer({ children, records: nextRecords }, 'auto');
+          if (!ok) return false;
+          setDailyRecords(nextRecords);
+          return true;
+        }
+
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: jsonHeaders,
+            body: JSON.stringify({ action: 'addRecord', data: recordPayload }),
+          });
+          const result = await res.json().catch(() => null);
+          if (!res.ok || !result?.success) {
+            return false;
+          }
+
+          setDailyRecords(nextRecords);
+          if (typeof result?.dataRev === 'number') {
+            setDataRev(result.dataRev);
+          }
+          setLastSync(new Date().toISOString());
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
       setDailyRecords(nextRecords);
       setPendingChanges(p => p + 1);
 

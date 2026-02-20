@@ -97,13 +97,13 @@ function DailyRecordDesktop({
     setForm(buildRecordForm(record));
   };
 
-  const quickRecord = (childId, attendance) => {
+  const quickRecord = async (childId, attendance) => {
     if (writeBlocked) {
       showToast(offlineWriteMessage);
       return;
     }
 
-    addDailyRecord({
+    const ok = await addDailyRecord({
       childInternalId: childId,
       date,
       attendance,
@@ -116,17 +116,25 @@ function DailyRecordDesktop({
       familyContact: 'no',
       contactReason: '',
     });
+    if (!ok) {
+      showToast('Não foi possível salvar agora. Tente novamente.');
+      return;
+    }
     showToast('Registro salvo!');
   };
 
-  const handleDetailedRecord = () => {
+  const handleDetailedRecord = async () => {
     if (writeBlocked) {
       showToast(offlineWriteMessage);
       return;
     }
     if (!selectedChildId) return;
     const isEditing = Boolean(editingRecordId);
-    addDailyRecord({ childInternalId: selectedChildId, date, ...form });
+    const ok = await addDailyRecord({ childInternalId: selectedChildId, date, ...form });
+    if (!ok) {
+      showToast('Não foi possível salvar agora. Tente novamente.');
+      return;
+    }
     showToast(isEditing ? 'Registro atualizado!' : 'Registro salvo!');
     if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     resetTimerRef.current = setTimeout(() => {

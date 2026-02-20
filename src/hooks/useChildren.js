@@ -5,6 +5,9 @@ export default function useChildren({
   jsonHeaders,
   isOnline,
   onlineOnly = false,
+  children = [],
+  dailyRecords = [],
+  syncWithServer,
   normalizeChild,
   setChildren,
   setSelectedChild,
@@ -44,6 +47,33 @@ export default function useChildren({
       };
 
       const newChild = normalizeChild(baseChild).child;
+
+      if (onlineOnly) {
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: jsonHeaders,
+            body: JSON.stringify({ action: 'addChild', data: newChild }),
+          });
+          const result = await res.json().catch(() => null);
+          if (!res.ok || !result?.success) return false;
+
+          const persistedChild = {
+            ...newChild,
+            ...(result?.childId ? { childId: result.childId } : {}),
+          };
+
+          setChildren(prev => [...prev, persistedChild]);
+          if (typeof result?.dataRev === 'number') {
+            setDataRev(result.dataRev);
+          }
+          setLastSync(new Date().toISOString());
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
       setChildren(prev => [...prev, newChild]);
       setPendingChanges(p => p + 1);
 
@@ -93,8 +123,34 @@ export default function useChildren({
   );
 
   const updateChild = useCallback(
-    (childId, updatedData) => {
+    async (childId, updatedData) => {
       if (onlineOnly && !isOnline) return false;
+
+      if (onlineOnly) {
+        const nextChildren = children.map(child => {
+          if (child.id !== childId) return child;
+          const merged = { ...child, ...updatedData };
+          return normalizeChild(merged).child;
+        });
+
+        const ok = await syncWithServer(
+          {
+            children: nextChildren,
+            records: dailyRecords,
+          },
+          'auto'
+        );
+
+        if (!ok) return false;
+
+        setChildren(nextChildren);
+        setSelectedChild(prev => {
+          if (!prev || prev.id !== childId) return prev;
+          const selected = nextChildren.find(child => child.id === childId);
+          return selected || prev;
+        });
+        return true;
+      }
 
       setChildren(prev =>
         prev.map(child => {
@@ -113,7 +169,17 @@ export default function useChildren({
       setPendingChanges(p => p + 1);
       return true;
     },
-    [onlineOnly, isOnline, setChildren, setSelectedChild, setPendingChanges, normalizeChild]
+    [
+      onlineOnly,
+      isOnline,
+      children,
+      dailyRecords,
+      syncWithServer,
+      setChildren,
+      setSelectedChild,
+      setPendingChanges,
+      normalizeChild,
+    ]
   );
 
   return {

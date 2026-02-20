@@ -175,7 +175,7 @@ function AddChildView({
     };
   };
 
-  const handleSaveTriagem = () => {
+  const handleSaveTriagem = async () => {
     setTriageError('');
     if (writeBlocked) {
       setTriageError(offlineWriteMessage);
@@ -186,11 +186,15 @@ function AddChildView({
       return;
     }
     const status = form.triageResult || 'em_triagem';
-    addChild(buildPayload(status, triageComplete));
+    const ok = await addChild(buildPayload(status, triageComplete));
+    if (!ok) {
+      setTriageError('Não foi possível salvar agora. Verifique a conexão e tente novamente.');
+      return;
+    }
     setView('children');
   };
 
-  const handleMatricular = () => {
+  const handleMatricular = async () => {
     setTriageError('');
     setMatriculaError('');
     if (writeBlocked) {
@@ -215,7 +219,11 @@ function AddChildView({
       return;
     }
 
-    addChild(buildPayload('matriculado', true));
+    const ok = await addChild(buildPayload('matriculado', true));
+    if (!ok) {
+      setMatriculaError('Não foi possível concluir agora. Verifique a conexão e tente novamente.');
+      return;
+    }
     setView('children');
   };
 

@@ -100,7 +100,7 @@ function ChildDetailView({
     return '';
   };
 
-  const applyStatusChange = () => {
+  const applyStatusChange = async () => {
     if (writeBlocked) {
       setStatusError(offlineWriteMessage);
       return;
@@ -165,9 +165,9 @@ function ChildDetailView({
       if (!child.matriculationDate) updates.matriculationDate = now;
     }
 
-    const updated = onUpdateChild ? onUpdateChild(child.id, updates) : false;
+    const updated = onUpdateChild ? await onUpdateChild(child.id, updates) : false;
     if (updated === false) {
-      setStatusError(offlineWriteMessage);
+      setStatusError('Não foi possível salvar agora. Verifique a conexão e tente novamente.');
       return;
     }
     setShowStatusForm(false);
