@@ -17,6 +17,7 @@ function ChildDetailView({
   parseEnrollmentHistory,
   buildStatusFormData,
   getMissingFieldsForStatus,
+  isStatusTransitionAllowed,
   normalizeImageConsent,
   participationDays,
   enrollmentStatusMeta,
@@ -88,6 +89,9 @@ function ChildDetailView({
 
   const validateStatusTransition = status => {
     if (status === statusMeta.status) return 'Escolha um status diferente.';
+    if (!isStatusTransitionAllowed(statusMeta.status, status)) {
+      return 'Transição de status não permitida.';
+    }
     const missing = getMissingFieldsForStatus(status, statusFormData);
     if (missing.length) {
       return `Complete os campos obrigatórios: ${missing.join(', ')}.`;
@@ -217,9 +221,16 @@ function ChildDetailView({
               className="w-full rounded-lg border px-3 py-2 text-sm"
             >
               {allowedStatusOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+                <option
+                    key={option.value}
+                    value={option.value}
+                    disabled={
+                      option.value === statusMeta.status ||
+                      !isStatusTransitionAllowed(statusMeta.status, option.value)
+                    }
+                  >
+                    {option.label}
+                  </option>
               ))}
             </select>
             <textarea

@@ -2,6 +2,7 @@ import {
   getStatusMeta,
   buildStatusFormData,
   getMissingFieldsForStatus,
+  isStatusTransitionAllowed,
 } from './statusWorkflow';
 
 describe('statusWorkflow helpers', () => {
@@ -55,6 +56,14 @@ describe('statusWorkflow helpers', () => {
         'Confirmação de saída desacompanhada',
       ])
     );
+  });
+
+  test('blocks regression from matriculado to triage statuses', () => {
+    expect(isStatusTransitionAllowed('matriculado', 'em_triagem')).toBe(false);
+    expect(isStatusTransitionAllowed('matriculado', 'aprovado')).toBe(false);
+    expect(isStatusTransitionAllowed('matriculado', 'lista_espera')).toBe(false);
+    expect(isStatusTransitionAllowed('matriculado', 'desistente')).toBe(true);
+    expect(isStatusTransitionAllowed('matriculado', 'inativo')).toBe(true);
   });
 });
 

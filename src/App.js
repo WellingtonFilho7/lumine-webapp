@@ -70,6 +70,7 @@ import {
   getStatusMeta,
   buildStatusFormData,
   getMissingFieldsForStatus,
+  isStatusTransitionAllowed,
 } from './utils/statusWorkflow';
 
 // ============================================
@@ -476,6 +477,7 @@ export default function LumineTracker() {
                 parseEnrollmentHistory={parseEnrollmentHistory}
                 buildStatusFormData={buildStatusFormData}
                 getMissingFieldsForStatus={getMissingFieldsForStatus}
+                isStatusTransitionAllowed={isStatusTransitionAllowed}
                 normalizeImageConsent={normalizeImageConsent}
                 participationDays={PARTICIPATION_DAYS}
                 enrollmentStatusMeta={ENROLLMENT_STATUS_META}
@@ -496,6 +498,7 @@ export default function LumineTracker() {
                 parseEnrollmentHistory={parseEnrollmentHistory}
                 buildStatusFormData={buildStatusFormData}
                 getMissingFieldsForStatus={getMissingFieldsForStatus}
+                isStatusTransitionAllowed={isStatusTransitionAllowed}
                 normalizeImageConsent={normalizeImageConsent}
                 participationDays={PARTICIPATION_DAYS}
                 enrollmentStatusMeta={ENROLLMENT_STATUS_META}

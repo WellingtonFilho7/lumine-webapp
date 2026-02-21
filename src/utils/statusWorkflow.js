@@ -12,6 +12,10 @@ import {
   TRIAGE_REQUIRED_STATUSES,
 } from '../constants/enrollment';
 
+const BLOCKED_STATUS_TRANSITIONS = {
+  matriculado: ['em_triagem', 'aprovado', 'lista_espera'],
+};
+
 function normalizeAsciiToken(value) {
   return String(value || '')
     .trim()
@@ -45,6 +49,12 @@ function normalizeRenovacaoValue(value) {
   if (['sim', 'true', '1', 'yes'].includes(token)) return 'sim';
   if (['nao', 'false', '0', 'no'].includes(token)) return 'nao';
   return '';
+}
+
+export function isStatusTransitionAllowed(statusBefore, statusAfter) {
+  if (!statusBefore || !statusAfter || statusBefore === statusAfter) return true;
+  const blockedTargets = BLOCKED_STATUS_TRANSITIONS[statusBefore] || [];
+  return !blockedTargets.includes(statusAfter);
 }
 
 export function getStatusMeta(child) {
