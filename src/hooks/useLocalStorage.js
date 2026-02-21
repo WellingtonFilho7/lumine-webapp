@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export default function useLocalStorage(key, initialValue) {
   const [storedValue, setStoredValue] = useState(() => {
@@ -10,7 +10,7 @@ export default function useLocalStorage(key, initialValue) {
     }
   });
 
-  const setValue = value => {
+  const setValue = useCallback(value => {
     try {
       setStoredValue(prevValue => {
         const valueToStore = value instanceof Function ? value(prevValue) : value;
@@ -20,7 +20,7 @@ export default function useLocalStorage(key, initialValue) {
     } catch {
       // Falha silenciosa para nao interromper a UX em dispositivos com storage restrito.
     }
-  };
+  }, [key]);
 
   return [storedValue, setValue];
 }
