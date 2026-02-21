@@ -5,6 +5,7 @@ import { getMissingMatriculaFields, getMissingTriageFields } from '../../utils/e
 import InfoRow from '../../components/ui/InfoRow';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ChildAvatar from '../../components/ui/ChildAvatar';
+import { FIXED_LEAVE_ALONE_CONFIRMATION } from '../../utils/enrollmentHardening';
 
 function ChildDetailDesktop({
   child,
@@ -150,10 +151,14 @@ function ChildDetailDesktop({
       updates.participationDays = statusFormData.participationDays;
       updates.authorizedPickup = statusFormData.authorizedPickup.trim();
       updates.canLeaveAlone = statusFormData.canLeaveAlone;
-      updates.leaveAloneConsent =
-        statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConsent : false;
-      updates.leaveAloneConfirmation =
-        statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConfirmation.trim() : '';
+      updates.leaveAloneConfirmado =
+        statusFormData.canLeaveAlone === 'sim' ? statusFormData.leaveAloneConfirmado === true : false;
+      updates.leaveAloneConsent = updates.leaveAloneConfirmado;
+      updates.leaveAloneConfirmation = updates.leaveAloneConfirmado
+        ? FIXED_LEAVE_ALONE_CONFIRMATION
+        : '';
+      updates.formaChegada = statusFormData.formaChegada;
+      updates.consentimentoSaude = statusFormData.consentimentoSaude === true;
       updates.responsibilityTerm = statusFormData.termsAccepted;
       updates.consentTerm = statusFormData.termsAccepted;
       updates.classGroup = statusFormData.classGroup || '';
@@ -494,26 +499,44 @@ function ChildDetailDesktop({
                           <option value="nao">Não</option>
                         </select>
                       </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">
+                          Forma de chegada/saída
+                        </label>
+                        <select
+                          value={statusFormData.formaChegada}
+                          onChange={e => updateStatusField('formaChegada', e.target.value)}
+                          className={fieldClass('formaChegada')}
+                        >
+                          <option value="">Selecione</option>
+                          <option value="levada_responsavel">Levada/buscada pelo responsável</option>
+                          <option value="a_pe">A pé</option>
+                          <option value="transporte_escolar">Transporte escolar</option>
+                          <option value="outro">Outro</option>
+                        </select>
+                      </div>
                       {statusFormData.canLeaveAlone === 'sim' && (
                         <div className="space-y-2 rounded-lg bg-white p-2">
                           <label className="flex items-center gap-2 text-xs text-gray-700">
                             <input
                               type="checkbox"
-                              checked={statusFormData.leaveAloneConsent}
-                              onChange={e => updateStatusField('leaveAloneConsent', e.target.checked)}
+                              checked={statusFormData.leaveAloneConfirmado}
+                              onChange={e => updateStatusField('leaveAloneConfirmado', e.target.checked)}
                               className="h-4 w-4 rounded"
                             />
-                            Autorizo a saída desacompanhada
+                            O responsável confirma a autorização de saída desacompanhada
                           </label>
-                          <input
-                            type="text"
-                            value={statusFormData.leaveAloneConfirmation}
-                            onChange={e => updateStatusField('leaveAloneConfirmation', e.target.value)}
-                            placeholder="Confirmação da autorização"
-                            className={fieldClass('leaveAloneConfirmation')}
-                          />
                         </div>
                       )}
+                      <label className="flex items-center gap-2 text-xs text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={statusFormData.consentimentoSaude}
+                          onChange={e => updateStatusField('consentimentoSaude', e.target.checked)}
+                          className="h-4 w-4 rounded"
+                        />
+                        Autorização para dados de saúde
+                      </label>
                       <label className="flex items-center gap-2 text-xs text-gray-700">
                         <input
                           type="checkbox"
