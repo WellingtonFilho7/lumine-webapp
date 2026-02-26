@@ -85,8 +85,6 @@ export default function useRecords({
         console.error('Falha ao sincronizar registro diário', error);
         return false;
       }
-
-      return true;
     },
     [
       upsertDailyRecord,
