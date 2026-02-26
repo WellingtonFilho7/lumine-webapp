@@ -25,7 +25,7 @@ function ChildDetailView({
   formatDate,
   calculateAge,
   calculateAttendanceRate,
-  moodLabels,
+  moodLabels = {},
 }) {
   const childRecords = dailyRecords
     .filter(r => r.childInternalId === child.id)

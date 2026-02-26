@@ -499,7 +499,7 @@ export default function LumineTracker() {
                 formatDate={formatDate}
                 calculateAge={calculateAge}
                 calculateAttendanceRate={calculateAttendanceRate}
-                MOOD_LABELS={MOOD_LABELS}
+                moodLabels={MOOD_LABELS}
               />
             </div>
             <div className="hidden lg:block">
@@ -521,7 +521,7 @@ export default function LumineTracker() {
                 formatDate={formatDate}
                 calculateAge={calculateAge}
                 calculateAttendanceRate={calculateAttendanceRate}
-                MOOD_LABELS={MOOD_LABELS}
+                moodLabels={MOOD_LABELS}
               />
             </div>
           </>
