@@ -27,7 +27,7 @@ export default function SyncConflictDialog({ syncModal, setSyncModal, downloadFr
             <button type="button"
               onClick={async () => {
                 try {
-                  if (syncModal?.type === 'revision-mismatch') {
+                  if (syncModal?.type === 'revision-mismatch' || syncModal?.type === 'server-new') {
                     await downloadFromServer();
                   }
                 } finally {

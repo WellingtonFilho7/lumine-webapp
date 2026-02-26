@@ -59,7 +59,8 @@ export default function useRecords({
 
       if (existed) {
         if (!reviewMode) {
-          await syncWithServer({ children, records: nextRecords }, 'auto');
+          const synced = await syncWithServer({ children, records: nextRecords }, 'auto');
+          return Boolean(synced);
         }
         return true;
       }
@@ -79,8 +80,10 @@ export default function useRecords({
         }
         setPendingChanges(prev => Math.max(0, prev - 1));
         setLastSync(new Date().toISOString());
-      } catch {
         return true;
+      } catch (error) {
+        console.error('Falha ao sincronizar registro diário', error);
+        return false;
       }
 
       return true;

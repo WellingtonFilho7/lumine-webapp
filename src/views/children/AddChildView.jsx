@@ -76,6 +76,8 @@ function AddChildView({
   const writeBlocked = onlineOnly && !isOnline;
   const offlineWriteMessage =
     'Sem internet no momento. No modo online-only, conecte-se para salvar.';
+  const [syncError, setSyncError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateField = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -177,6 +179,7 @@ function AddChildView({
 
   const handleSaveTriagem = async () => {
     setTriageError('');
+    setSyncError('');
     if (writeBlocked) {
       setTriageError(offlineWriteMessage);
       return;
@@ -186,17 +189,25 @@ function AddChildView({
       return;
     }
     const status = form.triageResult || 'em_triagem';
-    const ok = await addChild(buildPayload(status, triageComplete));
-    if (!ok) {
-      setTriageError('Não foi possível salvar agora. Verifique a conexão e tente novamente.');
-      return;
+    setIsSaving(true);
+    try {
+      const ok = await addChild(buildPayload(status, triageComplete));
+      if (ok === false) {
+        setSyncError('Não foi possível sincronizar agora. Verifique internet e tente novamente.');
+        return;
+      }
+      setView('children');
+    } catch (_error) {
+      setSyncError('Não foi possível sincronizar agora. Verifique internet e tente novamente.');
+    } finally {
+      setIsSaving(false);
     }
-    setView('children');
   };
 
   const handleMatricular = async () => {
     setTriageError('');
     setMatriculaError('');
+    setSyncError('');
     if (writeBlocked) {
       setMatriculaError(offlineWriteMessage);
       return;
@@ -218,13 +229,19 @@ function AddChildView({
       setMatriculaError('Faltam confirmações legais obrigatórias para concluir a matrícula.');
       return;
     }
-
-    const ok = await addChild(buildPayload('matriculado', true));
-    if (!ok) {
-      setMatriculaError('Não foi possível concluir agora. Verifique a conexão e tente novamente.');
-      return;
+    setIsSaving(true);
+    try {
+      const ok = await addChild(buildPayload('matriculado', true));
+      if (ok === false) {
+        setSyncError('Não foi possível sincronizar agora. Verifique internet e tente novamente.');
+        return;
+      }
+      setView('children');
+    } catch (_error) {
+      setSyncError('Não foi possível sincronizar agora. Verifique internet e tente novamente.');
+    } finally {
+      setIsSaving(false);
     }
-    setView('children');
   };
 
   return (
@@ -648,17 +665,18 @@ function AddChildView({
           <div className="flex gap-3">
             <button type="button"
               onClick={handleSaveTriagem}
-              disabled={writeBlocked}
+              disabled={writeBlocked || isSaving}
               className={cn(
                 'flex-1 rounded-lg bg-teal-50 py-4 font-semibold text-gray-700',
-                writeBlocked && 'cursor-not-allowed opacity-50'
+                (writeBlocked || isSaving) && 'cursor-not-allowed opacity-50'
               )}
             >
-              {triageComplete ? 'Concluir triagem' : 'Salvar rascunho'}
+              {isSaving ? 'Salvando...' : triageComplete ? 'Concluir triagem' : 'Salvar rascunho'}
             </button>
             <button type="button"
               onClick={() => {
                 setTriageError('');
+                setSyncError('');
                 if (writeBlocked) {
                   setTriageError(offlineWriteMessage);
                   return;
@@ -673,10 +691,10 @@ function AddChildView({
                 }
                 setStep(2);
               }}
-              disabled={writeBlocked}
+              disabled={writeBlocked || isSaving}
               className={cn(
                 'flex-1 rounded-lg bg-orange-500 py-4 font-semibold text-gray-900 hover:bg-orange-400',
-                writeBlocked && 'cursor-not-allowed opacity-50'
+                (writeBlocked || isSaving) && 'cursor-not-allowed opacity-50'
               )}
             >
               Continuar para matrícula
@@ -684,6 +702,9 @@ function AddChildView({
           </div>
           {triageError && (
             <p className="text-pretty text-xs text-rose-600">{triageError}</p>
+          )}
+          {syncError && (
+            <p className="text-pretty text-xs text-rose-600">{syncError}</p>
           )}
         </div>
       )}
@@ -955,24 +976,31 @@ function AddChildView({
 
           <div className="flex gap-3">
             <button type="button"
-              onClick={() => setStep(1)}
+              onClick={() => {
+                setSyncError('');
+                setStep(1);
+              }}
+              disabled={isSaving}
               className="flex-1 rounded-lg bg-teal-50 py-4 font-semibold text-gray-700"
             >
               Voltar
             </button>
             <button type="button"
               onClick={handleMatricular}
-              disabled={!matriculaComplete || writeBlocked}
+              disabled={!matriculaComplete || writeBlocked || isSaving}
               className={cn(
                 'flex-1 rounded-lg bg-green-600 py-4 font-semibold text-white',
-                (!matriculaComplete || writeBlocked) && 'cursor-not-allowed opacity-50'
+                (!matriculaComplete || writeBlocked || isSaving) && 'cursor-not-allowed opacity-50'
               )}
             >
-              Matricular
+              {isSaving ? 'Salvando...' : 'Matricular'}
             </button>
           </div>
           {matriculaError && (
             <p className="text-pretty text-xs text-rose-600">{matriculaError}</p>
+          )}
+          {syncError && (
+            <p className="text-pretty text-xs text-rose-600">{syncError}</p>
           )}
         </div>
       )}

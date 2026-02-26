@@ -10,6 +10,7 @@ export const SYNC_WARNING_RESET_TIMEOUT_MS = 5000;
 
 export const AUTO_SYNC_DELAY_MS = 3000;
 export const AUTO_SYNC_RETRY_INTERVAL_MS = 45 * 1000;
+export const RECORD_TOAST_DURATION_MS = 3000;
 
 export const ATTENDANCE_THRESHOLDS = {
   GREEN: 80,

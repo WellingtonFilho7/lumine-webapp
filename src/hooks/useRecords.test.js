@@ -45,14 +45,16 @@ describe('useRecords hook', () => {
       })
     );
 
+    let ok;
     await act(async () => {
-      await result.current.addDailyRecord({ childInternalId: 'c1', date: '2026-02-12' });
+      ok = await result.current.addDailyRecord({ childInternalId: 'c1', date: '2026-02-12' });
     });
 
     expect(recordsState).toEqual(nextRecords);
     expect(pendingState).toBe(1);
     expect(syncWithServer).toHaveBeenCalledWith({ children: [{ id: 'c1' }], records: nextRecords }, 'auto');
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(ok).toBe(true);
   });
 
   test('posts addRecord for new record and applies dataRev', async () => {
@@ -97,8 +99,9 @@ describe('useRecords hook', () => {
       })
     );
 
+    let ok;
     await act(async () => {
-      await result.current.addDailyRecord({ childInternalId: 'c1', date: '2026-02-12' });
+      ok = await result.current.addDailyRecord({ childInternalId: 'c1', date: '2026-02-12' });
     });
 
     expect(recordsState).toEqual(nextRecords);
@@ -109,5 +112,56 @@ describe('useRecords hook', () => {
     expect(pendingState).toBe(0);
     expect(setDataRev).toHaveBeenCalledWith(12);
     expect(setLastSync).toHaveBeenCalled();
+    expect(ok).toBe(true);
+  });
+
+  test('returns false when addRecord request fails online', async () => {
+    let recordsState = [];
+    let pendingState = 0;
+
+    const setDailyRecords = updater => {
+      recordsState = typeof updater === 'function' ? updater(recordsState) : updater;
+    };
+    const setPendingChanges = updater => {
+      pendingState = typeof updater === 'function' ? updater(pendingState) : updater;
+    };
+
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ success: false, error: 'INTERNAL_ERROR' }),
+    });
+
+    const nextRecords = [{ id: 'r-fail', childInternalId: 'c1', date: '2026-02-12' }];
+
+    const { result } = renderHook(() =>
+      useRecords({
+        apiUrl: 'https://api.test/sync',
+        jsonHeaders: { Authorization: 'Bearer x' },
+        isOnline: true,
+        reviewMode: false,
+        children: [{ id: 'c1' }],
+        dailyRecords: [],
+        setDailyRecords,
+        setPendingChanges,
+        setDataRev: jest.fn(),
+        setLastSync: jest.fn(),
+        syncWithServer: jest.fn(),
+        upsertDailyRecord: () => ({
+          recordPayload: { id: 'r-fail', childInternalId: 'c1', date: '2026-02-12' },
+          nextRecords,
+          existed: false,
+        }),
+      })
+    );
+
+    let ok;
+    await act(async () => {
+      ok = await result.current.addDailyRecord({ childInternalId: 'c1', date: '2026-02-12' });
+    });
+
+    expect(ok).toBe(false);
+    expect(recordsState).toEqual(nextRecords);
+    expect(pendingState).toBe(1);
   });
 });

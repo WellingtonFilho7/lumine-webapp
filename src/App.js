@@ -56,6 +56,7 @@ import OnboardingModal from './components/dialogs/OnboardingModal';
 import SyncConflictDialog from './components/dialogs/SyncConflictDialog';
 import SyncErrorNotice from './components/ui/SyncErrorNotice';
 import SyncActionButton from './components/ui/SyncActionButton';
+import ErrorBoundary from './components/ErrorBoundary';
 import DashboardView from './views/dashboard/DashboardView';
 import DashboardDesktop from './views/dashboard/DashboardDesktop';
 import ChildrenView from './views/children/ChildrenView';
@@ -134,9 +135,10 @@ export default function LumineTracker() {
     setPendingChanges,
     reviewMode,
     onlineOnly: ONLINE_ONLY_MODE,
+    autoDownloadOnIdle: true,
   });
 
-  const { addChild, updateChild } = useChildren({
+  const { addChild, deleteChild, updateChild } = useChildren({
     apiUrl: API_URL,
     jsonHeaders: JSON_HEADERS,
     isOnline,
@@ -146,6 +148,7 @@ export default function LumineTracker() {
     syncWithServer,
     normalizeChild,
     setChildren,
+    setDailyRecords,
     setSelectedChild,
     setPendingChanges,
     setDataRev,
@@ -181,6 +184,16 @@ export default function LumineTracker() {
     clearOnboardingFlag();
     setOnboardingOpen(true);
   }, []);
+
+  const handleDeleteChild = useCallback(
+    async childId => {
+      const ok = await deleteChild(childId);
+      setSelectedChild(null);
+      setView('children');
+      return ok;
+    },
+    [deleteChild, setSelectedChild, setView]
+  );
 
   // Monitor de conexão
   useEffect(() => {
@@ -393,6 +406,7 @@ export default function LumineTracker() {
       </header>
 
       {/* ========== CONTEÚDO ========== */}
+      <ErrorBoundary>
       <main className="px-4 py-4 lg:flex-1 lg:overflow-auto lg:px-8 lg:py-6">
         {view === 'dashboard' && (
           <>
@@ -473,6 +487,7 @@ export default function LumineTracker() {
                 onUpdateChild={updateChild}
                 isOnline={isOnline}
                 onlineOnly={ONLINE_ONLY_MODE}
+                onDeleteChild={handleDeleteChild}
                 getStatusMeta={getStatusMeta}
                 parseEnrollmentHistory={parseEnrollmentHistory}
                 buildStatusFormData={buildStatusFormData}
@@ -494,6 +509,7 @@ export default function LumineTracker() {
                 onUpdateChild={updateChild}
                 isOnline={isOnline}
                 onlineOnly={ONLINE_ONLY_MODE}
+                onDeleteChild={handleDeleteChild}
                 getStatusMeta={getStatusMeta}
                 parseEnrollmentHistory={parseEnrollmentHistory}
                 buildStatusFormData={buildStatusFormData}
@@ -557,6 +573,7 @@ export default function LumineTracker() {
           />
         )}
       </main>
+      </ErrorBoundary>
 
       <SyncConflictDialog
         syncModal={syncModal}

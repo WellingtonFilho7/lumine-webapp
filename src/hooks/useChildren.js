@@ -10,6 +10,7 @@ export default function useChildren({
   syncWithServer,
   normalizeChild,
   setChildren,
+  setDailyRecords,
   setSelectedChild,
   setPendingChanges,
   setDataRev,
@@ -102,8 +103,10 @@ export default function useChildren({
 
           setPendingChanges(prev => Math.max(0, prev - 1));
           setLastSync(new Date().toISOString());
-        } catch {
           return true;
+        } catch (error) {
+          console.error('Falha ao sincronizar cadastro de criança', error);
+          return false;
         }
       }
 
@@ -182,8 +185,60 @@ export default function useChildren({
     ]
   );
 
+  const deleteChild = useCallback(
+    async childId => {
+      if (!childId) return false;
+
+      setChildren(prev => prev.filter(child => child.id !== childId));
+      if (typeof setDailyRecords === 'function') {
+        setDailyRecords(prev =>
+          prev.filter(record => (record.childInternalId || record.childId) !== childId)
+        );
+      }
+      setSelectedChild(prev => (prev?.id === childId ? null : prev));
+      setPendingChanges(p => p + 1);
+
+      if (!isOnline) return true;
+
+      try {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: jsonHeaders,
+          body: JSON.stringify({ action: 'deleteChild', data: { childId } }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok || !result?.success) {
+          throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
+        }
+
+        if (typeof result?.dataRev === 'number') {
+          setDataRev(result.dataRev);
+        }
+
+        setPendingChanges(prev => Math.max(0, prev - 1));
+        setLastSync(new Date().toISOString());
+        return true;
+      } catch (error) {
+        console.error('Falha ao excluir cadastro de criança', error);
+        return false;
+      }
+    },
+    [
+      apiUrl,
+      isOnline,
+      jsonHeaders,
+      setChildren,
+      setDailyRecords,
+      setSelectedChild,
+      setPendingChanges,
+      setDataRev,
+      setLastSync,
+    ]
+  );
+
   return {
     addChild,
+    deleteChild,
     updateChild,
   };
 }

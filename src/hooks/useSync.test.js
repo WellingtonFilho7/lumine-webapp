@@ -146,4 +146,32 @@ describe('useSync hook', () => {
       expect(result.current.syncStatus).toBe('success');
     });
   });
+
+  test('auto downloads server data when idle mode is enabled', async () => {
+    const props = createBaseProps({
+      autoDownloadOnIdle: true,
+      dataRev: 1,
+      pendingChanges: 0,
+    });
+    const payload = {
+      success: true,
+      data: {
+        children: [{ id: 'c3', name: 'Atualizada' }],
+        records: [{ id: 'r3', childInternalId: 'c3', date: '2026-02-13' }],
+      },
+      dataRev: 2,
+    };
+    global.fetch.mockResolvedValueOnce(createJsonResponse(payload));
+
+    renderHook(() => useSync(props));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    expect(props.setChildren).toHaveBeenCalledWith(payload.data.children);
+    expect(props.setDailyRecords).toHaveBeenCalledWith(payload.data.records);
+    expect(props.setDataRev).toHaveBeenCalledWith(2);
+    expect(props.setPendingChanges).toHaveBeenCalledWith(0);
+  });
 });

@@ -25,6 +25,7 @@ export default function useSync({
   setPendingChanges,
   reviewMode,
   onlineOnly = false,
+  autoDownloadOnIdle = false,
 }) {
   const [syncStatus, setSyncStatus] = useState('idle');
   const [syncError, setSyncError] = useState('');
@@ -328,6 +329,11 @@ export default function useSync({
     setLastSync,
     applySyncSuccess,
   ]);
+
+  useEffect(() => {
+    if (!autoDownloadOnIdle || !isOnline || pendingChanges > 0 || reviewMode) return;
+    downloadFromServer();
+  }, [autoDownloadOnIdle, isOnline, pendingChanges, reviewMode, downloadFromServer]);
 
   useEffect(() => {
     if (isOnline && pendingChanges > 0 && !overwriteBlocked && !reviewMode) {

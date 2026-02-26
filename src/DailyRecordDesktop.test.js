@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { DailyRecordDesktop } from './App';
 
@@ -44,5 +44,40 @@ describe('DailyRecordDesktop edit flow', () => {
 
     expect(screen.getByText('Atualizar registro')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Algo importante...')).toHaveValue('nota teste');
+  });
+
+  test('keeps success toast visible for around 3 seconds', async () => {
+    const children = [
+      {
+        id: 'c1',
+        name: 'Lucas',
+        enrollmentStatus: 'matriculado',
+      },
+    ];
+    const addDailyRecord = jest.fn().mockResolvedValue(true);
+
+    render(
+      <DailyRecordDesktop
+        children={children}
+        dailyRecords={[]}
+        addDailyRecord={addDailyRecord}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Marcar Lucas como presente/i }));
+    });
+
+    expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(2500);
+    });
+    expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+    expect(screen.queryByText('Registro salvo!')).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { cn } from '../../utils/cn';
 import { buildRecordForm, getRecordFormDefaults } from '../../utils/records';
 import RecordsLookupPanel from '../../components/RecordsLookupPanel';
 import { WEEKDAY_KEYS } from '../../constants/enrollment';
+import { RECORD_TOAST_DURATION_MS } from '../../constants';
 
 const defaultIsMatriculated = child => {
   if (!child) return false;
@@ -77,7 +78,7 @@ function DailyRecordView({
     toastTimerRef.current = setTimeout(() => {
       setToastMessage('');
       toastTimerRef.current = null;
-    }, 1500);
+    }, RECORD_TOAST_DURATION_MS);
   }, []);
 
   const clearEditing = () => {
@@ -143,7 +144,7 @@ function DailyRecordView({
     resetTimerRef.current = setTimeout(() => {
       clearEditing();
       resetTimerRef.current = null;
-    }, 1500);
+    }, RECORD_TOAST_DURATION_MS);
   };
 
   return (

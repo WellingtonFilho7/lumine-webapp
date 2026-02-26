@@ -4,6 +4,7 @@ import { buildRecordForm, getRecordFormDefaults } from '../../utils/records';
 import RecordsLookupPanel from '../../components/RecordsLookupPanel';
 import { CheckCircle } from 'lucide-react';
 import { WEEKDAY_KEYS } from '../../constants/enrollment';
+import { RECORD_TOAST_DURATION_MS } from '../../constants';
 
 const defaultIsMatriculated = child => {
   if (!child) return false;
@@ -76,7 +77,7 @@ function DailyRecordDesktop({
     toastTimerRef.current = setTimeout(() => {
       setToastMessage('');
       toastTimerRef.current = null;
-    }, 1200);
+    }, RECORD_TOAST_DURATION_MS);
   }, []);
 
   const clearEditing = () => {
@@ -140,7 +141,7 @@ function DailyRecordDesktop({
     resetTimerRef.current = setTimeout(() => {
       clearEditing();
       resetTimerRef.current = null;
-    }, 1200);
+    }, RECORD_TOAST_DURATION_MS);
   };
 
   return (

@@ -13,6 +13,7 @@ function ChildDetailDesktop({
   onUpdateChild,
   isOnline = true,
   onlineOnly = false,
+  onDeleteChild,
   getStatusMeta,
   parseEnrollmentHistory,
   buildStatusFormData,
@@ -41,6 +42,8 @@ function ChildDetailDesktop({
   const [nextStatus, setNextStatus] = useState(statusMeta.status);
   const [statusNotes, setStatusNotes] = useState('');
   const [statusError, setStatusError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [statusFormData, setStatusFormData] = useState(() => buildStatusFormData(child));
   const writeBlocked = onlineOnly && !isOnline;
   const offlineWriteMessage =
@@ -183,6 +186,28 @@ function ChildDetailDesktop({
     setStatusNotes('');
   };
 
+  const handleDeleteChild = async () => {
+    if (typeof onDeleteChild !== 'function' || !child?.id || isDeleting) return;
+
+    const confirmed = window.confirm(
+      'Deseja excluir este cadastro? Esta ação remove a criança e os registros diários vinculados.'
+    );
+    if (!confirmed) return;
+
+    setDeleteError('');
+    setIsDeleting(true);
+    try {
+      const ok = await onDeleteChild(child.id);
+      if (ok === false) {
+        setDeleteError('Cadastro removido localmente. A sincronização será tentada novamente.');
+      }
+    } catch (_error) {
+      setDeleteError('Não foi possível concluir a exclusão agora. Tente novamente.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-[minmax(0,360px)_1fr] gap-6">
       <div className="space-y-4">
@@ -227,6 +252,20 @@ function ChildDetailDesktop({
             >
               Alterar status
             </button>
+          </div>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleDeleteChild}
+              disabled={isDeleting}
+              className={cn(
+                'w-full rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700',
+                isDeleting && 'opacity-70'
+              )}
+            >
+              {isDeleting ? 'Excluindo...' : 'Excluir cadastro'}
+            </button>
+            {deleteError && <p className="mt-2 text-xs text-rose-600">{deleteError}</p>}
           </div>
 
           {showStatusForm && (
