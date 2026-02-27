@@ -1,8 +1,33 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronRight, Search, Users } from 'lucide-react';
-import StatusBadge from '../../components/ui/StatusBadge';
+import StatusBadge, { getStatusVisual } from '../../components/ui/StatusBadge';
 import ChildAvatar from '../../components/ui/ChildAvatar';
 import { cn } from '../../utils/cn';
+import { filterChildrenForMainList } from '../../utils/childData';
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'Todas' },
+  { value: 'matriculado', label: 'Matriculado' },
+  { value: 'em_triagem', label: 'Em triagem' },
+  { value: 'aprovado', label: 'Aprovado' },
+  { value: 'lista_espera', label: 'Lista de espera' },
+  { value: 'draft', label: 'Rascunhos' },
+  { value: 'recusado', label: 'Não atendida' },
+  { value: 'desistente', label: 'Desistente' },
+  { value: 'inativo', label: 'Inativo' },
+];
+
+const ARCHIVED_FILTERS = new Set(['desistente', 'inativo']);
+
+const statusBorderClass = status => {
+  const visual = getStatusVisual(status);
+  if (visual.badgeClassName.includes('green')) return 'border-l-green-500';
+  if (visual.badgeClassName.includes('amber')) return 'border-l-amber-500';
+  if (visual.badgeClassName.includes('blue')) return 'border-l-blue-500';
+  if (visual.badgeClassName.includes('red')) return 'border-l-red-500';
+  if (visual.badgeClassName.includes('cyan')) return 'border-l-cyan-500';
+  return 'border-l-gray-400';
+};
 
 export default function ChildrenView({
   children,
@@ -15,8 +40,19 @@ export default function ChildrenView({
   calculateAge,
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showArchived, setShowArchived] = useState(false);
 
-  const filtered = children.filter(child => {
+  const statusOptions = useMemo(() => {
+    if (showArchived) return STATUS_OPTIONS;
+    return STATUS_OPTIONS.filter(option => !ARCHIVED_FILTERS.has(option.value));
+  }, [showArchived]);
+
+  const listBase = useMemo(
+    () => filterChildrenForMainList(children, { includeArchived: showArchived }),
+    [children, showArchived]
+  );
+
+  const filtered = listBase.filter(child => {
     const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesName) return false;
     if (statusFilter === 'all') return true;
@@ -38,36 +74,47 @@ export default function ChildrenView({
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {[
-          { value: 'all', label: 'Todas' },
-          { value: 'em_triagem', label: 'Triagem' },
-          { value: 'draft', label: 'Rascunhos' },
-          { value: 'aprovado', label: 'Aprovado' },
-          { value: 'lista_espera', label: 'Lista de espera' },
-          { value: 'matriculado', label: 'Matriculado' },
-          { value: 'recusado', label: 'Não atendida' },
-          { value: 'desistente', label: 'Desistente' },
-          { value: 'inativo', label: 'Inativo' },
-        ].map(option => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={statusFilter === option.value}
-            onClick={() => setStatusFilter(option.value)}
-            className={cn(
-              'rounded-full px-3 py-1 text-xs font-semibold',
-              statusFilter === option.value ? 'bg-cyan-700 text-white' : 'bg-teal-50 text-gray-600'
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      <div className="space-y-2">
+        <div className="-mx-1 overflow-x-auto px-1 pb-1">
+          <div className="flex w-max items-center gap-2 whitespace-nowrap">
+            <button
+              type="button"
+              aria-pressed={showArchived}
+              onClick={() => {
+                const next = !showArchived;
+                setShowArchived(next);
+                if (!next && ARCHIVED_FILTERS.has(statusFilter)) {
+                  setStatusFilter('all');
+                }
+              }}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-semibold',
+                showArchived ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700'
+              )}
+            >
+              {showArchived ? 'Ocultar arquivados' : 'Mostrar arquivados'}
+            </button>
+            {statusOptions.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={statusFilter === option.value}
+                onClick={() => setStatusFilter(option.value)}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-semibold',
+                  statusFilter === option.value ? 'bg-cyan-700 text-white' : 'bg-teal-50 text-gray-600'
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <p role="status" aria-live="polite" className="text-sm text-gray-500 tabular-nums">
-        {filtered.length} criança{filtered.length !== 1 ? 's' : ''}
-      </p>
+        <p role="status" aria-live="polite" className="text-sm text-gray-500 tabular-nums">
+          {filtered.length} criança{filtered.length !== 1 ? 's' : ''}
+        </p>
+      </div>
 
       <div className="space-y-2">
         {filtered.map(child => {
@@ -81,7 +128,10 @@ export default function ChildrenView({
                 setSelectedChild(child);
                 setView('child-detail');
               }}
-              className="flex cursor-pointer items-center gap-4 rounded-lg bg-white p-4 shadow-md active:bg-gray-50"
+              className={cn(
+                'flex cursor-pointer items-center gap-4 rounded-lg border-l-4 bg-white p-4 shadow-md active:bg-gray-50',
+                statusBorderClass(childStatus)
+              )}
             >
               <ChildAvatar name={child.name} status={childStatus} />
               <div className="min-w-0 flex-1">
@@ -110,12 +160,13 @@ export default function ChildrenView({
           <p className="text-pretty text-gray-500">
             {searchTerm ? 'Nenhuma criança encontrada' : 'Nenhuma criança cadastrada'}
           </p>
-          {searchTerm || statusFilter !== 'all' ? (
+          {searchTerm || statusFilter !== 'all' || showArchived ? (
             <button
               type="button"
               onClick={() => {
                 setSearchTerm('');
                 setStatusFilter('all');
+                setShowArchived(false);
               }}
               className="mt-4 w-full rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >

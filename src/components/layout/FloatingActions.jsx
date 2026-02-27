@@ -7,15 +7,39 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
     return null;
   }
 
+  const isDashboard = view === 'dashboard';
+
+  const handlePrimaryAction = () => {
+    if (view === 'children') {
+      setView('add-child');
+      return;
+    }
+    if (view === 'daily') {
+      setView('daily');
+      return;
+    }
+    setShowFABMenu(prev => !prev);
+  };
+
+  const fabLabel =
+    view === 'children'
+      ? 'Nova criança'
+      : view === 'daily'
+      ? 'Novo registro'
+      : showFABMenu
+      ? 'Fechar ações'
+      : 'Abrir ações';
+
   return (
     <>
       <div
         className="fixed right-4 z-40 lg:hidden"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}
       >
-        {showFABMenu && (
+        {isDashboard && showFABMenu && (
           <div className="absolute bottom-16 right-0 mb-2 w-48 overflow-hidden rounded-lg border bg-white shadow-xl">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => {
                 setView('add-child');
                 setShowFABMenu(false);
@@ -25,7 +49,8 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
               <Users size={18} className="text-cyan-700" />
               <span className="text-sm font-medium">Nova Criança</span>
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => {
                 setView('daily');
                 setShowFABMenu(false);
@@ -37,19 +62,27 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
             </button>
           </div>
         )}
-        <button type="button"
-          onClick={() => setShowFABMenu(!showFABMenu)}
+
+        <button
+          type="button"
+          onClick={handlePrimaryAction}
           className={cn(
             'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',
-            showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-orange-500 hover:bg-orange-400'
+            isDashboard && showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-orange-500 hover:bg-orange-400'
           )}
-          aria-label={showFABMenu ? 'Fechar ações' : 'Abrir ações'}
+          aria-label={fabLabel}
         >
-          <Plus size={28} className="text-white" />
+          {view === 'children' ? (
+            <Users size={24} className="text-white" />
+          ) : view === 'daily' ? (
+            <Calendar size={24} className="text-white" />
+          ) : (
+            <Plus size={28} className="text-white" />
+          )}
         </button>
       </div>
 
-      {showFABMenu && (
+      {isDashboard && showFABMenu && (
         <div
           className="fixed inset-0 z-30 lg:hidden"
           onClick={() => setShowFABMenu(false)}

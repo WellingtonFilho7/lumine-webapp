@@ -41,7 +41,8 @@ describe('DashboardView', () => {
 
     expect(screen.getByText('Ana Maria')).not.toBeNull();
 
-    fireEvent.click(screen.getByText('Ir para registros'));
+    fireEvent.click(screen.getByText('Registrar agora'));
+    
     expect(props.setView).toHaveBeenCalledWith('daily');
   });
 });

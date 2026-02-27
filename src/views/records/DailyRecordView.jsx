@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle, X } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { buildRecordForm, getRecordFormDefaults } from '../../utils/records';
 import RecordsLookupPanel from '../../components/RecordsLookupPanel';
@@ -20,6 +20,12 @@ const defaultFormatDate = value => {
   return date.toLocaleDateString('pt-BR');
 };
 
+const toDateInput = date => {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return new Date().toISOString().split('T')[0];
+  return d.toISOString().split('T')[0];
+};
+
 function DailyRecordView({
   children,
   dailyRecords,
@@ -36,6 +42,7 @@ function DailyRecordView({
   const [editingRecordId, setEditingRecordId] = useState('');
   const [form, setForm] = useState(getRecordFormDefaults());
   const [toastMessage, setToastMessage] = useState('');
+  const [showLookupPanel, setShowLookupPanel] = useState(false);
   const toastTimerRef = useRef(null);
   const resetTimerRef = useRef(null);
   const writeBlocked = onlineOnly && !isOnline;
@@ -56,10 +63,13 @@ function DailyRecordView({
     const days = Array.isArray(child.participationDays) ? child.participationDays : [];
     return days.length === 0 || days.includes(selectedWeekdayKey);
   });
+  const pendingChildren = expectedChildren.filter(c => !recordedIds.includes(c.id));
   const expectedChildIds = new Set(expectedChildren.map(child => child.id));
   const completedExpectedCount = dateRecords.filter(record => expectedChildIds.has(record.childInternalId)).length;
   const pendingExpectedCount = Math.max(0, expectedChildren.length - completedExpectedCount);
   const allDoneToday = isTodaySelected && expectedChildren.length > 0 && pendingExpectedCount === 0;
+  const progressPercent =
+    expectedChildren.length === 0 ? 0 : Math.round((completedExpectedCount / expectedChildren.length) * 100);
 
   const clearTimers = useCallback(() => {
     if (toastTimerRef.current) {
@@ -93,6 +103,13 @@ function DailyRecordView({
   }, [date]);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
+
+  const shiftDate = amount => {
+    const base = new Date(`${date}T12:00:00`);
+    if (Number.isNaN(base.getTime())) return;
+    base.setDate(base.getDate() + amount);
+    setDate(toDateInput(base));
+  };
 
   const handleEditRecord = record => {
     setEditingRecordId(record.id);
@@ -147,12 +164,33 @@ function DailyRecordView({
     }, RECORD_TOAST_DURATION_MS);
   };
 
+  const lookupSection = (
+    <details
+      className="rounded-lg bg-white p-4 shadow-md"
+      open={showLookupPanel}
+      onToggle={event => setShowLookupPanel(event.currentTarget.open)}
+    >
+      <summary className="cursor-pointer list-none text-sm font-semibold text-gray-800">
+        Consulta rápida de registros
+      </summary>
+      <div className="mt-3">
+        <RecordsLookupPanel
+          children={children}
+          activeChildren={activeChildren}
+          dailyRecords={dailyRecords}
+          formatDate={formatDate}
+        />
+      </div>
+    </details>
+  );
+
   return (
     <div className="space-y-4">
-      {/* Toast de sucesso */}
       {toastMessage && (
         <div
-          role="status" aria-live="polite" className="fixed left-4 right-4 z-50 flex items-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg"
+          role="status"
+          aria-live="polite"
+          className="fixed left-4 right-4 z-50 flex items-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg"
           style={{ top: 'calc(env(safe-area-inset-top) + 5rem)' }}
         >
           <CheckCircle size={20} />
@@ -160,9 +198,32 @@ function DailyRecordView({
         </div>
       )}
 
-      {/* Seletor de data */}
       <div className="rounded-lg bg-white p-4 shadow-md">
-        <label className="mb-2 block text-sm font-medium text-gray-700">Data do registro</label>
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => shiftDate(-1)}
+            className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-gray-700"
+            aria-label="Ir para dia anterior"
+          >
+            <ChevronLeft className="size-3" /> Ontem
+          </button>
+          <button
+            type="button"
+            onClick={() => setDate(today)}
+            className="rounded-full bg-cyan-700 px-3 py-1 text-xs font-semibold text-white"
+          >
+            Hoje
+          </button>
+          <button
+            type="button"
+            onClick={() => shiftDate(1)}
+            className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-gray-700"
+            aria-label="Ir para próximo dia"
+          >
+            Amanhã <ChevronRight className="size-3" />
+          </button>
+        </div>
         <input
           type="date"
           value={date}
@@ -177,17 +238,20 @@ function DailyRecordView({
         </div>
       )}
 
-      {/* Status do dia */}
-      <div className="flex items-center justify-between rounded-lg bg-cyan-50 p-4">
-        <div>
-          <p className="text-sm font-medium text-cyan-900">Registros hoje</p>
-          <p className="text-2xl font-extrabold text-cyan-700 tabular-nums">
-            {dateRecords.length}/{activeChildren.length}
-          </p>
+      <div className="rounded-lg bg-white p-4 shadow-md">
+        <div className="mb-2 flex items-center justify-between text-sm text-gray-600">
+          <span className="font-semibold text-gray-900">Progresso do dia</span>
+          <span className="tabular-nums">
+            {completedExpectedCount}/{expectedChildren.length}
+          </span>
         </div>
-        <div className="text-right">
-          <p role="status" aria-live="polite" className="text-sm text-cyan-700 tabular-nums">{pendingExpectedCount} pendentes</p>
+        <div className="h-2 overflow-hidden rounded-full bg-teal-100">
+          <div
+            className="h-full rounded-full bg-cyan-600 transition-all"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
+        <p className="mt-2 text-xs text-gray-500 tabular-nums">{pendingExpectedCount} pendentes</p>
       </div>
 
       {allDoneToday && (
@@ -204,15 +268,48 @@ function DailyRecordView({
         </div>
       )}
 
-      <RecordsLookupPanel
-        children={children}
-        activeChildren={activeChildren}
-        dailyRecords={dailyRecords}
-        formatDate={formatDate}
-      />
-
       {step === 'select' && (
         <>
+          {pendingExpectedCount > 0 && (
+            <div className="rounded-lg bg-white p-4 shadow-md">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-balance font-semibold text-gray-900">Registro rápido</h3>
+                <span className="text-xs text-gray-500 tabular-nums">{pendingChildren.length} pendentes</span>
+              </div>
+              <div className="max-h-64 space-y-2 overflow-y-auto">
+                {pendingChildren.map(child => (
+                  <div key={child.id} className="flex items-center gap-2 rounded-lg bg-gray-50 p-3">
+                    <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => quickRecord(child.id, 'present')}
+                      disabled={writeBlocked}
+                      aria-label={`Marcar ${child.name} como presente`}
+                      className={cn(
+                        'rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-800',
+                        writeBlocked && 'cursor-not-allowed opacity-50'
+                      )}
+                    >
+                      Presente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => quickRecord(child.id, 'absent')}
+                      disabled={writeBlocked}
+                      aria-label={`Marcar ${child.name} como ausente`}
+                      className={cn(
+                        'rounded-lg bg-red-100 px-3 py-2 text-xs font-semibold text-red-800',
+                        writeBlocked && 'cursor-not-allowed opacity-50'
+                      )}
+                    >
+                      Ausente
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {dateRecords.length > 0 && (
             <div className="rounded-lg bg-white p-4 shadow-md">
               <div className="mb-3 flex items-center justify-between">
@@ -229,6 +326,7 @@ function DailyRecordView({
                       type="button"
                       onClick={() => handleEditRecord(record)}
                       className="flex w-full items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-left"
+                      aria-label={`Editar registro de ${label}`}
                     >
                       <span
                         className={cn(
@@ -255,43 +353,6 @@ function DailyRecordView({
             </div>
           )}
 
-          {/* Registro rápido */}
-          {pendingExpectedCount > 0 && (
-            <div className="rounded-lg bg-white p-4 shadow-md">
-              <h3 className="text-balance mb-3 font-semibold text-gray-900">Registro rápido</h3>
-              <div className="max-h-60 space-y-2 overflow-y-auto">
-                {expectedChildren.filter(c => !recordedIds.includes(c.id)).map(child => (
-                  <div key={child.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
-                    <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
-                    <button type="button"
-                      onClick={() => quickRecord(child.id, 'present')}
-                      disabled={writeBlocked}
-                      aria-label={`Marcar ${child.name} como presente`}
-                      className={cn(
-                        'rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-800',
-                        writeBlocked && 'cursor-not-allowed opacity-50'
-                      )}
-                    >
-                      Presente
-                    </button>
-                    <button type="button"
-                      onClick={() => quickRecord(child.id, 'absent')}
-                      disabled={writeBlocked}
-                      aria-label={`Marcar ${child.name} como ausente`}
-                      className={cn(
-                        'rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800',
-                        writeBlocked && 'cursor-not-allowed opacity-50'
-                      )}
-                    >
-                      Ausente
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Registro detalhado */}
           <div className="rounded-lg bg-white p-4 shadow-md">
             <h3 className="text-balance mb-3 font-semibold text-gray-900">Registro detalhado</h3>
             <select
@@ -306,7 +367,8 @@ function DailyRecordView({
                 </option>
               ))}
             </select>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => selectedChildId && setStep('details')}
               disabled={!selectedChildId || writeBlocked}
               className="w-full rounded-lg bg-orange-500 py-3 font-semibold text-gray-900 hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
@@ -314,12 +376,13 @@ function DailyRecordView({
               Continuar
             </button>
           </div>
+
+          {lookupSection}
         </>
       )}
 
       {step === 'details' && (
         <div className="space-y-4">
-          {/* Criança selecionada */}
           <div className="flex items-center justify-between rounded-lg bg-cyan-100 p-4">
             <div>
               <p className="text-sm text-cyan-700">Registrando para</p>
@@ -330,7 +393,8 @@ function DailyRecordView({
                 </span>
               )}
             </div>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => {
                 if (editingRecordId) {
                   clearEditing();
@@ -345,7 +409,6 @@ function DailyRecordView({
             </button>
           </div>
 
-          {/* Bloco 1: Presença */}
           <div className="rounded-lg bg-white p-4 shadow-md">
             <h4 className="text-balance mb-3 font-semibold text-gray-900">Presença</h4>
             <div className="grid grid-cols-3 gap-2">
@@ -354,7 +417,8 @@ function DailyRecordView({
                 { value: 'late', label: 'Atrasado', color: 'yellow' },
                 { value: 'absent', label: 'Ausente', color: 'red' },
               ].map(opt => (
-                <button type="button"
+                <button
+                  type="button"
                   key={opt.value}
                   aria-pressed={form.attendance === opt.value}
                   onClick={() => setForm({ ...form, attendance: opt.value })}
@@ -375,10 +439,9 @@ function DailyRecordView({
             </div>
           </div>
 
-          {/* Bloco 2: Detalhes (só se presente/atrasado) */}
           {form.attendance !== 'absent' && (
             <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
-              <h4 className="text-balance font-semibold text-gray-900">Detalhes</h4>
+              <h4 className="text-balance font-semibold text-gray-900">Detalhes essenciais</h4>
 
               <div>
                 <label className="mb-2 block text-sm text-gray-600">Humor</label>
@@ -388,16 +451,15 @@ function DailyRecordView({
                     { value: 'neutral', label: '😐' },
                     { value: 'sad', label: '😢' },
                   ].map(opt => (
-                    <button type="button"
+                    <button
+                      type="button"
                       key={opt.value}
                       aria-label={`Selecionar humor ${opt.value}`}
                       aria-pressed={form.mood === opt.value}
                       onClick={() => setForm({ ...form, mood: opt.value })}
                       className={cn(
                         'rounded-lg py-3 text-2xl transition-all',
-                        form.mood === opt.value
-                          ? 'bg-cyan-100 ring-2 ring-cyan-500'
-                          : 'bg-teal-50'
+                        form.mood === opt.value ? 'bg-cyan-100 ring-2 ring-cyan-500' : 'bg-teal-50'
                       )}
                     >
                       {opt.label}
@@ -406,58 +468,64 @@ function DailyRecordView({
                 </div>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm text-gray-600">Participação</label>
-                <select
-                  value={form.participation}
-                  onChange={e => setForm({ ...form, participation: e.target.value })}
-                  className="w-full rounded-lg border px-4 py-3"
-                >
-                  <option value="high">Alta</option>
-                  <option value="medium">Média</option>
-                  <option value="low">Baixa</option>
-                </select>
-              </div>
+              <details className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <summary className="cursor-pointer list-none text-sm font-semibold text-gray-700">
+                  Detalhes avançados
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="mb-2 block text-sm text-gray-600">Participação</label>
+                    <select
+                      value={form.participation}
+                      onChange={e => setForm({ ...form, participation: e.target.value })}
+                      className="w-full rounded-lg border px-4 py-3"
+                    >
+                      <option value="high">Alta</option>
+                      <option value="medium">Média</option>
+                      <option value="low">Baixa</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label className="mb-2 block text-sm text-gray-600">Interação</label>
-                <select
-                  value={form.interaction}
-                  onChange={e => setForm({ ...form, interaction: e.target.value })}
-                  className="w-full rounded-lg border px-4 py-3"
-                >
-                  <option value="high">Alta</option>
-                  <option value="medium">Média</option>
-                  <option value="low">Baixa</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-gray-600">Interação</label>
+                    <select
+                      value={form.interaction}
+                      onChange={e => setForm({ ...form, interaction: e.target.value })}
+                      className="w-full rounded-lg border px-4 py-3"
+                    >
+                      <option value="high">Alta</option>
+                      <option value="medium">Média</option>
+                      <option value="low">Baixa</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label className="mb-2 block text-sm text-gray-600">Atividade</label>
-                <input
-                  value={form.activity}
-                  onChange={e => setForm({ ...form, activity: e.target.value })}
-                  className="w-full rounded-lg border px-4 py-3"
-                  placeholder="Ex: Leitura, Arte, Jogo..."
-                />
-              </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-gray-600">Atividade</label>
+                    <input
+                      value={form.activity}
+                      onChange={e => setForm({ ...form, activity: e.target.value })}
+                      className="w-full rounded-lg border px-4 py-3"
+                      placeholder="Ex: Leitura, Arte, Jogo..."
+                    />
+                  </div>
 
-              <div>
-                <label className="mb-2 block text-sm text-gray-600">Desempenho</label>
-                <select
-                  value={form.performance}
-                  onChange={e => setForm({ ...form, performance: e.target.value })}
-                  className="w-full rounded-lg border px-4 py-3"
-                >
-                  <option value="high">Alta</option>
-                  <option value="medium">Média</option>
-                  <option value="low">Baixa</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-gray-600">Desempenho</label>
+                    <select
+                      value={form.performance}
+                      onChange={e => setForm({ ...form, performance: e.target.value })}
+                      className="w-full rounded-lg border px-4 py-3"
+                    >
+                      <option value="high">Alta</option>
+                      <option value="medium">Média</option>
+                      <option value="low">Baixa</option>
+                    </select>
+                  </div>
+                </div>
+              </details>
             </div>
           )}
 
-          {/* Bloco 3: Observações */}
           <div className="space-y-4 rounded-lg bg-white p-4 shadow-md">
             <h4 className="text-balance font-semibold text-gray-900">Observações</h4>
             <textarea
@@ -498,14 +566,16 @@ function DailyRecordView({
             )}
           </div>
 
-          {/* Botão salvar */}
-          <button type="button"
+          <button
+            type="button"
             onClick={handleDetailedRecord}
             disabled={writeBlocked}
             className="w-full rounded-lg bg-green-600 py-4 font-semibold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
           >
             {editingRecordId ? 'Atualizar registro' : 'Salvar Registro'}
           </button>
+
+          {lookupSection}
         </div>
       )}
     </div>

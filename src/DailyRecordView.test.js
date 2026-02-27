@@ -84,4 +84,19 @@ describe('DailyRecordView edit flow', () => {
     });
     expect(screen.queryByText('Registro salvo!')).not.toBeInTheDocument();
   });
+
+  test('renders lookup panel collapsed by default', () => {
+    render(
+      <DailyRecordView
+        children={[
+          { id: 'c1', name: 'Ana Clara', enrollmentStatus: 'matriculado', participationDays: ['ter'] },
+        ]}
+        dailyRecords={[]}
+        addDailyRecord={jest.fn()}
+      />
+    );
+
+    const details = screen.getByText('Consulta rápida de registros').closest('details');
+    expect(details).not.toHaveAttribute('open');
+  });
 });

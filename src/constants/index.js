@@ -4,6 +4,8 @@ export const ONLINE_ONLY_MODE =
   (process.env.REACT_APP_ONLINE_ONLY || 'true').toLowerCase() !== 'false';
 export const SHOW_LEGACY_SYNC_UI =
   (process.env.REACT_APP_SHOW_LEGACY_SYNC_UI || 'false').toLowerCase() === 'true';
+export const MOBILE_UI_V2_ENABLED =
+  (process.env.REACT_APP_MOBILE_UI_V2 || 'true').toLowerCase() !== 'false';
 
 export const SYNC_SUCCESS_RESET_TIMEOUT_MS = 2000;
 export const SYNC_WARNING_RESET_TIMEOUT_MS = 5000;

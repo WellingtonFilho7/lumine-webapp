@@ -27,7 +27,7 @@ import { upsertDailyRecord } from './utils/records';
 import { getDashboardStats, getAttendanceAlerts } from './utils/dashboardMetrics';
 import { getOrCreateDeviceId } from './utils/device';
 import { buildApiHeaders } from './utils/apiHeaders';
-import { DEFAULT_API_URL, ONLINE_ONLY_MODE, SHOW_LEGACY_SYNC_UI } from './constants';
+import { DEFAULT_API_URL, MOBILE_UI_V2_ENABLED, ONLINE_ONLY_MODE, SHOW_LEGACY_SYNC_UI } from './constants';
 import { VIEW_TITLES, UI_TEXT } from './constants/ui';
 import {
   getSyncStateKey,
@@ -280,6 +280,15 @@ export default function LumineTracker() {
   const stats = getDashboardStats(children, dailyRecords);
   const alerts = getAttendanceAlerts(children, dailyRecords);
 
+  const todayKey = new Date().toISOString().split('T')[0];
+  const activeChildren = children.filter(isMatriculated);
+  const todayRecordedIds = new Set(
+    dailyRecords
+      .filter(record => record.date?.split('T')[0] === todayKey)
+      .map(record => record.childInternalId)
+  );
+  const pendingDailyCount = activeChildren.filter(child => !todayRecordedIds.has(child.id)).length;
+
   // Títulos das views
   const viewTitle =
     view === 'child-detail'
@@ -306,7 +315,7 @@ export default function LumineTracker() {
       <Sidebar view={view} setView={setView} lastSyncLabel={lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : ""} isOnline={isOnline} />
       <div className="flex-1 lg:flex lg:flex-col lg:overflow-hidden">
       {/* ========== HEADER COMPACTO ========== */}
-      <header className="sticky top-0 z-30 bg-cyan-700 px-4 py-3 text-white shadow-lg lg:hidden">
+      <header className={cn('sticky top-0 z-30 bg-cyan-700 px-4 text-white shadow-lg lg:hidden', MOBILE_UI_V2_ENABLED ? 'py-2' : 'py-3')}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {(view === 'add-child' || view === 'child-detail') && (
@@ -347,11 +356,6 @@ export default function LumineTracker() {
             )}
           </div>
         </div>
-
-        {/* Última sync - só mostra se tiver */}
-        {lastSync && syncStatus === 'idle' && (
-          <p className="mt-1 text-xs text-cyan-200">{UI_TEXT.lastSyncLabel}: {formatTime(lastSync)}</p>
-        )}
         <SyncErrorNotice
           syncStatus={syncStatus}
           syncError={syncError}
@@ -589,7 +593,7 @@ export default function LumineTracker() {
         setShowFABMenu={setShowFABMenu}
       />
 
-      <MobileNav view={view} setView={setView} />
+      <MobileNav view={view} setView={setView} pendingDailyCount={pendingDailyCount} />
     </div>
     </>
   );

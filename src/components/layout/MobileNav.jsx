@@ -2,22 +2,34 @@ import React from 'react';
 import { Calendar, Home, Settings, Users } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
-function NavItem({ icon: Icon, label, active, onClick }) {
+function NavItem({ icon: Icon, label, active, onClick, badgeCount = 0 }) {
+  const showBadge = Number.isFinite(badgeCount) && badgeCount > 0;
+  const badgeLabel = badgeCount > 99 ? '99+' : String(badgeCount);
+
   return (
-    <button type="button"
+    <button
+      type="button"
       onClick={onClick}
       className={cn(
-        'flex h-full w-16 flex-col items-center justify-center transition-colors',
+        'relative flex h-full w-16 flex-col items-center justify-center transition-colors',
         active ? 'text-cyan-700' : 'text-gray-400'
       )}
+      aria-label={showBadge ? `${label} (${badgeCount} pendentes)` : label}
     >
-      <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+      <span className="relative">
+        <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+        {showBadge && (
+          <span className="absolute -right-2 -top-2 inline-flex min-w-[18px] items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white tabular-nums">
+            {badgeLabel}
+          </span>
+        )}
+      </span>
       <span className={cn('mt-1 text-xs', active && 'font-semibold')}>{label}</span>
     </button>
   );
 }
 
-export default function MobileNav({ view, setView }) {
+export default function MobileNav({ view, setView, pendingDailyCount = 0 }) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white shadow-lg lg:hidden"
@@ -31,7 +43,13 @@ export default function MobileNav({ view, setView }) {
           active={view === 'children' || view === 'add-child' || view === 'child-detail'}
           onClick={() => setView('children')}
         />
-        <NavItem icon={Calendar} label="Registro" active={view === 'daily'} onClick={() => setView('daily')} />
+        <NavItem
+          icon={Calendar}
+          label="Registro"
+          active={view === 'daily'}
+          onClick={() => setView('daily')}
+          badgeCount={pendingDailyCount}
+        />
         <NavItem icon={Settings} label="Config" active={view === 'config'} onClick={() => setView('config')} />
       </div>
     </nav>

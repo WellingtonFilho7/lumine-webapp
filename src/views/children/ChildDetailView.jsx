@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, Phone, School, User } from 'lucide-react';
+import { ChevronDown, Clock, MessageCircle, Phone, School, User } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { getMissingMatriculaFields, getMissingTriageFields } from '../../utils/enrollment';
 import InfoRow from '../../components/ui/InfoRow';
@@ -48,6 +48,8 @@ function ChildDetailView({
   const writeBlocked = onlineOnly && !isOnline;
   const offlineWriteMessage =
     'Sem internet no momento. No modo online-only, conecte-se para salvar.';
+  const sanitizedGuardianPhone = String(child.guardianPhone || '').replace(/\D/g, '');
+  const whatsappLink = sanitizedGuardianPhone ? `https://wa.me/55${sanitizedGuardianPhone}` : '';
 
   useEffect(() => {
     setStatusFormData(buildStatusFormData(child));
@@ -210,16 +212,37 @@ function ChildDetailView({
 
   return (
     <div className="space-y-4">
-      {/* Avatar e nome */}
-      <div className="rounded-lg bg-white p-6 text-center shadow-md">
-        <ChildAvatar name={child.name} status={statusMeta.status} size="lg" className="mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-gray-900">{child.name}</h2>
-        <p className="text-xs font-normal text-gray-500">
-          {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
-        </p>
-      </div>
+            {/* Header compacto */}
       <div className="rounded-lg bg-white p-4 shadow-md">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <ChildAvatar name={child.name} status={statusMeta.status} size="md" />
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-lg font-bold text-gray-900">{child.name}</h2>
+            <p className="text-xs font-normal text-gray-500">
+              {child.birthDate ? calculateAge(child.birthDate) + ' anos' : 'Idade n/d'}
+            </p>
+          </div>
+          <StatusBadge status={statusMeta.status} />
+        </div>
+
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+            <span className="font-semibold text-gray-700">Frequência</span>
+            <span className="tabular-nums">{rate}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-teal-100">
+            <div className="h-full rounded-full bg-cyan-600" style={{ width: String(Math.max(0, Math.min(100, Number(rate) || 0))) + '%' }} />
+          </div>
+          <p className="mt-2 text-xs text-gray-500 tabular-nums">{present} presenças · {absent} faltas</p>
+        </div>
+      </div>
+      <details className="rounded-lg bg-white p-4 shadow-md">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
+          Alterar status
+          <ChevronDown className="size-4 text-gray-500" />
+        </summary>
+        <div className="mt-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase text-gray-400">Status da matrícula</p>
             <StatusBadge status={statusMeta.status} size="md" className="mt-2" />
@@ -676,43 +699,47 @@ function ChildDetailView({
             </div>
           </div>
         )}
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-lg bg-cyan-50 p-3 text-center">
-          <p className="text-xl font-bold text-cyan-700">{rate}%</p>
-          <p className="text-xs text-cyan-700">Frequência</p>
         </div>
-        <div className="rounded-lg bg-green-50 p-3 text-center">
-          <p className="text-xl font-bold text-green-700">{present}</p>
-          <p className="text-xs text-green-700">Presenças</p>
-        </div>
-        <div className="rounded-lg bg-red-50 p-3 text-center">
-          <p className="text-xl font-bold text-red-700">{absent}</p>
-          <p className="text-xs text-red-700">Faltas</p>
-        </div>
-      </div>
+      </details>
 
       {/* Info */}
-      <div className="space-y-3 rounded-lg bg-white p-4 shadow-md">
-        <h3 className="font-semibold text-gray-900">Informações</h3>
-        <InfoRow icon={User} label="Responsável" value={child.guardianName} />
-        <InfoRow icon={Phone} label="Telefone" value={child.guardianPhone} />
-        {child.school && (
-          <InfoRow
-            icon={School}
-            label="Escola"
-            value={`${child.school}${child.grade ? ` - ${child.grade}` : ''}`}
-          />
-        )}
-        <InfoRow icon={Clock} label="Entrada" value={formatDate(child.entryDate)} />
-      </div>
+      <details open className="rounded-lg bg-white p-4 shadow-md">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
+          Informações
+          <ChevronDown className="size-4 text-gray-500" />
+        </summary>
+        <div className="mt-3 space-y-3">
+          <InfoRow icon={User} label="Responsável" value={child.guardianName} />
+          <InfoRow icon={Phone} label="Telefone" value={child.guardianPhone} />
+          {whatsappLink && (
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-800"
+            >
+              <MessageCircle className="size-4" />
+              Chamar no WhatsApp
+            </a>
+          )}
+          {child.school && (
+            <InfoRow
+              icon={School}
+              label="Escola"
+              value={child.school + (child.grade ? ' - ' + child.grade : '')}
+            />
+          )}
+          <InfoRow icon={Clock} label="Entrada" value={formatDate(child.entryDate)} />
+        </div>
+      </details>
 
-      
       {/* Histórico de status */}
-      <div className="rounded-lg bg-white p-4 shadow-md">
-        <h3 className="mb-3 font-semibold text-gray-900">Histórico da matrícula</h3>
+      <details className="rounded-lg bg-white p-4 shadow-md">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
+          Histórico da matrícula
+          <ChevronDown className="size-4 text-gray-500" />
+        </summary>
+        <div className="mt-3">
         {enrollmentHistory.length > 0 ? (
           <div className="space-y-2">
             {enrollmentHistory
@@ -745,11 +772,16 @@ function ChildDetailView({
         ) : (
           <p className="py-4 text-center text-gray-500">Sem histórico registrado.</p>
         )}
-      </div>
+        </div>
+      </details>
 
       {/* Histórico */}
-      <div className="rounded-lg bg-white p-4 shadow-md">
-        <h3 className="mb-3 font-semibold text-gray-900">Últimos registros</h3>
+      <details className="rounded-lg bg-white p-4 shadow-md">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
+          Últimos registros
+          <ChevronDown className="size-4 text-gray-500" />
+        </summary>
+        <div className="mt-3">
         {childRecords.length > 0 ? (
           <div className="space-y-2">
             {childRecords.slice(0, 10).map(rec => (
@@ -797,6 +829,14 @@ function ChildDetailView({
         ) : (
           <p className="py-4 text-center text-gray-500">Nenhum registro</p>
         )}
+        </div>
+      </details>
+
+      <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
+        <p className="text-sm font-semibold text-rose-900">Zona de perigo</p>
+        <p className="mt-1 text-xs text-rose-700">
+          Exclusão de cadastro deve ser feita no fluxo administrativo para evitar remoções acidentais no mobile.
+        </p>
       </div>
     </div>
   );
