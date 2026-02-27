@@ -2,6 +2,7 @@ const LEGACY_STATUS_MAP = {
   active: 'matriculado',
   inactive: 'inativo',
 };
+const ARCHIVED_STATUSES = new Set(['inativo', 'desistente']);
 
 function normalizeAsciiToken(value) {
   return String(value || '')
@@ -43,6 +44,21 @@ export function getEnrollmentStatus(child) {
 
 export function isMatriculated(child) {
   return getEnrollmentStatus(child) === 'matriculado';
+}
+
+export function isArchivedStatus(status) {
+  return ARCHIVED_STATUSES.has(normalizeAsciiToken(status));
+}
+
+export function isArchivedChild(child) {
+  return isArchivedStatus(getEnrollmentStatus(child));
+}
+
+export function filterChildrenForMainList(childrenList, options = {}) {
+  const { includeArchived = false } = options;
+  if (!Array.isArray(childrenList)) return [];
+  if (includeArchived) return childrenList;
+  return childrenList.filter(child => !isArchivedChild(child));
 }
 
 export function parseEnrollmentHistory(value) {
