@@ -13,6 +13,7 @@ function ChildDetailView({
   onUpdateChild,
   isOnline = true,
   onlineOnly = false,
+  onDeleteChild,
   getStatusMeta,
   parseEnrollmentHistory,
   buildStatusFormData,
@@ -41,6 +42,9 @@ function ChildDetailView({
   const [nextStatus, setNextStatus] = useState(statusMeta.status);
   const [statusNotes, setStatusNotes] = useState('');
   const [statusError, setStatusError] = useState('');
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [statusFormData, setStatusFormData] = useState(() => buildStatusFormData(child));
   const writeBlocked = onlineOnly && !isOnline;
   const offlineWriteMessage =
@@ -50,6 +54,9 @@ function ChildDetailView({
 
   useEffect(() => {
     setStatusFormData(buildStatusFormData(child));
+    setDeleteArmed(false);
+    setDeleteError('');
+    setIsDeleting(false);
   }, [child, buildStatusFormData]);
 
   const requiresTriage = ['em_triagem', 'aprovado', 'lista_espera', 'recusado', 'matriculado']
@@ -183,6 +190,40 @@ function ChildDetailView({
     }
     setShowStatusForm(false);
     setStatusNotes('');
+  };
+
+  const handleDeleteChild = async () => {
+    if (writeBlocked) {
+      setDeleteError(offlineWriteMessage);
+      return;
+    }
+
+    if (typeof onDeleteChild !== 'function' || !child?.id || isDeleting) return;
+
+    if (!deleteArmed) {
+      setDeleteArmed(true);
+      setDeleteError('');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Confirma excluir definitivamente o cadastro de ${child.name}? Esta ação também remove os registros diários vinculados.`
+    );
+    if (!confirmed) return;
+
+    setDeleteError('');
+    setIsDeleting(true);
+    try {
+      const ok = await onDeleteChild(child.id);
+      if (ok === false) {
+        setDeleteError('Não foi possível concluir a exclusão agora. Tente novamente.');
+      }
+    } catch (_error) {
+      setDeleteError('Não foi possível concluir a exclusão agora. Tente novamente.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteArmed(false);
+    }
   };
 
 
@@ -807,8 +848,45 @@ function ChildDetailView({
       <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
         <p className="text-sm font-semibold text-rose-900">Zona de perigo</p>
         <p className="mt-1 text-xs text-rose-700">
-          Exclusão de cadastro permanece bloqueada no mobile para evitar remoções acidentais.
+          Use apenas quando for necessário remover definitivamente o cadastro e seus registros.
         </p>
+
+        <div className="mt-3 space-y-2">
+          <button
+            type="button"
+            onClick={handleDeleteChild}
+            disabled={writeBlocked || isDeleting || typeof onDeleteChild !== 'function'}
+            className={cn(
+              'w-full rounded-lg px-3 py-2 text-sm font-semibold text-white',
+              deleteArmed ? 'bg-rose-700 hover:bg-rose-800' : 'bg-rose-600 hover:bg-rose-700',
+              (writeBlocked || isDeleting || typeof onDeleteChild !== 'function') &&
+                'cursor-not-allowed opacity-60'
+            )}
+          >
+            {isDeleting ? 'Excluindo...' : deleteArmed ? 'Confirmar exclusão' : 'Excluir cadastro'}
+          </button>
+
+          {deleteArmed && !isDeleting && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteArmed(false);
+                setDeleteError('');
+              }}
+              className="w-full rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-semibold text-rose-700"
+            >
+              Cancelar exclusão
+            </button>
+          )}
+
+          {deleteArmed && !isDeleting && (
+            <p className="text-xs text-rose-700">
+              Toque novamente em “Confirmar exclusão” para prosseguir.
+            </p>
+          )}
+
+          {deleteError && <p className="text-xs text-rose-700">{deleteError}</p>}
+        </div>
       </div>
     </div>
   );
