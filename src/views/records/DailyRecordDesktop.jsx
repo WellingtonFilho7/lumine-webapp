@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../../utils/cn';
 import { buildRecordForm, getRecordFormDefaults } from '../../utils/records';
 import RecordsLookupPanel from '../../components/RecordsLookupPanel';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Search } from 'lucide-react';
 import { WEEKDAY_KEYS } from '../../constants/enrollment';
 import { RECORD_TOAST_DURATION_MS } from '../../constants';
 
@@ -32,6 +32,7 @@ function DailyRecordDesktop({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const childrenById = useMemo(() => new Map(children.map(child => [child.id, child])), [children]);
   const [selectedChildId, setSelectedChildId] = useState('');
+  const [quickSearch, setQuickSearch] = useState('');
   const [editingRecordId, setEditingRecordId] = useState('');
   const [form, setForm] = useState(getRecordFormDefaults());
   const [toastMessage, setToastMessage] = useState('');
@@ -55,6 +56,13 @@ function DailyRecordDesktop({
     const days = Array.isArray(child.participationDays) ? child.participationDays : [];
     return days.length === 0 || days.includes(selectedWeekdayKey);
   });
+  const quickSearchTerm = quickSearch.trim().toLowerCase();
+  const filteredExpectedChildren = quickSearchTerm
+    ? expectedChildren.filter(child => child.name?.toLowerCase().includes(quickSearchTerm))
+    : expectedChildren;
+  const filteredActiveChildren = quickSearchTerm
+    ? activeChildren.filter(child => child.name?.toLowerCase().includes(quickSearchTerm))
+    : activeChildren;
   const expectedChildIds = new Set(expectedChildren.map(child => child.id));
   const completedExpectedCount = dateRecords.filter(record => expectedChildIds.has(record.childInternalId)).length;
   const pendingExpectedCount = Math.max(0, expectedChildren.length - completedExpectedCount);
@@ -88,6 +96,10 @@ function DailyRecordDesktop({
 
   useEffect(() => {
     clearEditing();
+  }, [date]);
+
+  useEffect(() => {
+    setQuickSearch('');
   }, [date]);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
@@ -208,7 +220,18 @@ function DailyRecordDesktop({
               {pendingExpectedCount} pendentes
             </span>
           </div>
-          <div className="mt-4 max-h-[360px] space-y-2 overflow-auto">
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              value={quickSearch}
+              onChange={e => setQuickSearch(e.target.value)}
+              placeholder="Buscar criança para registrar..."
+              className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+
+          <div className="mt-3 max-h-[360px] space-y-2 overflow-auto">
             {pendingExpectedCount === 0 && (
               <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500">
                 <p className="text-pretty">Nenhuma pendência para esta data.</p>
@@ -220,7 +243,7 @@ function DailyRecordDesktop({
                 </button>
               </div>
             )}
-            {expectedChildren.filter(c => !recordedIds.includes(c.id)).map(child => (
+            {filteredExpectedChildren.filter(c => !recordedIds.includes(c.id)).map(child => (
               <div
                 key={child.id}
                 className={cn(
@@ -332,7 +355,7 @@ function DailyRecordDesktop({
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
               >
                 <option value="">Selecionar</option>
-                {activeChildren.map(child => (
+                {filteredActiveChildren.map(child => (
                   <option key={child.id} value={child.id} disabled={recordedIds.includes(child.id)}>
                     {child.name}
                   </option>

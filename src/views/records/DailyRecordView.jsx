@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { buildRecordForm, getRecordFormDefaults } from '../../utils/records';
 import RecordsLookupPanel from '../../components/RecordsLookupPanel';
@@ -38,6 +38,7 @@ function DailyRecordView({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const childrenById = useMemo(() => new Map(children.map(child => [child.id, child])), [children]);
   const [selectedChildId, setSelectedChildId] = useState('');
+  const [quickSearch, setQuickSearch] = useState('');
   const [step, setStep] = useState('select');
   const [editingRecordId, setEditingRecordId] = useState('');
   const [form, setForm] = useState(getRecordFormDefaults());
@@ -65,6 +66,13 @@ function DailyRecordView({
     return days.length === 0 || days.includes(selectedWeekdayKey);
   });
   const pendingChildren = expectedChildren.filter(c => !recordedIds.includes(c.id));
+  const quickSearchTerm = quickSearch.trim().toLowerCase();
+  const filteredPendingChildren = quickSearchTerm
+    ? pendingChildren.filter(child => child.name?.toLowerCase().includes(quickSearchTerm))
+    : pendingChildren;
+  const filteredActiveChildren = quickSearchTerm
+    ? activeChildren.filter(child => child.name?.toLowerCase().includes(quickSearchTerm))
+    : activeChildren;
   const expectedChildIds = new Set(expectedChildren.map(child => child.id));
   const completedExpectedCount = dateRecords.filter(record => expectedChildIds.has(record.childInternalId)).length;
   const pendingExpectedCount = Math.max(0, expectedChildren.length - completedExpectedCount);
@@ -101,6 +109,10 @@ function DailyRecordView({
 
   useEffect(() => {
     clearEditing();
+  }, [date]);
+
+  useEffect(() => {
+    setQuickSearch('');
   }, [date]);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
@@ -292,10 +304,22 @@ function DailyRecordView({
             <div className="rounded-lg bg-white p-4 shadow-md">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-balance font-semibold text-gray-900">Registro rápido</h3>
-                <span className="text-xs text-gray-500 tabular-nums">{pendingChildren.length} pendentes</span>
+                <span className="text-xs text-gray-500 tabular-nums">{filteredPendingChildren.length} pendentes</span>
               </div>
+
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  value={quickSearch}
+                  onChange={e => setQuickSearch(e.target.value)}
+                  placeholder="Buscar criança para registrar..."
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
+
               <div className="max-h-64 space-y-2 overflow-y-auto">
-                {pendingChildren.map(child => (
+                {filteredPendingChildren.map(child => (
                   <div key={child.id} className="flex items-center gap-2 rounded-lg bg-gray-50 p-3">
                     <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
                     <button
@@ -324,6 +348,11 @@ function DailyRecordView({
                     </button>
                   </div>
                 ))}
+                {filteredPendingChildren.length === 0 && (
+                  <p className="rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-500">
+                    Nenhuma criança pendente encontrada para esta busca.
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -379,7 +408,7 @@ function DailyRecordView({
               className="mb-3 w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
             >
               <option value="">Selecione uma criança</option>
-              {activeChildren.map(c => (
+              {filteredActiveChildren.map(c => (
                 <option key={c.id} value={c.id} disabled={recordedIds.includes(c.id)}>
                   {c.name} {recordedIds.includes(c.id) ? '(registrado)' : ''}
                 </option>
