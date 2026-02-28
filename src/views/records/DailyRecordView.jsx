@@ -45,6 +45,7 @@ function DailyRecordView({
   const [showLookupPanel, setShowLookupPanel] = useState(false);
   const toastTimerRef = useRef(null);
   const resetTimerRef = useRef(null);
+  const detailedCardRef = useRef(null);
   const writeBlocked = onlineOnly && !isOnline;
   const offlineWriteMessage =
     'Sem internet no momento. No modo online-only, conecte-se para salvar.';
@@ -103,6 +104,23 @@ function DailyRecordView({
   }, [date]);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
+
+  useEffect(() => {
+    const handleOpenNewRecord = () => {
+      setStep('select');
+      setEditingRecordId('');
+      setSelectedChildId('');
+
+      setTimeout(() => {
+        detailedCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstInput = detailedCardRef.current?.querySelector('select, input, button');
+        if (firstInput && typeof firstInput.focus === 'function') firstInput.focus();
+      }, 0);
+    };
+
+    window.addEventListener('lumine:daily-new-record', handleOpenNewRecord);
+    return () => window.removeEventListener('lumine:daily-new-record', handleOpenNewRecord);
+  }, []);
 
   const shiftDate = amount => {
     const base = new Date(`${date}T12:00:00`);
@@ -353,7 +371,7 @@ function DailyRecordView({
             </div>
           )}
 
-          <div className="rounded-lg bg-white p-4 shadow-md">
+          <div ref={detailedCardRef} className="rounded-lg bg-white p-4 shadow-md">
             <h3 className="text-balance mb-3 font-semibold text-gray-900">Registro detalhado</h3>
             <select
               value={selectedChildId}

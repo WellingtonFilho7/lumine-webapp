@@ -44,6 +44,7 @@ import {
   PARTICIPATION_DAYS,
   STATUS_FIELD_LABELS,
   MOOD_LABELS,
+  WEEKDAY_KEYS,
 } from './constants/enrollment';
 import useLocalStorage from './hooks/useLocalStorage';
 import useSync from './hooks/useSync';
@@ -282,12 +283,17 @@ export default function LumineTracker() {
 
   const todayKey = new Date().toISOString().split('T')[0];
   const activeChildren = children.filter(isMatriculated);
+  const todayWeekdayKey = WEEKDAY_KEYS[new Date(`${todayKey}T12:00:00`).getDay()];
+  const expectedTodayChildren = activeChildren.filter(child => {
+    const days = Array.isArray(child.participationDays) ? child.participationDays : [];
+    return days.length === 0 || days.includes(todayWeekdayKey);
+  });
   const todayRecordedIds = new Set(
     dailyRecords
       .filter(record => record.date?.split('T')[0] === todayKey)
       .map(record => record.childInternalId)
   );
-  const pendingDailyCount = activeChildren.filter(child => !todayRecordedIds.has(child.id)).length;
+  const pendingDailyCount = expectedTodayChildren.filter(child => !todayRecordedIds.has(child.id)).length;
 
   // Títulos das views
   const viewTitle =

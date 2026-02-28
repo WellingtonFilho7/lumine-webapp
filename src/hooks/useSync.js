@@ -34,6 +34,8 @@ export default function useSync({
   const [syncModal, setSyncModal] = useState(null);
 
   const syncStatusTimerRef = useRef(null);
+  const downloadInFlightRef = useRef(false);
+  const downloadAbortRef = useRef(null);
 
   const clearSyncStatusTimer = useCallback(() => {
     if (syncStatusTimerRef.current) {
@@ -261,9 +263,15 @@ export default function useSync({
       return false;
     }
 
+    if (downloadInFlightRef.current) return false;
+
+    downloadInFlightRef.current = true;
+    const controller = new AbortController();
+    downloadAbortRef.current = controller;
+
     if (!silent) beginSync();
     try {
-      const res = await fetch(apiUrl, { headers: baseHeaders });
+      const res = await fetch(apiUrl, { headers: baseHeaders, signal: controller.signal });
       let result = null;
       try {
         result = await res.json();
@@ -304,6 +312,8 @@ export default function useSync({
       if (!silent) applySyncSuccess();
       return true;
     } catch (error) {
+      if (error?.name === 'AbortError') return false;
+
       if (!silent) {
         applySyncError(
           classifySyncError({
@@ -313,6 +323,11 @@ export default function useSync({
         );
       }
       return false;
+    } finally {
+      if (downloadAbortRef.current === controller) {
+        downloadAbortRef.current = null;
+      }
+      downloadInFlightRef.current = false;
     }
   }, [
     isOnline,
@@ -353,7 +368,14 @@ export default function useSync({
     return undefined;
   }, [isOnline, pendingChanges, overwriteBlocked, reviewMode, syncWithServer]);
 
-  useEffect(() => () => clearSyncStatusTimer(), [clearSyncStatusTimer]);
+  useEffect(() => () => {
+    clearSyncStatusTimer();
+    if (downloadAbortRef.current) {
+      downloadAbortRef.current.abort();
+      downloadAbortRef.current = null;
+    }
+    downloadInFlightRef.current = false;
+  }, [clearSyncStatusTimer]);
 
   return {
     syncStatus,

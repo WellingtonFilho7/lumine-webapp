@@ -7,6 +7,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { WEEKDAY_KEYS } from '../../constants/enrollment';
 import StatCard from '../../components/ui/StatCard';
 
 export default function DashboardView({
@@ -21,10 +22,15 @@ export default function DashboardView({
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === today);
   const activeChildren = children.filter(isMatriculated);
-  const pendingToday = activeChildren.filter(c => !todayRecords.find(r => r.childInternalId === c.id));
-  const completedToday = Math.max(0, activeChildren.length - pendingToday.length);
+  const todayWeekdayKey = WEEKDAY_KEYS[new Date(`${today}T12:00:00`).getDay()];
+  const expectedTodayChildren = activeChildren.filter(child => {
+    const days = Array.isArray(child.participationDays) ? child.participationDays : [];
+    return days.length === 0 || days.includes(todayWeekdayKey);
+  });
+  const pendingToday = expectedTodayChildren.filter(c => !todayRecords.find(r => r.childInternalId === c.id));
+  const completedToday = Math.max(0, expectedTodayChildren.length - pendingToday.length);
   const progressPercent =
-    activeChildren.length === 0 ? 0 : Math.round((completedToday / activeChildren.length) * 100);
+    expectedTodayChildren.length === 0 ? 0 : Math.round((completedToday / expectedTodayChildren.length) * 100);
 
   return (
     <div className="space-y-4">
@@ -44,7 +50,7 @@ export default function DashboardView({
           <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
             <span className="font-semibold text-gray-700">Progresso do dia</span>
             <span className="tabular-nums">
-              {completedToday}/{activeChildren.length}
+              {completedToday}/{expectedTodayChildren.length}
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-teal-100">
@@ -55,10 +61,19 @@ export default function DashboardView({
         {pendingToday.length > 0 ? (
           <div className="space-y-2">
             {pendingToday.slice(0, 4).map(child => (
-              <div key={child.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-2">
+              <button
+                key={child.id}
+                type="button"
+                onClick={() => {
+                  setSelectedChild(child);
+                  setView('child-detail');
+                }}
+                className="flex w-full items-center justify-between rounded-lg bg-gray-50 p-2 text-left"
+                aria-label={`Abrir cadastro de ${child.name}`}
+              >
                 <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
                 <ChevronRight size={18} className="text-gray-400" />
-              </div>
+              </button>
             ))}
             <button
               type="button"

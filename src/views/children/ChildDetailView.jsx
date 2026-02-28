@@ -13,7 +13,6 @@ function ChildDetailView({
   onUpdateChild,
   isOnline = true,
   onlineOnly = false,
-  onDeleteChild,
   getStatusMeta,
   parseEnrollmentHistory,
   buildStatusFormData,
@@ -42,8 +41,6 @@ function ChildDetailView({
   const [nextStatus, setNextStatus] = useState(statusMeta.status);
   const [statusNotes, setStatusNotes] = useState('');
   const [statusError, setStatusError] = useState('');
-  const [deleteError, setDeleteError] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
   const [statusFormData, setStatusFormData] = useState(() => buildStatusFormData(child));
   const writeBlocked = onlineOnly && !isOnline;
   const offlineWriteMessage =
@@ -188,27 +185,7 @@ function ChildDetailView({
     setStatusNotes('');
   };
 
-  const handleDeleteChild = async () => {
-    if (typeof onDeleteChild !== 'function' || !child?.id || isDeleting) return;
 
-    const confirmed = window.confirm(
-      'Deseja excluir este cadastro? Esta ação remove a criança e os registros diários vinculados.'
-    );
-    if (!confirmed) return;
-
-    setDeleteError('');
-    setIsDeleting(true);
-    try {
-      const ok = await onDeleteChild(child.id);
-      if (ok === false) {
-        setDeleteError('Cadastro removido localmente. A sincronização será tentada novamente.');
-      }
-    } catch (_error) {
-      setDeleteError('Não foi possível concluir a exclusão agora. Tente novamente.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -259,20 +236,6 @@ function ChildDetailView({
           >
             Alterar status
           </button>
-        </div>
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={handleDeleteChild}
-            disabled={isDeleting}
-            className={cn(
-              'w-full rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700',
-              isDeleting && 'opacity-70'
-            )}
-          >
-            {isDeleting ? 'Excluindo...' : 'Excluir cadastro'}
-          </button>
-          {deleteError && <p className="mt-2 text-xs text-rose-600">{deleteError}</p>}
         </div>
 
         {showStatusForm && (
@@ -611,8 +574,8 @@ function ChildDetailView({
                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                       >
                         <option value="">Selecione</option>
-                        <option value="pré_alfabetização">Pré-alfabetização</option>
-                        <option value="alfabetização">Alfabetização</option>
+                        <option value="pre_alfabetizacao">Pré-alfabetização</option>
+                        <option value="alfabetizacao">Alfabetização</option>
                         <option value="fundamental_1">Fundamental 1</option>
                         <option value="fundamental_2">Fundamental 2</option>
                       </select>
@@ -637,8 +600,8 @@ function ChildDetailView({
                         <label className="flex items-center gap-2">
                           <input
                             type="checkbox"
-                            checked={statusFormData.documentsReceived.includes('certidão_nascimento')}
-                            onChange={() => toggleStatusDocument('certidão_nascimento')}
+                            checked={statusFormData.documentsReceived.includes('certidao_nascimento')}
+                            onChange={() => toggleStatusDocument('certidao_nascimento')}
                             className="h-4 w-4 rounded"
                           />
                           Certidão de nascimento
@@ -646,8 +609,8 @@ function ChildDetailView({
                         <label className="flex items-center gap-2">
                           <input
                             type="checkbox"
-                            checked={statusFormData.documentsReceived.includes('documento_responsável')}
-                            onChange={() => toggleStatusDocument('documento_responsável')}
+                            checked={statusFormData.documentsReceived.includes('documento_responsavel')}
+                            onChange={() => toggleStatusDocument('documento_responsavel')}
                             className="h-4 w-4 rounded"
                           />
                           Documento do responsável
@@ -655,11 +618,20 @@ function ChildDetailView({
                         <label className="flex items-center gap-2">
                           <input
                             type="checkbox"
-                            checked={statusFormData.documentsReceived.includes('comprovante_residência')}
-                            onChange={() => toggleStatusDocument('comprovante_residência')}
+                            checked={statusFormData.documentsReceived.includes('comprovante_residencia')}
+                            onChange={() => toggleStatusDocument('comprovante_residencia')}
                             className="h-4 w-4 rounded"
                           />
                           Comprovante de residência
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={statusFormData.documentsReceived.includes('carteira_vacinacao')}
+                            onChange={() => toggleStatusDocument('carteira_vacinacao')}
+                            className="h-4 w-4 rounded"
+                          />
+                          Carteira de vacinação
                         </label>
                       </div>
                     </div>
@@ -835,7 +807,7 @@ function ChildDetailView({
       <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
         <p className="text-sm font-semibold text-rose-900">Zona de perigo</p>
         <p className="mt-1 text-xs text-rose-700">
-          Exclusão de cadastro deve ser feita no fluxo administrativo para evitar remoções acidentais no mobile.
+          Exclusão de cadastro permanece bloqueada no mobile para evitar remoções acidentais.
         </p>
       </div>
     </div>

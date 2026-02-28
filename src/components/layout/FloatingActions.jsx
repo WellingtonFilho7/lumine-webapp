@@ -15,7 +15,7 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
       return;
     }
     if (view === 'daily') {
-      setView('daily');
+      window.dispatchEvent(new Event('lumine:daily-new-record'));
       return;
     }
     setShowFABMenu(prev => !prev);
