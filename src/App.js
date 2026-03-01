@@ -3,7 +3,7 @@
 // Versão 3.0 - UX/UI Otimizada para Mobile
 // ============================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, AlertTriangle } from 'lucide-react';
 import { cn } from './utils/cn';
 import { isTriageDraft } from './utils/enrollment';
@@ -107,6 +107,8 @@ export default function LumineTracker() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingChanges, setPendingChanges] = useState(0);
   const [showFABMenu, setShowFABMenu] = useState(false);
+  const [quickAttendanceLoadingByChildId, setQuickAttendanceLoadingByChildId] = useState({});
+  const quickAttendanceInFlightRef = useRef(new Set());
 
   const {
     syncStatus,
@@ -194,6 +196,41 @@ export default function LumineTracker() {
       return ok;
     },
     [deleteChild, setSelectedChild, setView]
+  );
+
+  const handleDashboardQuickAttendance = useCallback(
+    async (childId, attendance) => {
+      if (!childId) return false;
+      if (quickAttendanceInFlightRef.current.has(childId)) return false;
+
+      quickAttendanceInFlightRef.current.add(childId);
+      setQuickAttendanceLoadingByChildId(prev => ({ ...prev, [childId]: true }));
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const ok = await addDailyRecord({
+          childInternalId: childId,
+          date: today,
+          attendance,
+          participation: 'medium',
+          mood: 'neutral',
+          interaction: 'medium',
+          activity: '',
+          performance: 'medium',
+          notes: '',
+          familyContact: 'no',
+          contactReason: '',
+        });
+        return ok !== false;
+      } finally {
+        quickAttendanceInFlightRef.current.delete(childId);
+        setQuickAttendanceLoadingByChildId(prev => {
+          const next = { ...prev };
+          delete next[childId];
+          return next;
+        });
+      }
+    },
+    [addDailyRecord]
   );
 
   // Monitor de conexão
@@ -429,6 +466,8 @@ export default function LumineTracker() {
                 setSelectedChild={setSelectedChild}
                 setView={setView}
                 isMatriculated={isMatriculated}
+                onQuickAttendance={handleDashboardQuickAttendance}
+                quickAttendanceLoadingByChildId={quickAttendanceLoadingByChildId}
               />
             </div>
             <div className="hidden lg:block">

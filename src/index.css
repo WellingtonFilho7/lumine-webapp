@@ -138,3 +138,11 @@ p {
   background: #c1c1c1;
   border-radius: 3px;
 }
+
+.details-chevron {
+  transition: transform 0.2s ease;
+}
+
+details[open] > summary .details-chevron {
+  transform: rotate(180deg);
+}

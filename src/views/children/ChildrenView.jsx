@@ -129,17 +129,17 @@ export default function ChildrenView({
                 setView('child-detail');
               }}
               className={cn(
-                'flex cursor-pointer items-center gap-4 rounded-lg border-l-4 bg-white p-4 shadow-md active:bg-gray-50',
+                'flex cursor-pointer items-center gap-4 rounded-lg border-l-4 bg-white p-4 shadow-sm active:bg-gray-50',
                 statusBorderClass(childStatus)
               )}
             >
               <ChildAvatar name={child.name} status={childStatus} />
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-semibold text-gray-900">{child.name}</h3>
-                <p className="text-xs font-normal text-gray-500 tabular-nums">
-                  {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-normal text-gray-500 tabular-nums">
+                    {child.birthDate ? `${calculateAge(child.birthDate)} anos` : 'Idade n/d'}
+                  </p>
                   <StatusBadge status={childStatus} />
                   {isDraft && (
                     <span className="inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-800">

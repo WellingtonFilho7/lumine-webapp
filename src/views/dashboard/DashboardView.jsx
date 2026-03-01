@@ -1,14 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle,
   ChevronRight,
-  Users,
-  XCircle,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { WEEKDAY_KEYS } from '../../constants/enrollment';
-import StatCard from '../../components/ui/StatCard';
 
 export default function DashboardView({
   stats,
@@ -18,7 +15,37 @@ export default function DashboardView({
   setSelectedChild,
   setView,
   isMatriculated,
+  onQuickAttendance,
+  quickAttendanceLoadingByChildId = {},
 }) {
+  const [quickFeedback, setQuickFeedback] = useState('');
+  const feedbackTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
+
+  const showQuickFeedback = message => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    setQuickFeedback(message);
+    feedbackTimerRef.current = setTimeout(() => {
+      setQuickFeedback('');
+      feedbackTimerRef.current = null;
+    }, 2500);
+  };
+
+  const handleQuickAttendance = async (childId, attendance) => {
+    if (typeof onQuickAttendance !== 'function') return;
+    const ok = await onQuickAttendance(childId, attendance);
+    if (!ok) {
+      showQuickFeedback('Nao foi possivel salvar agora. Tente novamente.');
+      return;
+    }
+    showQuickFeedback('Registro salvo!');
+  };
+
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = dailyRecords.filter(r => r.date?.split('T')[0] === today);
   const activeChildren = children.filter(isMatriculated);
@@ -60,21 +87,57 @@ export default function DashboardView({
 
         {pendingToday.length > 0 ? (
           <div className="space-y-2">
-            {pendingToday.slice(0, 4).map(child => (
-              <button
-                key={child.id}
-                type="button"
-                onClick={() => {
-                  setSelectedChild(child);
-                  setView('child-detail');
-                }}
-                className="flex w-full items-center justify-between rounded-lg bg-gray-50 p-2 text-left"
-                aria-label={`Abrir cadastro de ${child.name}`}
-              >
-                <span className="flex-1 truncate text-sm font-semibold text-gray-900">{child.name}</span>
-                <ChevronRight size={18} className="text-gray-400" />
-              </button>
-            ))}
+            {quickFeedback && (
+              <p role="status" aria-live="polite" className="rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-800">
+                {quickFeedback}
+              </p>
+            )}
+            {pendingToday.slice(0, 4).map(child => {
+              const isSaving = Boolean(quickAttendanceLoadingByChildId[child.id]);
+              return (
+                <div
+                  key={child.id}
+                  className="flex items-center gap-2 rounded-lg bg-gray-50 p-2"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedChild(child);
+                      setView('child-detail');
+                    }}
+                    className="flex min-w-0 flex-1 items-center justify-between text-left"
+                    aria-label={`Abrir cadastro de ${child.name}`}
+                  >
+                    <span className="truncate text-sm font-semibold text-gray-900">{child.name}</span>
+                    <ChevronRight size={18} className="ml-2 shrink-0 text-gray-400" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickAttendance(child.id, 'present')}
+                    disabled={isSaving}
+                    className={cn(
+                      'rounded-lg px-2.5 py-1.5 text-xs font-semibold',
+                      isSaving ? 'cursor-not-allowed bg-gray-200 text-gray-500' : 'bg-green-100 text-green-800'
+                    )}
+                    aria-label={`Marcar ${child.name} como presente`}
+                  >
+                    P
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickAttendance(child.id, 'absent')}
+                    disabled={isSaving}
+                    className={cn(
+                      'rounded-lg px-2.5 py-1.5 text-xs font-semibold',
+                      isSaving ? 'cursor-not-allowed bg-gray-200 text-gray-500' : 'bg-red-100 text-red-800'
+                    )}
+                    aria-label={`Marcar ${child.name} como ausente`}
+                  >
+                    A
+                  </button>
+                </div>
+              );
+            })}
             <button
               type="button"
               onClick={() => setView('daily')}
@@ -97,9 +160,18 @@ export default function DashboardView({
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <StatCard value={stats.present} label="Presentes" color="green" icon={CheckCircle} size="sm" />
-        <StatCard value={stats.absent} label="Ausentes" color="red" icon={XCircle} size="sm" />
-        <StatCard value={stats.total} label="Total" color="indigo" icon={Users} size="sm" />
+        <div className="rounded-lg bg-green-50 px-3 py-2">
+          <p className="text-lg font-extrabold tabular-nums text-green-800">{stats.present}</p>
+          <p className="text-xs font-semibold text-green-700">Presentes</p>
+        </div>
+        <div className="rounded-lg bg-red-50 px-3 py-2">
+          <p className="text-lg font-extrabold tabular-nums text-red-800">{stats.absent}</p>
+          <p className="text-xs font-semibold text-red-700">Ausentes</p>
+        </div>
+        <div className="rounded-lg bg-blue-50 px-3 py-2">
+          <p className="text-lg font-extrabold tabular-nums text-blue-800">{stats.total}</p>
+          <p className="text-xs font-semibold text-blue-700">Total</p>
+        </div>
       </div>
 
       {alerts.length > 0 && (

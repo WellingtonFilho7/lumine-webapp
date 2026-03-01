@@ -38,7 +38,6 @@ function ChildDetailView({
 
   const statusMeta = getStatusMeta(child);
   const enrollmentHistory = parseEnrollmentHistory(child.enrollmentHistory);
-  const [showStatusForm, setShowStatusForm] = useState(false);
   const [nextStatus, setNextStatus] = useState(statusMeta.status);
   const [statusNotes, setStatusNotes] = useState('');
   const [statusError, setStatusError] = useState('');
@@ -188,7 +187,6 @@ function ChildDetailView({
       setStatusError('Não foi possível salvar agora. Verifique a conexão e tente novamente.');
       return;
     }
-    setShowStatusForm(false);
     setStatusNotes('');
   };
 
@@ -257,7 +255,7 @@ function ChildDetailView({
       <details className="rounded-lg bg-white p-4 shadow-md">
         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
           Alterar status
-          <ChevronDown className="size-4 text-gray-500" />
+          <ChevronDown className="details-chevron size-4 text-gray-500" />
         </summary>
         <div className="mt-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -265,21 +263,8 @@ function ChildDetailView({
             <p className="text-xs uppercase text-gray-400">Status da matrícula</p>
             <StatusBadge status={statusMeta.status} size="md" className="mt-2" />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setShowStatusForm(prev => !prev);
-              setStatusError('');
-              setNextStatus(statusMeta.status);
-              setStatusFormData(buildStatusFormData(child));
-            }}
-            className="rounded-lg bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800"
-          >
-            Alterar status
-          </button>
-        </div>
 
-        {showStatusForm && (
+        </div>
           <div className="mt-4 space-y-3">
             <select
               value={nextStatus}
@@ -693,7 +678,12 @@ function ChildDetailView({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowStatusForm(false)}
+                onClick={() => {
+                  setStatusError('');
+                  setStatusNotes('');
+                  setNextStatus(statusMeta.status);
+                  setStatusFormData(buildStatusFormData(child));
+                }}
                 className="flex-1 rounded-lg bg-teal-50 py-2 text-sm font-semibold text-gray-700"
               >
                 Cancelar
@@ -711,7 +701,6 @@ function ChildDetailView({
               </button>
             </div>
           </div>
-        )}
         </div>
       </details>
 
@@ -719,7 +708,7 @@ function ChildDetailView({
       <details open className="rounded-lg bg-white p-4 shadow-md">
         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
           Informações
-          <ChevronDown className="size-4 text-gray-500" />
+          <ChevronDown className="details-chevron size-4 text-gray-500" />
         </summary>
         <div className="mt-3 space-y-3">
           <InfoRow icon={User} label="Responsável" value={child.guardianName} />
@@ -750,7 +739,7 @@ function ChildDetailView({
       <details className="rounded-lg bg-white p-4 shadow-md">
         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
           Histórico da matrícula
-          <ChevronDown className="size-4 text-gray-500" />
+          <ChevronDown className="details-chevron size-4 text-gray-500" />
         </summary>
         <div className="mt-3">
         {enrollmentHistory.length > 0 ? (
@@ -792,7 +781,7 @@ function ChildDetailView({
       <details className="rounded-lg bg-white p-4 shadow-md">
         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
           Últimos registros
-          <ChevronDown className="size-4 text-gray-500" />
+          <ChevronDown className="details-chevron size-4 text-gray-500" />
         </summary>
         <div className="mt-3">
         {childRecords.length > 0 ? (

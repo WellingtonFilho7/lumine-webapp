@@ -44,6 +44,7 @@ function DailyRecordView({
   const [form, setForm] = useState(getRecordFormDefaults());
   const [toastMessage, setToastMessage] = useState('');
   const [showLookupPanel, setShowLookupPanel] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const toastTimerRef = useRef(null);
   const resetTimerRef = useRef(null);
   const detailedCardRef = useRef(null);
@@ -109,6 +110,7 @@ function DailyRecordView({
 
   useEffect(() => {
     clearEditing();
+    setShowDatePicker(false);
   }, [date]);
 
   useEffect(() => {
@@ -254,12 +256,27 @@ function DailyRecordView({
             Amanhã <ChevronRight className="size-3" />
           </button>
         </div>
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
-        />
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-gray-600 tabular-nums">Data selecionada: {date}</p>
+          <button
+            type="button"
+            onClick={() => setShowDatePicker(prev => !prev)}
+            className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700"
+          >
+            {showDatePicker ? 'Ocultar data' : 'Escolher data'}
+          </button>
+        </div>
+
+        {showDatePicker && (
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            aria-label="Selecionar data manualmente"
+            className="mt-3 w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
+          />
+        )}
       </div>
 
       {writeBlocked && (
