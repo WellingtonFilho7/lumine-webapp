@@ -23,7 +23,7 @@ describe('useChildren hook', () => {
 
     const { result } = renderHook(() =>
       useChildren({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: {},
         isOnline: false,
         normalizeChild: input => ({ child: input, changed: false }),
@@ -64,12 +64,12 @@ describe('useChildren hook', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ success: true, childId: 'CRI-1234', dataRev: 11 }),
+      json: async () => ({ success: true, data: { childId: 'CRI-1234', dataRev: 11 } }),
     });
 
     const { result } = renderHook(() =>
       useChildren({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: { Authorization: 'Bearer test' },
         isOnline: true,
         normalizeChild: input => ({ child: input, changed: false }),
@@ -114,7 +114,7 @@ describe('useChildren hook', () => {
 
     const { result } = renderHook(() =>
       useChildren({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: { Authorization: 'Bearer test' },
         isOnline: true,
         normalizeChild: input => ({ child: input, changed: false }),
@@ -132,8 +132,8 @@ describe('useChildren hook', () => {
     });
 
     expect(ok).toBe(false);
-    expect(childrenState).toHaveLength(1);
-    expect(pendingState).toBe(1);
+    expect(childrenState).toHaveLength(0);
+    expect(pendingState).toBe(0);
   });
 
   test('deletes child and related records locally when offline', async () => {
@@ -159,11 +159,10 @@ describe('useChildren hook', () => {
 
     const { result } = renderHook(() =>
       useChildren({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: {},
         isOnline: false,
         normalizeChild: input => ({ child: input, changed: false }),
-        dailyRecords: recordsState,
         setChildren,
         setDailyRecords,
         setSelectedChild: jest.fn(),
@@ -205,16 +204,15 @@ describe('useChildren hook', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ success: true, dataRev: 15 }),
+      json: async () => ({ success: true, data: { dataRev: 15 } }),
     });
 
     const { result } = renderHook(() =>
       useChildren({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: { Authorization: 'Bearer test' },
         isOnline: true,
         normalizeChild: input => ({ child: input, changed: false }),
-        dailyRecords: recordsState,
         setChildren,
         setDailyRecords,
         setSelectedChild: jest.fn(),
@@ -234,7 +232,7 @@ describe('useChildren hook', () => {
     expect(recordsState).toEqual([]);
     expect(pendingState).toBe(0);
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch.mock.calls[0][1].body).toContain('"action":"deleteChild"');
+    expect(global.fetch.mock.calls[0][1].body).toContain('"childId":"c1"');
     expect(setDataRev).toHaveBeenCalledWith(15);
     expect(setLastSync).toHaveBeenCalled();
   });
@@ -262,11 +260,10 @@ describe('useChildren hook', () => {
 
     const { result } = renderHook(() =>
       useChildren({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: { Authorization: 'Bearer test' },
         isOnline: true,
         normalizeChild: input => ({ child: input, changed: false }),
-        dailyRecords: recordsState,
         setChildren,
         setDailyRecords,
         setSelectedChild: jest.fn(),
@@ -282,8 +279,8 @@ describe('useChildren hook', () => {
     });
 
     expect(ok).toBe(false);
-    expect(childrenState).toEqual([]);
-    expect(recordsState).toEqual([]);
-    expect(pendingState).toBe(1);
+    expect(childrenState).toEqual([{ id: 'c1', name: 'Ana' }]);
+    expect(recordsState).toEqual([{ id: 'r1', childInternalId: 'c1', date: '2026-02-01' }]);
+    expect(pendingState).toBe(0);
   });
 });

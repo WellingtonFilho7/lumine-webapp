@@ -1,13 +1,11 @@
 import { useCallback } from 'react';
 
 export default function useChildren({
-  apiUrl,
+  apiBaseUrl,
   jsonHeaders,
   isOnline,
   onlineOnly = false,
   children = [],
-  dailyRecords = [],
-  syncWithServer,
   normalizeChild,
   setChildren,
   setDailyRecords,
@@ -29,8 +27,9 @@ export default function useChildren({
 
       const baseChild = {
         ...data,
-        id: Date.now().toString(),
-        createdAt: now,
+        id: data.id || Date.now().toString(),
+        createdAt: data.createdAt || now,
+        updatedAt: data.updatedAt || null,
         entryDate,
         enrollmentStatus,
         enrollmentDate: data.enrollmentDate || now,
@@ -49,71 +48,42 @@ export default function useChildren({
 
       const newChild = normalizeChild(baseChild).child;
 
-      if (onlineOnly) {
-        try {
-          const res = await fetch(apiUrl, {
-            method: 'POST',
-            headers: jsonHeaders,
-            body: JSON.stringify({ action: 'addChild', data: newChild }),
-          });
-          const result = await res.json().catch(() => null);
-          if (!res.ok || !result?.success) return false;
-
-          const persistedChild = {
-            ...newChild,
-            ...(result?.childId ? { childId: result.childId } : {}),
-          };
-
-          setChildren(prev => [...prev, persistedChild]);
-          if (typeof result?.dataRev === 'number') {
-            setDataRev(result.dataRev);
-          }
-          setLastSync(new Date().toISOString());
-          return true;
-        } catch {
-          return false;
-        }
+      if (!isOnline) {
+        if (onlineOnly) return false;
+        setChildren(prev => [...prev, newChild]);
+        setPendingChanges(p => p + 1);
+        return true;
       }
 
-      setChildren(prev => [...prev, newChild]);
-      setPendingChanges(p => p + 1);
+      try {
+        const res = await fetch(`${apiBaseUrl}/children/create`, {
+          method: 'POST',
+          headers: jsonHeaders,
+          body: JSON.stringify({ data: newChild }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok || !result?.success) return false;
 
-      if (isOnline) {
-        try {
-          const res = await fetch(apiUrl, {
-            method: 'POST',
-            headers: jsonHeaders,
-            body: JSON.stringify({ action: 'addChild', data: newChild }),
-          });
-          const result = await res.json().catch(() => null);
-          if (!res.ok || !result?.success) {
-            throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
-          }
+        const dataPayload = result?.data || {};
+        const persistedChild = normalizeChild({
+          ...newChild,
+          ...(dataPayload.child || {}),
+          ...(dataPayload.childId ? { childId: dataPayload.childId } : {}),
+          ...(dataPayload.updatedAt ? { updatedAt: dataPayload.updatedAt } : {}),
+        }).child;
 
-          if (result?.childId) {
-            setChildren(prev =>
-              prev.map(child =>
-                child.id === newChild.id ? { ...child, childId: result.childId } : child
-              )
-            );
-          }
-          if (typeof result?.dataRev === 'number') {
-            setDataRev(result.dataRev);
-          }
-
-          setPendingChanges(prev => Math.max(0, prev - 1));
-          setLastSync(new Date().toISOString());
-          return true;
-        } catch (error) {
-          console.error('Falha ao sincronizar cadastro de criança', error);
-          return false;
+        setChildren(prev => [...prev, persistedChild]);
+        if (typeof dataPayload?.dataRev === 'number') {
+          setDataRev(dataPayload.dataRev);
         }
+        setLastSync(new Date().toISOString());
+        return true;
+      } catch {
+        return false;
       }
-
-      return true;
     },
     [
-      apiUrl,
+      apiBaseUrl,
       jsonHeaders,
       isOnline,
       onlineOnly,
@@ -129,93 +99,120 @@ export default function useChildren({
     async (childId, updatedData) => {
       if (onlineOnly && !isOnline) return false;
 
-      if (onlineOnly) {
-        const nextChildren = children.map(child => {
-          if (child.id !== childId) return child;
-          const merged = { ...child, ...updatedData };
-          return normalizeChild(merged).child;
-        });
+      const currentChild = children.find(child => child.id === childId);
+      if (!currentChild) return false;
 
-        const ok = await syncWithServer(
-          {
-            children: nextChildren,
-            records: dailyRecords,
-          },
-          'auto'
+      const normalizedPatch = normalizeChild({ ...currentChild, ...updatedData }).child;
+
+      if (!isOnline) {
+        if (onlineOnly) return false;
+
+        setChildren(prev =>
+          prev.map(child => {
+            if (child.id !== childId) return child;
+            return normalizedPatch;
+          })
         );
-
-        if (!ok) return false;
-
-        setChildren(nextChildren);
         setSelectedChild(prev => {
           if (!prev || prev.id !== childId) return prev;
-          const selected = nextChildren.find(child => child.id === childId);
-          return selected || prev;
+          return normalizedPatch;
         });
+        setPendingChanges(p => p + 1);
         return true;
       }
 
-      setChildren(prev =>
-        prev.map(child => {
-          if (child.id !== childId) return child;
-          const merged = { ...child, ...updatedData };
-          return normalizeChild(merged).child;
-        })
-      );
+      try {
+        const res = await fetch(`${apiBaseUrl}/children/update`, {
+          method: 'POST',
+          headers: jsonHeaders,
+          body: JSON.stringify({
+            childId,
+            ifUnmodifiedSince: currentChild.updatedAt || null,
+            data: normalizedPatch,
+          }),
+        });
+        const result = await res.json().catch(() => null);
+        if (!res.ok || !result?.success) return false;
 
-      setSelectedChild(prev => {
-        if (!prev || prev.id !== childId) return prev;
-        const merged = { ...prev, ...updatedData };
-        return normalizeChild(merged).child;
-      });
+        const dataPayload = result?.data || {};
+        const persistedChild = normalizeChild({
+          ...normalizedPatch,
+          ...(dataPayload.child || {}),
+          ...(dataPayload.childId ? { childId: dataPayload.childId } : {}),
+          ...(dataPayload.updatedAt ? { updatedAt: dataPayload.updatedAt } : {}),
+        }).child;
 
-      setPendingChanges(p => p + 1);
-      return true;
+        setChildren(prev => prev.map(child => (child.id === childId ? persistedChild : child)));
+        setSelectedChild(prev => {
+          if (!prev || prev.id !== childId) return prev;
+          return persistedChild;
+        });
+
+        if (typeof dataPayload?.dataRev === 'number') {
+          setDataRev(dataPayload.dataRev);
+        }
+        setLastSync(new Date().toISOString());
+        return true;
+      } catch {
+        return false;
+      }
     },
     [
       onlineOnly,
       isOnline,
       children,
-      dailyRecords,
-      syncWithServer,
+      apiBaseUrl,
+      jsonHeaders,
       setChildren,
       setSelectedChild,
       setPendingChanges,
       normalizeChild,
+      setDataRev,
+      setLastSync,
     ]
   );
 
   const deleteChild = useCallback(
     async childId => {
       if (!childId) return false;
+      if (onlineOnly && !isOnline) return false;
 
-      setChildren(prev => prev.filter(child => child.id !== childId));
-      if (typeof setDailyRecords === 'function') {
-        setDailyRecords(prev =>
-          prev.filter(record => (record.childInternalId || record.childId) !== childId)
-        );
+      if (!isOnline) {
+        setChildren(prev => prev.filter(child => child.id !== childId));
+        if (typeof setDailyRecords === 'function') {
+          setDailyRecords(prev =>
+            prev.filter(record => (record.childInternalId || record.childId) !== childId)
+          );
+        }
+        setSelectedChild(prev => (prev?.id === childId ? null : prev));
+        setPendingChanges(p => p + 1);
+        return true;
       }
-      setSelectedChild(prev => (prev?.id === childId ? null : prev));
-      setPendingChanges(p => p + 1);
-
-      if (!isOnline) return true;
 
       try {
-        const res = await fetch(apiUrl, {
+        const res = await fetch(`${apiBaseUrl}/children/delete`, {
           method: 'POST',
           headers: jsonHeaders,
-          body: JSON.stringify({ action: 'deleteChild', data: { childId } }),
+          body: JSON.stringify({ childId }),
         });
         const result = await res.json().catch(() => null);
         if (!res.ok || !result?.success) {
           throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
         }
 
-        if (typeof result?.dataRev === 'number') {
-          setDataRev(result.dataRev);
+        setChildren(prev => prev.filter(child => child.id !== childId));
+        if (typeof setDailyRecords === 'function') {
+          setDailyRecords(prev =>
+            prev.filter(record => (record.childInternalId || record.childId) !== childId)
+          );
+        }
+        setSelectedChild(prev => (prev?.id === childId ? null : prev));
+
+        const dataPayload = result?.data || {};
+        if (typeof dataPayload?.dataRev === 'number') {
+          setDataRev(dataPayload.dataRev);
         }
 
-        setPendingChanges(prev => Math.max(0, prev - 1));
         setLastSync(new Date().toISOString());
         return true;
       } catch (error) {
@@ -224,9 +221,10 @@ export default function useChildren({
       }
     },
     [
-      apiUrl,
+      apiBaseUrl,
       isOnline,
       jsonHeaders,
+      onlineOnly,
       setChildren,
       setDailyRecords,
       setSelectedChild,

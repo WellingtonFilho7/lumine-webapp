@@ -1,18 +1,15 @@
 import { useCallback } from 'react';
 
 export default function useRecords({
-  apiUrl,
+  apiBaseUrl,
   jsonHeaders,
   isOnline,
   onlineOnly = false,
-  reviewMode,
-  children,
   dailyRecords,
   setDailyRecords,
   setPendingChanges,
   setDataRev,
   setLastSync,
-  syncWithServer,
   upsertDailyRecord,
 }) {
   const addDailyRecord = useCallback(
@@ -20,65 +17,48 @@ export default function useRecords({
       if (onlineOnly && !isOnline) return false;
 
       const now = new Date().toISOString();
-      const { recordPayload, nextRecords, existed } = upsertDailyRecord(dailyRecords, data, now);
+      const { recordPayload, nextRecords } = upsertDailyRecord(dailyRecords, data, now);
 
-      if (onlineOnly) {
-        if (existed) {
-          const ok = await syncWithServer({ children, records: nextRecords }, 'auto');
-          if (!ok) return false;
-          setDailyRecords(nextRecords);
-          return true;
-        }
-
-        try {
-          const res = await fetch(apiUrl, {
-            method: 'POST',
-            headers: jsonHeaders,
-            body: JSON.stringify({ action: 'addRecord', data: recordPayload }),
-          });
-          const result = await res.json().catch(() => null);
-          if (!res.ok || !result?.success) {
-            return false;
-          }
-
-          setDailyRecords(nextRecords);
-          if (typeof result?.dataRev === 'number') {
-            setDataRev(result.dataRev);
-          }
-          setLastSync(new Date().toISOString());
-          return true;
-        } catch {
-          return false;
-        }
-      }
-
-      setDailyRecords(nextRecords);
-      setPendingChanges(p => p + 1);
-
-      if (!isOnline) return true;
-
-      if (existed) {
-        if (!reviewMode) {
-          const synced = await syncWithServer({ children, records: nextRecords }, 'auto');
-          return Boolean(synced);
-        }
+      if (!isOnline) {
+        setDailyRecords(nextRecords);
+        setPendingChanges(p => p + 1);
         return true;
       }
 
+      const existingRecord = dailyRecords.find(record => record.id === recordPayload.id);
+
       try {
-        const res = await fetch(apiUrl, {
+        const res = await fetch(`${apiBaseUrl}/records/upsert`, {
           method: 'POST',
           headers: jsonHeaders,
-          body: JSON.stringify({ action: 'addRecord', data: recordPayload }),
+          body: JSON.stringify({
+            ifUnmodifiedSince: existingRecord?.updatedAt || null,
+            data: recordPayload,
+          }),
         });
         const result = await res.json().catch(() => null);
         if (!res.ok || !result?.success) {
-          throw new Error(result?.error || result?.details || `Erro HTTP ${res.status}`);
+          throw new Error(result?.error || result?.message || `Erro HTTP ${res.status}`);
         }
-        if (typeof result?.dataRev === 'number') {
-          setDataRev(result.dataRev);
+
+        const dataPayload = result?.data || {};
+        const persistedRecord = {
+          ...recordPayload,
+          ...(dataPayload.record || {}),
+          ...(dataPayload.updatedAt ? { updatedAt: dataPayload.updatedAt } : {}),
+        };
+
+        setDailyRecords(prev => {
+          const index = prev.findIndex(record => record.id === persistedRecord.id);
+          if (index === -1) return [...prev, persistedRecord];
+          const next = [...prev];
+          next[index] = persistedRecord;
+          return next;
+        });
+
+        if (typeof dataPayload?.dataRev === 'number') {
+          setDataRev(dataPayload.dataRev);
         }
-        setPendingChanges(prev => Math.max(0, prev - 1));
         setLastSync(new Date().toISOString());
         return true;
       } catch (error) {
@@ -93,10 +73,7 @@ export default function useRecords({
       setPendingChanges,
       onlineOnly,
       isOnline,
-      reviewMode,
-      syncWithServer,
-      children,
-      apiUrl,
+      apiBaseUrl,
       jsonHeaders,
       setDataRev,
       setLastSync,

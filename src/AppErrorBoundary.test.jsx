@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('./components/layout/Sidebar', () => () => null);
@@ -17,15 +17,20 @@ jest.mock('./views/dashboard/DashboardView', () => () => {
 import LumineTracker from './App';
 
 describe('App error boundary wiring', () => {
-  test('renders fallback when a dashboard view throws', () => {
+  test('renders fallback when a dashboard view throws', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, data: { children: [], records: [] }, dataRev: 1 }),
+    });
 
     render(<LumineTracker />);
 
-    expect(screen.getByText('Algo deu errado')).toBeInTheDocument();
-    expect(
-      screen.getByText('O aplicativo encontrou um erro inesperado. Recarregue para continuar.')
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Algo deu errado')).toBeInTheDocument();
+    });
+    expect(screen.getByText('O aplicativo encontrou um erro inesperado. Recarregue para continuar.')).toBeInTheDocument();
 
     errorSpy.mockRestore();
   });

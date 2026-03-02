@@ -9,6 +9,7 @@ import {
 
 export default function useSync({
   apiUrl,
+  bootstrapUrl,
   baseHeaders,
   jsonHeaders,
   children,
@@ -112,7 +113,7 @@ export default function useSync({
       let serverRev = localRevBefore;
 
       try {
-        const preRes = await fetch(apiUrl, { headers: baseHeaders });
+        const preRes = await fetch(bootstrapUrl || apiUrl, { headers: baseHeaders });
         let preData = null;
         try {
           preData = await preRes.json();
@@ -242,6 +243,7 @@ export default function useSync({
       beginSync,
       dataRev,
       apiUrl,
+      bootstrapUrl,
       baseHeaders,
       setDataRev,
       applySyncError,
@@ -271,7 +273,10 @@ export default function useSync({
 
     if (!silent) beginSync();
     try {
-      const res = await fetch(apiUrl, { headers: baseHeaders, signal: controller.signal });
+          const res = await fetch(bootstrapUrl || apiUrl, {
+            headers: baseHeaders,
+            signal: controller.signal,
+          });
       let result = null;
       try {
         result = await res.json();
@@ -308,7 +313,7 @@ export default function useSync({
 
       if (typeof result?.dataRev === 'number') setDataRev(result.dataRev);
       setOverwriteBlocked(false);
-      setLastSync(new Date().toISOString());
+      setLastSync(result?.serverTs || new Date().toISOString());
       if (!silent) applySyncSuccess();
       return true;
     } catch (error) {
@@ -333,6 +338,7 @@ export default function useSync({
     isOnline,
     beginSync,
     apiUrl,
+    bootstrapUrl,
     baseHeaders,
     applySyncError,
     normalizeChildren,

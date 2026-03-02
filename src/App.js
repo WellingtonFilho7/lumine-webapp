@@ -3,7 +3,7 @@
 // Versão 3.0 - UX/UI Otimizada para Mobile
 // ============================================
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft, AlertTriangle } from 'lucide-react';
 import { cn } from './utils/cn';
 import { isTriageDraft } from './utils/enrollment';
@@ -27,7 +27,15 @@ import { upsertDailyRecord } from './utils/records';
 import { getDashboardStats, getAttendanceAlerts } from './utils/dashboardMetrics';
 import { getOrCreateDeviceId } from './utils/device';
 import { buildApiHeaders } from './utils/apiHeaders';
-import { DEFAULT_API_URL, MOBILE_UI_V2_ENABLED, ONLINE_ONLY_MODE, SHOW_LEGACY_SYNC_UI } from './constants';
+import {
+  DEFAULT_API_BASE_URL,
+  DEFAULT_API_URL,
+  DEFAULT_BOOTSTRAP_URL,
+  MOBILE_UI_V2_ENABLED,
+  ONLINE_ONLY_MODE,
+  REQUIRE_LOGIN,
+  SHOW_LEGACY_SYNC_UI,
+} from './constants';
 import { VIEW_TITLES, UI_TEXT } from './constants/ui';
 import {
   getSyncStateKey,
@@ -58,6 +66,8 @@ import SyncConflictDialog from './components/dialogs/SyncConflictDialog';
 import SyncErrorNotice from './components/ui/SyncErrorNotice';
 import SyncActionButton from './components/ui/SyncActionButton';
 import ErrorBoundary from './components/ErrorBoundary';
+import BootBlockedView from './components/system/BootBlockedView';
+import LoginView from './components/system/LoginView';
 import DashboardView from './views/dashboard/DashboardView';
 import DashboardDesktop from './views/dashboard/DashboardDesktop';
 import ChildrenView from './views/children/ChildrenView';
@@ -74,19 +84,23 @@ import {
   getMissingFieldsForStatus,
   isStatusTransitionAllowed,
 } from './utils/statusWorkflow';
+import useAuthSession from './hooks/useAuthSession';
 
 // ============================================
 // CONFIGURAÇÃO
 // ============================================
-const API_URL = process.env.REACT_APP_API_URL || DEFAULT_API_URL;
+function resolveApiBaseUrl() {
+  const configured = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || '';
+  if (!configured) return DEFAULT_API_BASE_URL;
+  return configured.replace(/\/sync\/?$/, '').replace(/\/$/, '');
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
+const API_URL = process.env.REACT_APP_SYNC_URL || `${API_BASE_URL}/sync` || DEFAULT_API_URL;
+const BOOTSTRAP_URL = process.env.REACT_APP_BOOTSTRAP_URL || `${API_BASE_URL}/bootstrap` || DEFAULT_BOOTSTRAP_URL;
 const API_TOKEN = process.env.REACT_APP_API_TOKEN || '';
 const APP_VERSION = process.env.REACT_APP_APP_VERSION || '';
 const DEVICE_ID = getOrCreateDeviceId();
-const { baseHeaders: BASE_HEADERS, jsonHeaders: JSON_HEADERS } = buildApiHeaders({
-  apiToken: API_TOKEN,
-  appVersion: APP_VERSION,
-  deviceId: DEVICE_ID,
-});
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -95,6 +109,25 @@ const { baseHeaders: BASE_HEADERS, jsonHeaders: JSON_HEADERS } = buildApiHeaders
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function LumineTracker() {
+  const { authReady, authError, session, supabase } = useAuthSession({ requireLogin: REQUIRE_LOGIN });
+  const userJwt = session?.access_token || '';
+
+  const { baseHeaders: BASE_HEADERS, jsonHeaders: JSON_HEADERS } = useMemo(
+    () =>
+      buildApiHeaders({
+        apiToken: userJwt ? '' : API_TOKEN,
+        userJwt,
+        appVersion: APP_VERSION,
+        deviceId: DEVICE_ID,
+      }),
+    [userJwt]
+  );
+
+  const [bootState, setBootState] = useState('loading');
+  const [bootError, setBootError] = useState('');
+  const [bootRetrying, setBootRetrying] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
   const [view, setView] = useState('dashboard');
   const [children, setChildren] = useLocalStorage('lumine_children', []);
   const [dailyRecords, setDailyRecords] = useLocalStorage('lumine_records', []);
@@ -122,6 +155,7 @@ export default function LumineTracker() {
     downloadFromServer,
   } = useSync({
     apiUrl: API_URL,
+    bootstrapUrl: BOOTSTRAP_URL,
     baseHeaders: BASE_HEADERS,
     jsonHeaders: JSON_HEADERS,
     children,
@@ -138,17 +172,16 @@ export default function LumineTracker() {
     setPendingChanges,
     reviewMode,
     onlineOnly: ONLINE_ONLY_MODE,
-    autoDownloadOnIdle: true,
+    autoDownloadOnIdle: false,
   });
 
   const { addChild, deleteChild, updateChild } = useChildren({
-    apiUrl: API_URL,
+    apiBaseUrl: API_BASE_URL,
     jsonHeaders: JSON_HEADERS,
     isOnline,
     onlineOnly: ONLINE_ONLY_MODE,
     children,
     dailyRecords,
-    syncWithServer,
     normalizeChild,
     setChildren,
     setDailyRecords,
@@ -159,7 +192,7 @@ export default function LumineTracker() {
   });
 
   const { addDailyRecord } = useRecords({
-    apiUrl: API_URL,
+    apiBaseUrl: API_BASE_URL,
     jsonHeaders: JSON_HEADERS,
     isOnline,
     onlineOnly: ONLINE_ONLY_MODE,
@@ -170,7 +203,6 @@ export default function LumineTracker() {
     setPendingChanges,
     setDataRev,
     setLastSync,
-    syncWithServer,
     upsertDailyRecord,
   });
 
@@ -187,6 +219,59 @@ export default function LumineTracker() {
     clearOnboardingFlag();
     setOnboardingOpen(true);
   }, []);
+
+  const handleLogin = useCallback(
+    async ({ email, password }) => {
+      if (!supabase) {
+        setLoginError('Autenticação indisponível neste ambiente.');
+        return false;
+      }
+
+      setLoginError('');
+      setLoginLoading(true);
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setLoginError(error.message || 'Falha no login');
+          return false;
+        }
+        return true;
+      } finally {
+        setLoginLoading(false);
+      }
+    },
+    [supabase]
+  );
+
+  const bootstrapFromServer = useCallback(
+    async ({ retry = false } = {}) => {
+      if (retry) setBootRetrying(true);
+      setBootState('loading');
+      setBootError('');
+
+      const ok = await downloadFromServer({ silent: true });
+      if (ok) {
+        setBootState('ready');
+        setBootError('');
+      } else {
+        setBootState('blocked');
+        setBootError(
+          isOnline
+            ? 'Não foi possível carregar os dados do servidor. Verifique autenticação e conectividade.'
+            : 'Sem internet. Reconecte para carregar os dados do servidor.'
+        );
+      }
+
+      if (retry) setBootRetrying(false);
+    },
+    [downloadFromServer, isOnline]
+  );
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (REQUIRE_LOGIN && !session) return;
+    bootstrapFromServer();
+  }, [authReady, session, bootstrapFromServer]);
 
   const handleDeleteChild = useCallback(
     async childId => {
@@ -256,17 +341,21 @@ export default function LumineTracker() {
   }, [dailyRecords, setDailyRecords]);
 
   const refreshFromServer = useCallback(async () => {
+    if (bootState !== 'ready') return;
+    if (REQUIRE_LOGIN && !session) return;
     if (!ONLINE_ONLY_MODE || !isOnline) return;
     if (pendingChanges > 0 || syncStatus === 'syncing') return;
     await downloadFromServer({ silent: true });
-  }, [isOnline, pendingChanges, syncStatus, downloadFromServer]);
+  }, [bootState, session, isOnline, pendingChanges, syncStatus, downloadFromServer]);
 
   useEffect(() => {
+    if (bootState !== 'ready') return;
     if (!ONLINE_ONLY_MODE || !isOnline) return;
     refreshFromServer();
-  }, [isOnline, refreshFromServer]);
+  }, [bootState, isOnline, refreshFromServer]);
 
   useEffect(() => {
+    if (bootState !== 'ready') return undefined;
     if (!ONLINE_ONLY_MODE) return undefined;
 
     const handleFocus = () => {
@@ -289,7 +378,7 @@ export default function LumineTracker() {
       document.removeEventListener('visibilitychange', handleVisibility);
       clearInterval(interval);
     };
-  }, [refreshFromServer]);
+  }, [bootState, refreshFromServer]);
 
   const clearLocalData = useCallback(async () => {
     setChildren([]);
@@ -299,13 +388,9 @@ export default function LumineTracker() {
     setPendingChanges(0);
     setSelectedChild(null);
     setSearchTerm('');
-
-    if (isOnline) {
-      await downloadFromServer({ silent: true });
-    }
+    await bootstrapFromServer();
   }, [
-    isOnline,
-    downloadFromServer,
+    bootstrapFromServer,
     setChildren,
     setDailyRecords,
     setDataRev,
@@ -344,6 +429,43 @@ export default function LumineTracker() {
     showLegacySyncUi && shouldShowPendingSyncBadge(pendingChanges, syncStatus);
   const syncActionDisabled = isSyncActionDisabled(syncStatus, overwriteBlocked);
   const isSyncing = syncStateKey === 'syncing';
+
+  if (REQUIRE_LOGIN && !authReady) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-slate-100 px-4">
+        <p className="text-sm text-slate-600">Verificando sessão...</p>
+      </div>
+    );
+  }
+
+  if (REQUIRE_LOGIN && !session) {
+    return (
+      <LoginView
+        onLogin={handleLogin}
+        loading={loginLoading}
+        error={loginError}
+        authError={authError}
+      />
+    );
+  }
+
+  if (bootState === 'loading') {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-slate-100 px-4">
+        <p className="text-sm text-slate-600">Carregando dados do servidor...</p>
+      </div>
+    );
+  }
+
+  if (bootState === 'blocked') {
+    return (
+      <BootBlockedView
+        message={bootError || syncError}
+        onRetry={() => bootstrapFromServer({ retry: true })}
+        loading={bootRetrying}
+      />
+    );
+  }
 
   return (
     <>

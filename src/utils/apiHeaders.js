@@ -1,10 +1,18 @@
-export function buildApiHeaders({ apiToken = '', appVersion = '', deviceId = '' } = {}) {
+export function buildApiHeaders({
+  apiToken = '',
+  userJwt = '',
+  appVersion = '',
+  deviceId = '',
+} = {}) {
   const metaHeaders = {
     ...(deviceId ? { 'X-Device-Id': deviceId } : {}),
     ...(appVersion ? { 'X-App-Version': appVersion } : {}),
   };
 
-  const authHeaders = apiToken ? { Authorization: `Bearer ${apiToken}` } : {};
+  const authHeaders = {
+    ...(apiToken ? { Authorization: `Bearer ${apiToken}` } : {}),
+    ...(userJwt ? { 'X-User-Jwt': userJwt } : {}),
+  };
   const baseHeaders = { ...authHeaders, ...metaHeaders };
   const jsonHeaders = { 'Content-Type': 'application/json', ...baseHeaders };
 

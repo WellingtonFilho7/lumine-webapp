@@ -10,10 +10,9 @@ describe('useRecords hook', () => {
     jest.clearAllMocks();
   });
 
-  test('calls syncWithServer for existing record updates when online and not in review mode', async () => {
-    let recordsState = [];
+  test('upserts existing record online and updates local state', async () => {
+    let recordsState = [{ id: 'r-existing', childInternalId: 'c1', date: '2026-02-12' }];
     let pendingState = 0;
-    const syncWithServer = jest.fn().mockResolvedValue(true);
 
     const setDailyRecords = updater => {
       recordsState = typeof updater === 'function' ? updater(recordsState) : updater;
@@ -22,25 +21,28 @@ describe('useRecords hook', () => {
       pendingState = typeof updater === 'function' ? updater(pendingState) : updater;
     };
 
-    const nextRecords = [{ id: 'r-existing', childInternalId: 'c1', date: '2026-02-12' }];
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, data: { dataRev: 22, record: { mood: 'happy' } } }),
+    });
+
+    const setDataRev = jest.fn();
+    const setLastSync = jest.fn();
 
     const { result } = renderHook(() =>
       useRecords({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: {},
         isOnline: true,
-        reviewMode: false,
-        children: [{ id: 'c1' }],
-        dailyRecords: [],
+        dailyRecords: recordsState,
         setDailyRecords,
         setPendingChanges,
-        setDataRev: jest.fn(),
-        setLastSync: jest.fn(),
-        syncWithServer,
+        setDataRev,
+        setLastSync,
         upsertDailyRecord: () => ({
-          recordPayload: { id: 'unused' },
-          nextRecords,
-          existed: true,
+          recordPayload: { id: 'r-existing', childInternalId: 'c1', date: '2026-02-12' },
+          nextRecords: [{ id: 'r-existing', childInternalId: 'c1', date: '2026-02-12' }],
         }),
       })
     );
@@ -50,14 +52,14 @@ describe('useRecords hook', () => {
       ok = await result.current.addDailyRecord({ childInternalId: 'c1', date: '2026-02-12' });
     });
 
-    expect(recordsState).toEqual(nextRecords);
-    expect(pendingState).toBe(1);
-    expect(syncWithServer).toHaveBeenCalledWith({ children: [{ id: 'c1' }], records: nextRecords }, 'auto');
-    expect(global.fetch).not.toHaveBeenCalled();
     expect(ok).toBe(true);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(setDataRev).toHaveBeenCalledWith(22);
+    expect(setLastSync).toHaveBeenCalled();
+    expect(pendingState).toBe(0);
   });
 
-  test('posts addRecord for new record and applies dataRev', async () => {
+  test('posts records/upsert for new record and applies dataRev', async () => {
     let recordsState = [];
     let pendingState = 0;
     const setDataRev = jest.fn();
@@ -73,28 +75,24 @@ describe('useRecords hook', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ success: true, dataRev: 12 }),
+      json: async () => ({ success: true, data: { dataRev: 12 } }),
     });
 
     const nextRecords = [{ id: 'r-new', childInternalId: 'c1', date: '2026-02-12' }];
 
     const { result } = renderHook(() =>
       useRecords({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: { Authorization: 'Bearer x' },
         isOnline: true,
-        reviewMode: false,
-        children: [{ id: 'c1' }],
         dailyRecords: [],
         setDailyRecords,
         setPendingChanges,
         setDataRev,
         setLastSync,
-        syncWithServer: jest.fn(),
         upsertDailyRecord: () => ({
           recordPayload: { id: 'r-new', childInternalId: 'c1', date: '2026-02-12' },
           nextRecords,
-          existed: false,
         }),
       })
     );
@@ -106,16 +104,17 @@ describe('useRecords hook', () => {
 
     expect(recordsState).toEqual(nextRecords);
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [, fetchConfig] = global.fetch.mock.calls[0];
+    const [fetchUrl, fetchConfig] = global.fetch.mock.calls[0];
+    expect(fetchUrl).toContain('/records/upsert');
     expect(fetchConfig.method).toBe('POST');
-    expect(fetchConfig.body).toContain('"action":"addRecord"');
+    expect(fetchConfig.body).toContain('"data":');
     expect(pendingState).toBe(0);
     expect(setDataRev).toHaveBeenCalledWith(12);
     expect(setLastSync).toHaveBeenCalled();
     expect(ok).toBe(true);
   });
 
-  test('returns false when addRecord request fails online', async () => {
+  test('returns false when records/upsert request fails online', async () => {
     let recordsState = [];
     let pendingState = 0;
 
@@ -136,21 +135,17 @@ describe('useRecords hook', () => {
 
     const { result } = renderHook(() =>
       useRecords({
-        apiUrl: 'https://api.test/sync',
+        apiBaseUrl: 'https://api.test',
         jsonHeaders: { Authorization: 'Bearer x' },
         isOnline: true,
-        reviewMode: false,
-        children: [{ id: 'c1' }],
         dailyRecords: [],
         setDailyRecords,
         setPendingChanges,
         setDataRev: jest.fn(),
         setLastSync: jest.fn(),
-        syncWithServer: jest.fn(),
         upsertDailyRecord: () => ({
           recordPayload: { id: 'r-fail', childInternalId: 'c1', date: '2026-02-12' },
           nextRecords,
-          existed: false,
         }),
       })
     );
@@ -161,7 +156,7 @@ describe('useRecords hook', () => {
     });
 
     expect(ok).toBe(false);
-    expect(recordsState).toEqual(nextRecords);
-    expect(pendingState).toBe(1);
+    expect(recordsState).toEqual([]);
+    expect(pendingState).toBe(0);
   });
 });
