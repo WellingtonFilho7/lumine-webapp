@@ -113,7 +113,7 @@ export default function useSync({
       let serverRev = localRevBefore;
 
       try {
-        const preRes = await fetch(bootstrapUrl || apiUrl, { headers: baseHeaders });
+        const preRes = await fetch(bootstrapUrl || apiUrl, { headers: baseHeaders, cache: 'no-store' });
         let preData = null;
         try {
           preData = await preRes.json();
@@ -283,6 +283,7 @@ export default function useSync({
           const res = await fetch(bootstrapUrl || apiUrl, {
             headers: baseHeaders,
             signal: controller.signal,
+            cache: 'no-store',
           });
       let result = null;
       try {
