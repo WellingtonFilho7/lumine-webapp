@@ -31,6 +31,7 @@ import {
   DEFAULT_API_BASE_URL,
   DEFAULT_API_URL,
   DEFAULT_BOOTSTRAP_URL,
+  AUTO_DOWNLOAD_INTERVAL_MS,
   MOBILE_UI_V2_ENABLED,
   ONLINE_ONLY_MODE,
   REQUIRE_LOGIN,
@@ -307,31 +308,38 @@ export default function LumineTracker() {
     [supabase]
   );
 
+  const downloadWithAuthRecovery = useCallback(
+    async ({ silent = true } = {}) => {
+      const first = await downloadFromServer({ silent, detailed: true });
+      if (first?.ok || first?.errorCode === 'IN_FLIGHT') return first;
+
+      const authFailure =
+        first?.errorCode === 'INTERNAL_AUTH_REQUIRED' ||
+        first?.errorCode === 'INTERNAL_AUTH_INVALID' ||
+        first?.errorCode === 'UNAUTHORIZED';
+
+      if (!authFailure || !supabase) return first;
+
+      const refreshed = await supabase.auth.refreshSession();
+      if (refreshed?.error) return first;
+
+      return downloadFromServer({ silent, detailed: true });
+    },
+    [downloadFromServer, supabase]
+  );
+
   const bootstrapFromServer = useCallback(
     async ({ retry = false } = {}) => {
       if (retry) setBootRetrying(true);
       setBootState('loading');
       setBootError('');
 
-      const result = await downloadFromServer({ silent: true, detailed: true });
+      const result = await downloadWithAuthRecovery({ silent: true });
       if (result?.ok) {
         setBootState('ready');
         setBootError('');
         if (retry) setBootRetrying(false);
         return;
-      }
-
-      if (result?.errorCode === 'INTERNAL_AUTH_REQUIRED' || result?.errorCode === 'INTERNAL_AUTH_INVALID' || result?.errorCode === 'UNAUTHORIZED') {
-        const refreshed = await supabase?.auth?.refreshSession?.();
-        if (!refreshed?.error) {
-          const secondTry = await downloadFromServer({ silent: true, detailed: true });
-          if (secondTry?.ok) {
-            setBootState('ready');
-            setBootError('');
-            if (retry) setBootRetrying(false);
-            return;
-          }
-        }
       }
 
       setBootState('blocked');
@@ -340,7 +348,11 @@ export default function LumineTracker() {
         setBootError('Sem internet. Reconecte para carregar os dados do servidor.');
       } else if (result?.errorCode === 'INTERNAL_PROFILE_INVALID' || result?.errorCode === 'FORBIDDEN_ROLE') {
         setBootError('Seu usuario existe, mas ainda nao esta aprovado para uso do app. Fale com o admin.');
-      } else if (result?.errorCode === 'INTERNAL_AUTH_REQUIRED' || result?.errorCode === 'INTERNAL_AUTH_INVALID' || result?.errorCode === 'UNAUTHORIZED') {
+      } else if (
+        result?.errorCode === 'INTERNAL_AUTH_REQUIRED' ||
+        result?.errorCode === 'INTERNAL_AUTH_INVALID' ||
+        result?.errorCode === 'UNAUTHORIZED'
+      ) {
         setBootError('Sua sessao expirou. Entre novamente.');
         await supabase?.auth?.signOut?.();
       } else {
@@ -349,7 +361,7 @@ export default function LumineTracker() {
 
       if (retry) setBootRetrying(false);
     },
-    [downloadFromServer, isOnline, supabase]
+    [downloadWithAuthRecovery, isOnline, supabase]
   );
 
   useEffect(() => {
@@ -428,20 +440,45 @@ export default function LumineTracker() {
   const refreshFromServer = useCallback(async () => {
     if (bootState !== 'ready') return;
     if (REQUIRE_LOGIN && !session) return;
-    if (!ONLINE_ONLY_MODE || !isOnline) return;
+    if (!isOnline) return;
     if (pendingChanges > 0 || syncStatus === 'syncing') return;
-    await downloadFromServer({ silent: true });
-  }, [bootState, session, isOnline, pendingChanges, syncStatus, downloadFromServer]);
+
+    const result = await downloadWithAuthRecovery({ silent: true });
+    if (result?.ok || result?.errorCode === 'IN_FLIGHT') return;
+
+    if (result?.errorCode === 'INTERNAL_PROFILE_INVALID' || result?.errorCode === 'FORBIDDEN_ROLE') {
+      setBootState('blocked');
+      setBootError('Seu usuario existe, mas ainda nao esta aprovado para uso do app. Fale com o admin.');
+      return;
+    }
+
+    if (
+      result?.errorCode === 'INTERNAL_AUTH_REQUIRED' ||
+      result?.errorCode === 'INTERNAL_AUTH_INVALID' ||
+      result?.errorCode === 'UNAUTHORIZED'
+    ) {
+      setBootState('blocked');
+      setBootError('Sua sessao expirou. Entre novamente.');
+      await supabase?.auth?.signOut?.();
+    }
+  }, [
+    bootState,
+    session,
+    isOnline,
+    pendingChanges,
+    syncStatus,
+    downloadWithAuthRecovery,
+    supabase,
+  ]);
 
   useEffect(() => {
     if (bootState !== 'ready') return;
-    if (!ONLINE_ONLY_MODE || !isOnline) return;
+    if (!isOnline) return;
     refreshFromServer();
   }, [bootState, isOnline, refreshFromServer]);
 
   useEffect(() => {
     if (bootState !== 'ready') return undefined;
-    if (!ONLINE_ONLY_MODE) return undefined;
 
     const handleFocus = () => {
       refreshFromServer();
@@ -456,7 +493,7 @@ export default function LumineTracker() {
     document.addEventListener('visibilitychange', handleVisibility);
     const interval = setInterval(() => {
       refreshFromServer();
-    }, 60 * 1000);
+    }, AUTO_DOWNLOAD_INTERVAL_MS);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
