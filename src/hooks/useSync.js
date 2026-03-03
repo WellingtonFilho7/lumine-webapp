@@ -313,6 +313,22 @@ export default function useSync({
           : false;
       }
 
+      const localRevBefore = Number(dataRev) || 0;
+      const serverRev = typeof result?.dataRev === 'number' ? result.dataRev : null;
+
+      if (serverRev !== null && localRevBefore > 0 && serverRev < localRevBefore) {
+        // Evita sobrescrever o estado local com snapshot atrasado do servidor.
+        return detailed
+          ? {
+              ok: true,
+              status: 200,
+              staleSkipped: true,
+              dataRev: localRevBefore,
+              serverTs: result?.serverTs || null,
+            }
+          : true;
+      }
+
       if (result.data) {
         if (Array.isArray(result.data.children)) {
           const normalized = normalizeChildren(result.data.children).children;
@@ -376,6 +392,7 @@ export default function useSync({
     setDataRev,
     setLastSync,
     applySyncSuccess,
+    dataRev,
   ]);
 
   useEffect(() => {
