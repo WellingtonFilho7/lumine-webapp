@@ -6,6 +6,7 @@ import InfoRow from '../../components/ui/InfoRow';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ChildAvatar from '../../components/ui/ChildAvatar';
 import { FIXED_LEAVE_ALONE_CONFIRMATION } from '../../utils/enrollmentHardening';
+import { formatPhoneBR } from '../../utils/phone';
 
 function ChildDetailDesktop({
   child,
@@ -379,7 +380,9 @@ function ChildDetailDesktop({
                         <input
                           type="tel"
                           value={statusFormData.guardianPhone}
-                          onChange={e => updateStatusField('guardianPhone', e.target.value)}
+                          onChange={e => updateStatusField('guardianPhone', formatPhoneBR(e.target.value))}
+                          inputMode="numeric"
+                          maxLength={15}
                           className={fieldClass('guardianPhone')}
                         />
                       </div>
@@ -397,7 +400,9 @@ function ChildDetailDesktop({
                         <input
                           type="tel"
                           value={statusFormData.contatoEmergenciaTelefone}
-                          onChange={e => updateStatusField('contatoEmergenciaTelefone', e.target.value)}
+                          onChange={e => updateStatusField('contatoEmergenciaTelefone', formatPhoneBR(e.target.value))}
+                          inputMode="numeric"
+                          maxLength={15}
                           className={fieldClass('contatoEmergenciaTelefone')}
                         />
                       </div>

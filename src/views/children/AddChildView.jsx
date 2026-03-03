@@ -6,6 +6,7 @@ import {
   isTriageComplete,
 } from '../../utils/enrollment';
 import { normalizeEnrollmentPayload } from '../../utils/enrollmentHardening';
+import { formatPhoneBR } from '../../utils/phone';
 
 function AddChildView({
   addChild,
@@ -224,7 +225,9 @@ function AddChildView({
             <input
               type="tel"
               value={form.guardianPhone}
-              onChange={e => updateField('guardianPhone', e.target.value)}
+              onChange={e => updateField('guardianPhone', formatPhoneBR(e.target.value))}
+              inputMode="numeric"
+              maxLength={15}
               className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-cyan-500"
               placeholder="(83) 99999-9999"
             />
