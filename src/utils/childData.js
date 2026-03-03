@@ -74,19 +74,30 @@ export function parseEnrollmentHistory(value) {
 
 export function parseDocumentsReceived(value) {
   if (!value) return [];
-  const list = Array.isArray(value)
-    ? value
-    : String(value)
-        .split('|')
-        .map(item => item.trim())
-        .filter(Boolean);
 
-  const normalized = [];
-  for (const item of list) {
-    const key = normalizeDocumentKey(item);
-    if (!normalized.includes(key)) normalized.push(key);
+  const normalizeList = list => {
+    const normalized = [];
+    for (const item of list) {
+      const key = normalizeDocumentKey(item);
+      if (!normalized.includes(key)) normalized.push(key);
+    }
+    return normalized;
+  };
+
+  if (Array.isArray(value)) {
+    const normalized = normalizeList(value);
+    const sameShape =
+      value.length === normalized.length &&
+      value.every((item, index) => normalizeDocumentKey(item) === normalized[index]);
+    return sameShape ? value : normalized;
   }
-  return normalized;
+
+  const list = String(value)
+    .split('|')
+    .map(item => item.trim())
+    .filter(Boolean);
+
+  return normalizeList(list);
 }
 
 export function parseParticipationDays(value) {
