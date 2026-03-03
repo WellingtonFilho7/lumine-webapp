@@ -10,47 +10,25 @@ import {
 test('triage missing fields returns required keys', () => {
   const data = {
     name: '',
-    sexo: 'M',
     birthDate: '2026-01-01',
     guardianName: 'Ana',
-    parentesco: '',
     guardianPhone: '',
-    contatoEmergenciaNome: 'Carlos',
-    contatoEmergenciaTelefone: '',
     neighborhood: 'Centro',
     school: 'Escola A',
     schoolShift: 'manha',
-    referralSource: 'igreja',
-    schoolCommuteAlone: '',
-    renovacao: 'nao',
-    termoLgpdAssinado: true,
   };
-  expect(getMissingTriageFields(data)).toEqual([
-    'name',
-    'parentesco',
-    'guardianPhone',
-    'contatoEmergenciaTelefone',
-    'schoolCommuteAlone',
-  ]);
+  expect(getMissingTriageFields(data)).toEqual(['name', 'guardianPhone']);
 });
 
 test('triage complete when no missing fields', () => {
   const data = {
     name: 'Joao',
-    sexo: 'M',
     birthDate: '2026-01-01',
     guardianName: 'Ana',
-    parentesco: 'mae',
     guardianPhone: '9999',
-    contatoEmergenciaNome: 'Carlos',
-    contatoEmergenciaTelefone: '8888',
     neighborhood: 'Centro',
     school: 'Escola A',
     schoolShift: 'manha',
-    referralSource: 'igreja',
-    schoolCommuteAlone: 'nao',
-    renovacao: 'nao',
-    termoLgpdAssinado: true,
   };
   expect(isTriageComplete(data)).toBe(true);
 });
@@ -62,6 +40,10 @@ test('matricula missing fields accounts for participation days and leave alone',
     authorizedPickup: '',
     canLeaveAlone: 'sim',
     leaveAloneConfirmado: false,
+    referralSource: '',
+    schoolCommuteAlone: '',
+    renovacao: '',
+    healthCareNeeded: '',
     formaChegada: '',
     consentimentoSaude: false,
     termsAccepted: false,
@@ -71,6 +53,10 @@ test('matricula missing fields accounts for participation days and leave alone',
       'participationDays',
       'authorizedPickup',
       'leaveAloneConfirmado',
+      'referralSource',
+      'schoolCommuteAlone',
+      'renovacao',
+      'healthCareNeeded',
       'formaChegada',
       'consentimentoSaude',
       'termsAccepted',
@@ -82,20 +68,12 @@ test('triage draft when status em_triagem and incomplete', () => {
   const child = {
     enrollmentStatus: 'em_triagem',
     name: 'Joao',
-    sexo: 'M',
     birthDate: '2026-01-01',
     guardianName: 'Ana',
-    parentesco: 'mae',
     guardianPhone: '',
-    contatoEmergenciaNome: 'Carlos',
-    contatoEmergenciaTelefone: '8888',
     neighborhood: 'Centro',
     school: 'Escola A',
     schoolShift: 'manha',
-    referralSource: 'igreja',
-    schoolCommuteAlone: 'nao',
-    renovacao: 'nao',
-    termoLgpdAssinado: true,
   };
   expect(isTriageDraft(child)).toBe(true);
 });
@@ -119,36 +97,24 @@ test('buildChecklist marks fields as complete or missing', () => {
   ]);
 });
 
-test('triage incomplete when health care needed and notes missing', () => {
+test('matricula complete with legal fields and conditional leave alone confirmation', () => {
   const data = {
     name: 'Joao',
-    sexo: 'M',
     birthDate: '2026-01-01',
     guardianName: 'Ana',
-    parentesco: 'mae',
     guardianPhone: '9999',
-    contatoEmergenciaNome: 'Carlos',
-    contatoEmergenciaTelefone: '8888',
     neighborhood: 'Centro',
     school: 'Escola A',
     schoolShift: 'manha',
-    referralSource: 'igreja',
-    schoolCommuteAlone: 'nao',
-    renovacao: 'nao',
-    termoLgpdAssinado: true,
-    healthCareNeeded: 'sim',
-    healthNotes: '',
-  };
-  expect(isTriageComplete(data)).toBe(false);
-});
-
-test('matricula complete with legal fields and conditional leave alone confirmation', () => {
-  const data = {
     startDate: '2026-01-10',
     participationDays: ['seg'],
     authorizedPickup: 'Mae',
     canLeaveAlone: 'sim',
     leaveAloneConfirmado: true,
+    referralSource: 'igreja',
+    schoolCommuteAlone: 'nao',
+    renovacao: 'nao',
+    healthCareNeeded: 'nao',
     formaChegada: 'a_pe',
     consentimentoSaude: true,
     termsAccepted: true,
@@ -156,24 +122,52 @@ test('matricula complete with legal fields and conditional leave alone confirmat
   expect(isMatriculaComplete(data)).toBe(true);
 });
 
-test('triage accepts renovacao boolean false as filled value', () => {
+test('matricula accepts renovacao boolean false as filled value', () => {
   const data = {
     name: 'Joao',
-    sexo: 'M',
     birthDate: '2026-01-01',
     guardianName: 'Ana',
-    parentesco: 'mae',
     guardianPhone: '9999',
-    contatoEmergenciaNome: 'Carlos',
-    contatoEmergenciaTelefone: '8888',
     neighborhood: 'Centro',
     school: 'Escola A',
     schoolShift: 'manha',
     referralSource: 'igreja',
     schoolCommuteAlone: 'nao',
     renovacao: false,
-    termoLgpdAssinado: true,
+    startDate: '2026-01-10',
+    participationDays: ['seg'],
+    authorizedPickup: 'Mae',
+    canLeaveAlone: 'nao',
+    healthCareNeeded: 'nao',
+    formaChegada: 'a_pe',
+    consentimentoSaude: true,
+    termsAccepted: true,
   };
 
-  expect(getMissingTriageFields(data)).toEqual([]);
+  expect(getMissingMatriculaFields(data)).toEqual([]);
+});
+
+test('matricula requires healthNotes when healthCareNeeded is sim', () => {
+  const data = {
+    name: 'Joao',
+    birthDate: '2026-01-01',
+    guardianName: 'Ana',
+    guardianPhone: '9999',
+    neighborhood: 'Centro',
+    school: 'Escola A',
+    schoolShift: 'manha',
+    startDate: '2026-01-10',
+    participationDays: ['seg'],
+    authorizedPickup: 'Mae',
+    canLeaveAlone: 'nao',
+    referralSource: 'igreja',
+    schoolCommuteAlone: 'nao',
+    renovacao: 'nao',
+    healthCareNeeded: 'sim',
+    healthNotes: '',
+    formaChegada: 'a_pe',
+    consentimentoSaude: true,
+    termsAccepted: true,
+  };
+  expect(getMissingMatriculaFields(data)).toContain('healthNotes');
 });

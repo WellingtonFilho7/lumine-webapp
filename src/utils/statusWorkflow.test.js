@@ -28,6 +28,7 @@ describe('statusWorkflow helpers', () => {
       responsibilityTerm: true,
       consentimentoSaude: true,
       termoLgpdAssinado: true,
+      healthCareNeeded: 'Não',
     });
 
     expect(result.name).toBe('Crianca A');
@@ -39,6 +40,7 @@ describe('statusWorkflow helpers', () => {
     expect(result.termsAccepted).toBe(true);
     expect(result.consentimentoSaude).toBe(true);
     expect(result.termoLgpdAssinado).toBe(true);
+    expect(result.healthCareNeeded).toBe('nao');
   });
 
   test('maps missing field keys to human-readable labels', () => {
@@ -53,9 +55,25 @@ describe('statusWorkflow helpers', () => {
         'Data de nascimento',
         'Forma de chegada/saída',
         'Autorização para dados de saúde',
+        'Origem do contato',
+        'Renovação de matrícula',
         'Confirmação de saída desacompanhada',
       ])
     );
+  });
+
+  test('does not require enrollment-only fields for non-matricula status transitions', () => {
+    const missing = getMissingFieldsForStatus('lista_espera', {
+      name: 'Ana',
+      birthDate: '2020-01-01',
+      guardianName: 'Mae',
+      guardianPhone: '83999999999',
+      neighborhood: 'Centro',
+      school: 'Escola A',
+      schoolShift: 'manha',
+    });
+
+    expect(missing).toEqual([]);
   });
 
   test('blocks regression from matriculado to triage statuses', () => {

@@ -148,16 +148,25 @@ function ChildDetailView({
       updates.neighborhood = statusFormData.neighborhood.trim();
       updates.school = statusFormData.school.trim();
       updates.schoolShift = statusFormData.schoolShift;
-      updates.referralSource = statusFormData.referralSource;
-      updates.schoolCommuteAlone = statusFormData.schoolCommuteAlone;
-      updates.renovacao = statusFormData.renovacao;
-      updates.termoLgpdAssinado = statusFormData.termoLgpdAssinado === true;
+      updates.triageNotes = statusFormData.triageNotes || "";
+      updates.priority = statusFormData.priority || "";
+      updates.priorityReason = statusFormData.priorityReason || "";
     }
 
     if (!child.enrollmentDate) updates.enrollmentDate = now;
     if (requiresTriage && !child.triageDate) updates.triageDate = now;
 
     if (requiresMatricula) {
+      updates.referralSource = statusFormData.referralSource;
+      updates.schoolCommuteAlone = statusFormData.schoolCommuteAlone;
+      updates.renovacao = statusFormData.renovacao;
+      updates.healthCareNeeded = statusFormData.healthCareNeeded;
+      updates.healthNotes = statusFormData.healthNotes || "";
+      updates.restricaoAlimentar = statusFormData.restricaoAlimentar || "";
+      updates.alergiaAlimentar = statusFormData.alergiaAlimentar || "";
+      updates.alergiaMedicamento = statusFormData.alergiaMedicamento || "";
+      updates.medicamentosEmUso = statusFormData.medicamentosEmUso || "";
+      updates.specialNeeds = statusFormData.specialNeeds || "";
       updates.startDate = statusFormData.startDate;
       updates.entryDate = statusFormData.startDate;
       updates.participationDays = statusFormData.participationDays;
@@ -419,62 +428,6 @@ function ChildDetailView({
                         <option value="integral">Integral</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
-                      <select
-                        value={statusFormData.referralSource}
-                        onChange={e => updateStatusField('referralSource', e.target.value)}
-                        className={fieldClass('referralSource')}
-                      >
-                        <option value="">Selecione</option>
-                        <option value="igreja">Igreja</option>
-                        <option value="escola">Escola</option>
-                        <option value="CRAS">CRAS</option>
-                        <option value="indicacao">Indicação</option>
-                        <option value="redes_sociais">Redes sociais</option>
-                        <option value="outro">Outro</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        Vai e volta desacompanhada da escola?
-                      </label>
-                      <select
-                        value={statusFormData.schoolCommuteAlone}
-                        onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
-                        className={fieldClass('schoolCommuteAlone')}
-                      >
-                        <option value="">Selecione</option>
-                        <option value="sim">Sim</option>
-                        <option value="nao">Não</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">Renovação de matrícula</label>
-                      <select
-                        value={statusFormData.renovacao}
-                        onChange={e => updateStatusField('renovacao', e.target.value)}
-                        className={fieldClass('renovacao')}
-                      >
-                        <option value="">Selecione</option>
-                        <option value="sim">Sim</option>
-                        <option value="nao">Não</option>
-                      </select>
-                    </div>
-                    <label
-                      className={cn(
-                        'flex items-center gap-2 rounded-lg border p-2 text-xs',
-                        missingSet.has('termoLgpdAssinado') ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-700'
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={statusFormData.termoLgpdAssinado}
-                        onChange={e => updateStatusField('termoLgpdAssinado', e.target.checked)}
-                        className="size-4"
-                      />
-                      Responsável assinou o termo LGPD físico
-                    </label>
                   </div>
                 )}
 
@@ -560,6 +513,114 @@ function ChildDetailView({
                         <option value="transporte_escolar">Transporte escolar</option>
                         <option value="outro">Outro</option>
                       </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Como conheceu o Lumine?</label>
+                      <select
+                        value={statusFormData.referralSource}
+                        onChange={e => updateStatusField('referralSource', e.target.value)}
+                        className={fieldClass('referralSource')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="igreja">Igreja</option>
+                        <option value="escola">Escola</option>
+                        <option value="CRAS">CRAS</option>
+                        <option value="indicacao">Indicação</option>
+                        <option value="redes_sociais">Redes sociais</option>
+                        <option value="outro">Outro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Vai e volta desacompanhada da escola?</label>
+                      <select
+                        value={statusFormData.schoolCommuteAlone}
+                        onChange={e => updateStatusField('schoolCommuteAlone', e.target.value)}
+                        className={fieldClass('schoolCommuteAlone')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Renovação de matrícula</label>
+                      <select
+                        value={statusFormData.renovacao}
+                        onChange={e => updateStatusField('renovacao', e.target.value)}
+                        className={fieldClass('renovacao')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Existe algum cuidado de saúde?</label>
+                      <select
+                        value={statusFormData.healthCareNeeded}
+                        onChange={e => updateStatusField('healthCareNeeded', e.target.value)}
+                        className={fieldClass('healthCareNeeded')}
+                      >
+                        <option value="">Selecione</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </div>
+                    {statusFormData.healthCareNeeded === 'sim' && (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-700">Qual cuidado de saúde?</label>
+                        <input
+                          type="text"
+                          value={statusFormData.healthNotes}
+                          onChange={e => updateStatusField('healthNotes', e.target.value)}
+                          className={fieldClass('healthNotes')}
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Restrição alimentar</label>
+                      <input
+                        type="text"
+                        value={statusFormData.restricaoAlimentar}
+                        onChange={e => updateStatusField('restricaoAlimentar', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Alergia alimentar</label>
+                      <input
+                        type="text"
+                        value={statusFormData.alergiaAlimentar}
+                        onChange={e => updateStatusField('alergiaAlimentar', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Alergia a medicamentos</label>
+                      <input
+                        type="text"
+                        value={statusFormData.alergiaMedicamento}
+                        onChange={e => updateStatusField('alergiaMedicamento', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Medicamentos em uso</label>
+                      <input
+                        type="text"
+                        value={statusFormData.medicamentosEmUso}
+                        onChange={e => updateStatusField('medicamentosEmUso', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">Necessidades específicas</label>
+                      <input
+                        type="text"
+                        value={statusFormData.specialNeeds}
+                        onChange={e => updateStatusField('specialNeeds', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                      />
                     </div>
                     {statusFormData.canLeaveAlone === 'sim' && (
                       <div className="space-y-2 rounded-lg bg-white p-2">

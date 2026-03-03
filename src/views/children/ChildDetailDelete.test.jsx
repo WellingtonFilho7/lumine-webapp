@@ -40,6 +40,7 @@ const baseProps = {
     initialObservations: child.initialObservations || '',
   }),
   getMissingFieldsForStatus: () => [],
+  isStatusTransitionAllowed: () => true,
   normalizeImageConsent: value => value || '',
   participationDays: [],
   enrollmentStatusMeta: {},
@@ -57,6 +58,7 @@ describe('Child detail delete action', () => {
     render(<ChildDetailView {...baseProps} onDeleteChild={onDeleteChild} />);
 
     fireEvent.click(screen.getByRole('button', { name: /excluir cadastro/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirmar exclus[aã]o/i }));
 
     await waitFor(() => {
       expect(onDeleteChild).toHaveBeenCalledWith('c1');

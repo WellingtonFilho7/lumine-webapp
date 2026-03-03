@@ -42,13 +42,18 @@ function normalizeReferralSourceValue(value) {
   return token;
 }
 
-function normalizeRenovacaoValue(value) {
-  if (value === true) return 'sim';
-  if (value === false) return 'nao';
+function normalizeYesNoValue(value) {
   const token = normalizeAsciiToken(value);
+  if (!token) return '';
   if (['sim', 'true', '1', 'yes'].includes(token)) return 'sim';
   if (['nao', 'false', '0', 'no'].includes(token)) return 'nao';
   return '';
+}
+
+function normalizeRenovacaoValue(value) {
+  if (value === true) return 'sim';
+  if (value === false) return 'nao';
+  return normalizeYesNoValue(value);
 }
 
 export function isStatusTransitionAllowed(statusBefore, statusAfter) {
@@ -84,10 +89,19 @@ export function buildStatusFormData(child) {
     neighborhood: child?.neighborhood || '',
     school: child?.school || '',
     schoolShift: normalizeSchoolShiftValue(child?.schoolShift),
+    triageNotes: child?.triageNotes || '',
+    priority: child?.priority || '',
     referralSource: normalizeReferralSourceValue(child?.referralSource),
-    schoolCommuteAlone: child?.schoolCommuteAlone || '',
+    schoolCommuteAlone: normalizeYesNoValue(child?.schoolCommuteAlone),
     renovacao: normalizeRenovacaoValue(child?.renovacao),
     termoLgpdAssinado: parseBoolean(child?.termoLgpdAssinado),
+    healthCareNeeded: normalizeYesNoValue(child?.healthCareNeeded),
+    healthNotes: child?.healthNotes || '',
+    restricaoAlimentar: child?.restricaoAlimentar || '',
+    alergiaAlimentar: child?.alergiaAlimentar || '',
+    alergiaMedicamento: child?.alergiaMedicamento || '',
+    medicamentosEmUso: child?.medicamentosEmUso || '',
+    specialNeeds: child?.specialNeeds || '',
     startDate: child?.startDate || child?.entryDate || '',
     participationDays: parseParticipationDays(child?.participationDays),
     authorizedPickup: child?.authorizedPickup || '',

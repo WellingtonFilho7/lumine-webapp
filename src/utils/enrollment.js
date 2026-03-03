@@ -1,19 +1,11 @@
 export const TRIAGE_REQUIRED_FIELDS = [
   'name',
-  'sexo',
   'birthDate',
   'guardianName',
-  'parentesco',
   'guardianPhone',
-  'contatoEmergenciaNome',
-  'contatoEmergenciaTelefone',
   'neighborhood',
   'school',
   'schoolShift',
-  'referralSource',
-  'schoolCommuteAlone',
-  'renovacao',
-  'termoLgpdAssinado',
 ];
 
 export const MATRICULA_REQUIRED_FIELDS = [
@@ -21,6 +13,10 @@ export const MATRICULA_REQUIRED_FIELDS = [
   'participationDays',
   'authorizedPickup',
   'canLeaveAlone',
+  'referralSource',
+  'schoolCommuteAlone',
+  'renovacao',
+  'healthCareNeeded',
   'formaChegada',
   'consentimentoSaude',
   'termsAccepted',
@@ -41,11 +37,7 @@ function hasRenovacaoValue(value) {
 }
 
 export function getMissingTriageFields(data) {
-  return TRIAGE_REQUIRED_FIELDS.filter(field => {
-    if (field === 'renovacao') return !hasRenovacaoValue(data?.[field]);
-    if (field === 'termoLgpdAssinado') return data?.[field] !== true;
-    return !data?.[field];
-  });
+  return TRIAGE_REQUIRED_FIELDS.filter(field => !data?.[field]);
 }
 
 function hasLeaveAloneConfirmation(data) {
@@ -57,18 +49,23 @@ function hasLeaveAloneConfirmation(data) {
 export function getMissingMatriculaFields(data) {
   const missing = MATRICULA_REQUIRED_FIELDS.filter(field => {
     if (field === 'participationDays') return !(data?.participationDays?.length);
+    if (field === 'renovacao') return !hasRenovacaoValue(data?.[field]);
     return !data?.[field];
   });
+
   if (data?.canLeaveAlone === 'sim' && !hasLeaveAloneConfirmation(data)) {
     missing.push('leaveAloneConfirmado');
   }
+
+  if (data?.healthCareNeeded === 'sim' && !data?.healthNotes?.trim()) {
+    missing.push('healthNotes');
+  }
+
   return missing;
 }
 
 export function isTriageComplete(data) {
-  if (getMissingTriageFields(data).length) return false;
-  if (data?.healthCareNeeded === 'sim' && !data?.healthNotes?.trim()) return false;
-  return true;
+  return getMissingTriageFields(data).length === 0;
 }
 
 export function isMatriculaComplete(data) {
