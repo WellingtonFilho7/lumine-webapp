@@ -89,6 +89,34 @@ import useAuthSession from './hooks/useAuthSession';
 // ============================================
 // CONFIGURAÇÃO
 // ============================================
+const CACHE_SCHEMA_VERSION = 'auth-bootstrap-v1';
+const CACHE_SCHEMA_KEY = 'lumine_cache_schema_version';
+const LEGACY_CACHE_KEYS = [
+  'lumine_children',
+  'lumine_records',
+  'lumine_last_sync',
+  'lumine_data_rev',
+  'lumine_review_mode',
+];
+
+function migrateLegacyCache() {
+  if (typeof window === 'undefined') return;
+  try {
+    const currentVersion = window.localStorage.getItem(CACHE_SCHEMA_KEY);
+    if (currentVersion === CACHE_SCHEMA_VERSION) return;
+
+    LEGACY_CACHE_KEYS.forEach(key => {
+      window.localStorage.removeItem(key);
+    });
+    window.localStorage.setItem(CACHE_SCHEMA_KEY, CACHE_SCHEMA_VERSION);
+  } catch (_error) {
+    // Cache local é opcional. Se falhar, o bootstrap server-first ainda protege a consistência.
+  }
+}
+
+// Evita que snapshots locais antigos interfiram após mudanças de autenticação/bootstrap.
+migrateLegacyCache();
+
 function resolveApiBaseUrl() {
   const configured = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || '';
   if (!configured) return DEFAULT_API_BASE_URL;
