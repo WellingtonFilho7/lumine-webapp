@@ -10,7 +10,7 @@ test('returns critical for unauthorized token', () => {
   const result = classifySyncError({ isOnline: true, status: 401 });
   expect(result.level).toBe('critical');
   expect(result.autoDismissMs).toBe(0);
-  expect(result.message).toMatch(/token/i);
+  expect(result.message).toMatch(/sessao|entre novamente/i);
 });
 
 test('returns critical for revision mismatch', () => {

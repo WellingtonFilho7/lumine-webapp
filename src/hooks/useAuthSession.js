@@ -51,11 +51,21 @@ export default function useAuthSession({ requireLogin }) {
         setAuthReady(true);
       });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
-      setSession(nextSession || null);
-      setAuthError('');
-      setAuthReady(true);
+
+      if (nextSession) {
+        setSession(nextSession);
+        setAuthError('');
+        setAuthReady(true);
+        return;
+      }
+
+      // Evita "queda fantasma" de sessão em eventos transitórios.
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setSession(null);
+        setAuthReady(true);
+      }
     });
 
     return () => {

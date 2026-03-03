@@ -156,6 +156,8 @@ export default function LumineTracker() {
   const [bootRetrying, setBootRetrying] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [signUpLoading, setSignUpLoading] = useState(false);
+  const [loginNotice, setLoginNotice] = useState('');
   const [view, setView] = useState('dashboard');
   const [children, setChildren] = useLocalStorage('lumine_children', []);
   const [dailyRecords, setDailyRecords] = useLocalStorage('lumine_records', []);
@@ -256,6 +258,7 @@ export default function LumineTracker() {
       }
 
       setLoginError('');
+      setLoginNotice('');
       setLoginLoading(true);
       try {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -271,28 +274,82 @@ export default function LumineTracker() {
     [supabase]
   );
 
+  const handleSignUp = useCallback(
+    async ({ name, email, password }) => {
+      if (!supabase) {
+        setLoginError('Autenticacao indisponivel neste ambiente.');
+        return false;
+      }
+
+      setLoginError('');
+      setLoginNotice('');
+      setSignUpLoading(true);
+      try {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: (name || '').trim() },
+          },
+        });
+
+        if (error) {
+          setLoginError(error.message || 'Nao foi possivel solicitar acesso.');
+          return false;
+        }
+
+        setLoginNotice('Cadastro enviado. Aguarde aprovacao do admin para acessar o app.');
+        return true;
+      } finally {
+        setSignUpLoading(false);
+      }
+    },
+    [supabase]
+  );
+
   const bootstrapFromServer = useCallback(
     async ({ retry = false } = {}) => {
       if (retry) setBootRetrying(true);
       setBootState('loading');
       setBootError('');
 
-      const ok = await downloadFromServer({ silent: true });
-      if (ok) {
+      const result = await downloadFromServer({ silent: true, detailed: true });
+      if (result?.ok) {
         setBootState('ready');
         setBootError('');
+        if (retry) setBootRetrying(false);
+        return;
+      }
+
+      if (result?.errorCode === 'INTERNAL_AUTH_REQUIRED' || result?.errorCode === 'INTERNAL_AUTH_INVALID' || result?.errorCode === 'UNAUTHORIZED') {
+        const refreshed = await supabase?.auth?.refreshSession?.();
+        if (!refreshed?.error) {
+          const secondTry = await downloadFromServer({ silent: true, detailed: true });
+          if (secondTry?.ok) {
+            setBootState('ready');
+            setBootError('');
+            if (retry) setBootRetrying(false);
+            return;
+          }
+        }
+      }
+
+      setBootState('blocked');
+
+      if (!isOnline) {
+        setBootError('Sem internet. Reconecte para carregar os dados do servidor.');
+      } else if (result?.errorCode === 'INTERNAL_PROFILE_INVALID' || result?.errorCode === 'FORBIDDEN_ROLE') {
+        setBootError('Seu usuario existe, mas ainda nao esta aprovado para uso do app. Fale com o admin.');
+      } else if (result?.errorCode === 'INTERNAL_AUTH_REQUIRED' || result?.errorCode === 'INTERNAL_AUTH_INVALID' || result?.errorCode === 'UNAUTHORIZED') {
+        setBootError('Sua sessao expirou. Entre novamente.');
+        await supabase?.auth?.signOut?.();
       } else {
-        setBootState('blocked');
-        setBootError(
-          isOnline
-            ? 'Não foi possível carregar os dados do servidor. Verifique autenticação e conectividade.'
-            : 'Sem internet. Reconecte para carregar os dados do servidor.'
-        );
+        setBootError(result?.message || 'Nao foi possivel carregar os dados do servidor. Verifique autenticacao e conectividade.');
       }
 
       if (retry) setBootRetrying(false);
     },
-    [downloadFromServer, isOnline]
+    [downloadFromServer, isOnline, supabase]
   );
 
   useEffect(() => {
@@ -470,9 +527,12 @@ export default function LumineTracker() {
     return (
       <LoginView
         onLogin={handleLogin}
+        onSignUp={handleSignUp}
         loading={loginLoading}
+        signUpLoading={signUpLoading}
         error={loginError}
         authError={authError}
+        notice={loginNotice}
       />
     );
   }

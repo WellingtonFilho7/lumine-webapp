@@ -17,15 +17,23 @@ export function classifySyncError({ isOnline, status, payloadError, details, fal
 
   if (status === 401) {
     return {
-      message: 'Token invalido ou expirado. Verifique as variaveis da Vercel.',
+      message: 'Sessao invalida ou expirada. Entre novamente.',
       level: 'critical',
       autoDismissMs: 0,
     };
   }
 
   if (status === 403) {
+    if (payloadError === 'INTERNAL_PROFILE_INVALID' || payloadError === 'FORBIDDEN_ROLE') {
+      return {
+        message: 'Seu usuario ainda nao foi aprovado para uso do app.',
+        level: 'critical',
+        autoDismissMs: 0,
+      };
+    }
+
     return {
-      message: 'Origem nao permitida. Confirme ORIGINS_ALLOWLIST na API.',
+      message: 'Acesso negado para esta operacao.',
       level: 'critical',
       autoDismissMs: 0,
     };

@@ -259,13 +259,20 @@ export default function useSync({
 
   const downloadFromServer = useCallback(async (options = {}) => {
     const silent = Boolean(options?.silent);
+    const detailed = Boolean(options?.detailed);
 
     if (!isOnline) {
       if (!silent) applySyncError(classifySyncError({ isOnline: false }));
-      return false;
+      return detailed
+        ? { ok: false, status: 0, errorCode: 'OFFLINE', message: 'Sem internet' }
+        : false;
     }
 
-    if (downloadInFlightRef.current) return false;
+    if (downloadInFlightRef.current) {
+      return detailed
+        ? { ok: false, status: 0, errorCode: 'IN_FLIGHT', message: 'Download em andamento' }
+        : false;
+    }
 
     downloadInFlightRef.current = true;
     const controller = new AbortController();
@@ -296,7 +303,14 @@ export default function useSync({
             })
           );
         }
-        return false;
+        return detailed
+          ? {
+              ok: false,
+              status: res.status,
+              errorCode: result?.error || 'REQUEST_FAILED',
+              message: result?.message || `Erro HTTP ${res.status}`,
+            }
+          : false;
       }
 
       if (result.data) {
@@ -315,9 +329,15 @@ export default function useSync({
       setOverwriteBlocked(false);
       setLastSync(result?.serverTs || new Date().toISOString());
       if (!silent) applySyncSuccess();
-      return true;
+      return detailed
+        ? { ok: true, status: 200, dataRev: result?.dataRev ?? null, serverTs: result?.serverTs || null }
+        : true;
     } catch (error) {
-      if (error?.name === 'AbortError') return false;
+      if (error?.name === 'AbortError') {
+        return detailed
+          ? { ok: false, status: 0, errorCode: 'ABORTED', message: 'Requisicao cancelada' }
+          : false;
+      }
 
       if (!silent) {
         applySyncError(
@@ -327,7 +347,14 @@ export default function useSync({
           })
         );
       }
-      return false;
+      return detailed
+        ? {
+            ok: false,
+            status: 0,
+            errorCode: 'NETWORK_ERROR',
+            message: error?.message || 'Erro ao baixar dados',
+          }
+        : false;
     } finally {
       if (downloadAbortRef.current === controller) {
         downloadAbortRef.current = null;
