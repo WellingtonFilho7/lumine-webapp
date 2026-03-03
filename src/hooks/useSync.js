@@ -270,7 +270,7 @@ export default function useSync({
 
     if (downloadInFlightRef.current) {
       return detailed
-        ? { ok: false, status: 0, errorCode: 'IN_FLIGHT', message: 'Download em andamento' }
+        ? { ok: true, status: 202, inFlight: true, message: 'Download em andamento' }
         : false;
     }
 

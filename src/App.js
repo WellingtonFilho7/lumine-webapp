@@ -342,7 +342,7 @@ export default function LumineTracker() {
         return;
       }
 
-      if (result?.errorCode === 'IN_FLIGHT') {
+      if (result?.errorCode === 'IN_FLIGHT' || result?.inFlight || result?.message === 'Download em andamento') {
         if (retry) setBootRetrying(false);
         return;
       }
