@@ -316,9 +316,10 @@ export default function useSync({
 
       const localRevBefore = Number(dataRev) || 0;
       const serverRev = typeof result?.dataRev === 'number' ? result.dataRev : null;
+      const revGap = serverRev !== null ? localRevBefore - serverRev : 0;
 
-      if (serverRev !== null && localRevBefore > 0 && serverRev < localRevBefore) {
-        // Evita sobrescrever o estado local com snapshot atrasado do servidor.
+      if (serverRev !== null && localRevBefore > 0 && serverRev < localRevBefore && revGap <= 2) {
+        // Evita sobrescrever o estado local apenas no curto intervalo de corrida pos-write.
         return detailed
           ? {
               ok: true,

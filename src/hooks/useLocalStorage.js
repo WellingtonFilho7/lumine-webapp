@@ -11,15 +11,15 @@ export default function useLocalStorage(key, initialValue) {
   });
 
   const setValue = useCallback(value => {
-    try {
-      setStoredValue(prevValue => {
-        const valueToStore = value instanceof Function ? value(prevValue) : value;
+    setStoredValue(prevValue => {
+      const valueToStore = value instanceof Function ? value(prevValue) : value;
+      try {
         localStorage.setItem(key, JSON.stringify(valueToStore));
-        return valueToStore;
-      });
-    } catch {
-      // Falha silenciosa para nao interromper a UX em dispositivos com storage restrito.
-    }
+      } catch {
+        // Storage pode falhar (quota/restricoes), mas o estado em memoria deve continuar funcionando.
+      }
+      return valueToStore;
+    });
   }, [key]);
 
   return [storedValue, setValue];
