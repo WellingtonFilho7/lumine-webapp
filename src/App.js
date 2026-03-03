@@ -342,6 +342,11 @@ export default function LumineTracker() {
         return;
       }
 
+      if (result?.errorCode === 'IN_FLIGHT') {
+        if (retry) setBootRetrying(false);
+        return;
+      }
+
       setBootState('blocked');
 
       if (!isOnline) {
@@ -370,14 +375,55 @@ export default function LumineTracker() {
     bootstrapFromServer();
   }, [authReady, session, bootstrapFromServer]);
 
-  const handleDeleteChild = useCallback(
+  const refreshAfterWrite = useCallback(async () => {
+    if (!isOnline) return;
+    await downloadWithAuthRecovery({ silent: true });
+  }, [isOnline, downloadWithAuthRecovery]);
+
+  const addChildSafely = useCallback(
+    async payload => {
+      const ok = await addChild(payload);
+      if (ok) await refreshAfterWrite();
+      return ok;
+    },
+    [addChild, refreshAfterWrite]
+  );
+
+  const updateChildSafely = useCallback(
+    async (childId, payload) => {
+      const ok = await updateChild(childId, payload);
+      if (ok) await refreshAfterWrite();
+      return ok;
+    },
+    [updateChild, refreshAfterWrite]
+  );
+
+  const deleteChildSafely = useCallback(
     async childId => {
       const ok = await deleteChild(childId);
+      if (ok) await refreshAfterWrite();
+      return ok;
+    },
+    [deleteChild, refreshAfterWrite]
+  );
+
+  const addDailyRecordSafely = useCallback(
+    async payload => {
+      const ok = await addDailyRecord(payload);
+      if (ok) await refreshAfterWrite();
+      return ok;
+    },
+    [addDailyRecord, refreshAfterWrite]
+  );
+
+  const handleDeleteChild = useCallback(
+    async childId => {
+      const ok = await deleteChildSafely(childId);
       setSelectedChild(null);
       setView('children');
       return ok;
     },
-    [deleteChild, setSelectedChild, setView]
+    [deleteChildSafely, setSelectedChild, setView]
   );
 
   const handleDashboardQuickAttendance = useCallback(
@@ -389,7 +435,7 @@ export default function LumineTracker() {
       setQuickAttendanceLoadingByChildId(prev => ({ ...prev, [childId]: true }));
       try {
         const today = new Date().toISOString().split('T')[0];
-        const ok = await addDailyRecord({
+        const ok = await addDailyRecordSafely({
           childInternalId: childId,
           date: today,
           attendance,
@@ -412,7 +458,7 @@ export default function LumineTracker() {
         });
       }
     },
-    [addDailyRecord]
+    [addDailyRecordSafely]
   );
 
   // Monitor de conexão
@@ -764,7 +810,7 @@ export default function LumineTracker() {
         {view === 'add-child' && (
           <div className="mx-auto w-full lg:max-w-3xl">
             <AddChildView
-              addChild={addChild}
+              addChild={addChildSafely}
               setView={setView}
               isOnline={isOnline}
               onlineOnly={ONLINE_ONLY_MODE}
@@ -780,7 +826,7 @@ export default function LumineTracker() {
               <ChildDetailView
                 child={selectedChild}
                 dailyRecords={dailyRecords}
-                onUpdateChild={updateChild}
+                onUpdateChild={updateChildSafely}
                 isOnline={isOnline}
                 onlineOnly={ONLINE_ONLY_MODE}
                 onDeleteChild={handleDeleteChild}
@@ -802,7 +848,7 @@ export default function LumineTracker() {
               <ChildDetailDesktop
                 child={selectedChild}
                 dailyRecords={dailyRecords}
-                onUpdateChild={updateChild}
+                onUpdateChild={updateChildSafely}
                 isOnline={isOnline}
                 onlineOnly={ONLINE_ONLY_MODE}
                 onDeleteChild={handleDeleteChild}
@@ -828,7 +874,7 @@ export default function LumineTracker() {
               <DailyRecordView
                 children={children}
                 dailyRecords={dailyRecords}
-                addDailyRecord={addDailyRecord}
+                addDailyRecord={addDailyRecordSafely}
                 isOnline={isOnline}
                 onlineOnly={ONLINE_ONLY_MODE}
                 isMatriculated={isMatriculated}
@@ -839,7 +885,7 @@ export default function LumineTracker() {
               <DailyRecordDesktop
                 children={children}
                 dailyRecords={dailyRecords}
-                addDailyRecord={addDailyRecord}
+                addDailyRecord={addDailyRecordSafely}
                 isOnline={isOnline}
                 onlineOnly={ONLINE_ONLY_MODE}
                 isMatriculated={isMatriculated}
