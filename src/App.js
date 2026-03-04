@@ -898,6 +898,8 @@ export default function LumineTracker() {
           <ConfigView
             children={children}
             dailyRecords={dailyRecords}
+            apiBaseUrl={API_BASE_URL}
+            jsonHeaders={JSON_HEADERS}
             syncWithServer={syncWithServer}
             downloadFromServer={downloadFromServer}
             lastSync={lastSync}

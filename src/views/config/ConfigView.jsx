@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
-import { Download, Upload } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Download, RefreshCw, ShieldCheck, Upload } from 'lucide-react';
 import { ATTENDANCE_THRESHOLDS } from '../../constants';
 import { cn } from '../../utils/cn';
 import ClearLocalDataDialog from '../../components/dialogs/ClearLocalDataDialog';
+import useAdminUsers from '../../hooks/useAdminUsers';
 
 const defaultIsMatriculated = child => {
   if (!child) return false;
@@ -20,6 +21,7 @@ const defaultFormatTime = value => {
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 };
+const EMPTY_JSON_HEADERS = Object.freeze({});
 
 function ConfigView({
   children,
@@ -38,6 +40,8 @@ function ConfigView({
   isMatriculated = defaultIsMatriculated,
   formatDate = defaultFormatDate,
   formatTime = defaultFormatTime,
+  apiBaseUrl = '',
+  jsonHeaders = null,
 }) {
   // Relatório em cards
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -63,6 +67,31 @@ function ConfigView({
   const handleOnboardingOpen = useCallback(() => {
     onOpenOnboarding?.();
   }, [onOpenOnboarding]);
+
+  const safeJsonHeaders = jsonHeaders || EMPTY_JSON_HEADERS;
+  const adminUsersEnabled = useMemo(
+    () => Boolean(apiBaseUrl && Object.keys(safeJsonHeaders).length),
+    [apiBaseUrl, safeJsonHeaders]
+  );
+  const {
+    checkedAccess,
+    canManageUsers,
+    loadingPendingUsers,
+    pendingUsers,
+    roleByUserId,
+    setRoleForUser,
+    approvingById,
+    adminUsersError,
+    adminUsersNotice,
+    approveUser,
+    reloadPendingUsers,
+  } = useAdminUsers({
+    apiBaseUrl,
+    jsonHeaders: safeJsonHeaders,
+    enabled: adminUsersEnabled,
+  });
+
+  const showAdminUsersCard = checkedAccess && canManageUsers;
 
   const renderOnboardingCard = className => (
     <div className={cn('space-y-3 rounded-lg bg-white p-4 shadow-md', className)}>
@@ -102,6 +131,91 @@ function ConfigView({
       >
         Reabrir guia rápida
       </button>
+    </div>
+  );
+
+  const renderAdminUsersCard = className => (
+    <div className={cn('space-y-4 rounded-lg bg-white p-4 shadow-md', className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-balance text-base font-semibold text-gray-800">
+            <ShieldCheck size={16} className="text-cyan-700" />
+            Aprovação de usuários
+          </h3>
+          <p className="mt-1 text-pretty text-sm text-gray-500">
+            Apenas administradores podem aprovar novos acessos internos.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={reloadPendingUsers}
+          disabled={loadingPendingUsers}
+          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 disabled:opacity-50"
+          aria-label="Atualizar pendências de usuários"
+        >
+          <RefreshCw size={12} className={cn(loadingPendingUsers && 'animate-spin')} />
+          Atualizar
+        </button>
+      </div>
+
+      {adminUsersError && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {adminUsersError}
+        </div>
+      )}
+      {adminUsersNotice && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+          {adminUsersNotice}
+        </div>
+      )}
+
+      {loadingPendingUsers ? (
+        <p className="text-sm text-gray-500">Carregando pendências...</p>
+      ) : pendingUsers.length === 0 ? (
+        <p className="text-sm text-gray-500">Nenhum usuário pendente de aprovação.</p>
+      ) : (
+        <div className="space-y-2">
+          {pendingUsers.map(item => {
+            const role = roleByUserId[item.id] || 'triagem';
+            const createdAtLabel = item.criado_em
+              ? `${formatDate(item.criado_em)} ${formatTime(item.criado_em)}`
+              : 'Data não informada';
+            const approving = Boolean(approvingById[item.id]);
+
+            return (
+              <div key={item.id} className="space-y-2 rounded-lg border border-gray-100 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-gray-800">
+                    {item.nome || 'Usuário interno'}
+                  </p>
+                  <p className="truncate text-xs text-gray-500">{item.email}</p>
+                  <p className="mt-1 text-xs text-gray-400">Solicitado em {createdAtLabel}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={role}
+                    onChange={event => setRoleForUser(item.id, event.target.value)}
+                    className="rounded-lg border border-gray-200 px-2 py-2 text-sm"
+                    aria-label={`Papel para ${item.email}`}
+                    disabled={approving}
+                  >
+                    <option value="triagem">Triagem</option>
+                    <option value="secretaria">Secretaria</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => approveUser(item)}
+                    disabled={approving}
+                    className="rounded-lg bg-cyan-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {approving ? 'Aprovando...' : 'Aprovar'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 
@@ -164,6 +278,8 @@ function ConfigView({
         )}
 
       {renderOnboardingCard()}
+
+      {showAdminUsersCard && renderAdminUsersCard()}
 
       {/* Segurança */}
       <div className="space-y-3 rounded-lg bg-rose-50 p-4 shadow-md">
@@ -329,6 +445,8 @@ function ConfigView({
         </div>
 
         {renderOnboardingCard('rounded-2xl p-5')}
+
+        {showAdminUsersCard && renderAdminUsersCard('rounded-2xl p-5')}
 
         {showLegacySyncUi && (
           <div className="rounded-2xl bg-white p-5 shadow-md">
