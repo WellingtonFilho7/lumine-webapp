@@ -434,7 +434,7 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
           <div className="space-y-2">
             {transactions.map(tx => {
               const txId = tx.id || `${tx.tipo}-${tx.data_transacao}-${tx.valor}`;
-              const dataTransacao = tx.data_transacao || tx.dataTransacao || tx.date;
+              const dataTransacao = tx.data_transacao || tx.dataTransacao || tx.date || tx.created_at || tx.createdAt || tx.updated_at || tx.updatedAt;
               const tipo = tx.tipo || tx.type;
               const categoria = tx.categoria || tx.category;
               const descricao = tx.descricao || tx.description || '-';
