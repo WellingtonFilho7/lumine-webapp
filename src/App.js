@@ -130,7 +130,6 @@ function resolveApiBaseUrl() {
 const API_BASE_URL = resolveApiBaseUrl();
 const API_URL = process.env.REACT_APP_SYNC_URL || `${API_BASE_URL}/sync` || DEFAULT_API_URL;
 const BOOTSTRAP_URL = process.env.REACT_APP_BOOTSTRAP_URL || `${API_BASE_URL}/bootstrap` || DEFAULT_BOOTSTRAP_URL;
-const API_TOKEN = process.env.REACT_APP_API_TOKEN || '';
 const APP_VERSION = process.env.REACT_APP_APP_VERSION || '';
 const DEVICE_ID = getOrCreateDeviceId();
 
@@ -147,7 +146,7 @@ export default function LumineTracker() {
   const { baseHeaders: BASE_HEADERS, jsonHeaders: JSON_HEADERS } = useMemo(
     () =>
       buildApiHeaders({
-        apiToken: userJwt ? '' : API_TOKEN,
+        apiToken: '',
         userJwt,
         appVersion: APP_VERSION,
         deviceId: DEVICE_ID,

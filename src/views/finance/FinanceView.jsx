@@ -444,12 +444,28 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
         ) : (
           <div className="space-y-2">
             {transactions.map(tx => {
-              const txId = tx.id || `${tx.tipo}-${tx.data_transacao}-${tx.valor}`;
-              const dataTransacao = tx.data_transacao || tx.dataTransacao || tx.date || tx.created_at || tx.createdAt || tx.updated_at || tx.updatedAt;
+              const txId =
+                tx.id ||
+                `${tx.tipo}-${tx.data || tx.data_transacao || tx.dataTransacao || ''}-${tx.valorCentavos ?? tx.valor_centavos ?? tx.valor ?? tx.amount ?? ''}`;
+              const dataTransacao =
+                tx.data ||
+                tx.data_transacao ||
+                tx.dataTransacao ||
+                tx.date ||
+                tx.created_at ||
+                tx.createdAt ||
+                tx.updated_at ||
+                tx.updatedAt;
               const tipo = tx.tipo || tx.type;
               const categoria = tx.categoria || tx.category;
               const descricao = tx.descricao || tx.description || '-';
-              const valor = tx.valor || tx.amount;
+              const valorCentavos = tx.valorCentavos ?? tx.valor_centavos;
+              const valorBase = tx.valor ?? tx.amount ?? tx.value;
+              const valor = Number.isFinite(Number(valorBase))
+                ? Number(valorBase)
+                : Number.isFinite(Number(valorCentavos))
+                ? Number(valorCentavos) / 100
+                : NaN;
               const formaPagamento = tx.forma_pagamento || tx.formaPagamento || tx.paymentMethod;
               const comprovantePath = tx.comprovante_path || tx.comprovantePath || tx.receiptPath || '';
               const loadingFile = Boolean(fileLoadingById[txId]);

@@ -11,7 +11,7 @@ export const MOBILE_UI_V2_ENABLED =
 export const FINANCE_MODULE_ENABLED =
   (process.env.REACT_APP_FINANCE_MODULE_ENABLED || 'true').toLowerCase() !== 'false';
 export const REQUIRE_LOGIN =
-  (process.env.REACT_APP_REQUIRE_LOGIN || 'false').toLowerCase() !== 'false';
+  (process.env.REACT_APP_REQUIRE_LOGIN || 'true').toLowerCase() !== 'false';
 
 export const SYNC_SUCCESS_RESET_TIMEOUT_MS = 2000;
 export const SYNC_WARNING_RESET_TIMEOUT_MS = 5000;

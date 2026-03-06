@@ -79,15 +79,25 @@ export default function useFinance({ apiBaseUrl, jsonHeaders, isOnline, onlineOn
   }, [apiBaseUrl, jsonHeaders]);
 
   const listTransactions = useCallback(
-    async ({ cursor = null, tipo = '', from = '', to = '', limit = FINANCE_PAGE_SIZE } = {}) => {
+    async ({
+      cursor = null,
+      tipo = '',
+      from = '',
+      to = '',
+      startDate = '',
+      endDate = '',
+      limit = FINANCE_PAGE_SIZE,
+    } = {}) => {
       ensureOnline();
 
       const params = new URLSearchParams();
       params.set('limit', String(limit || FINANCE_PAGE_SIZE));
       if (cursor) params.set('cursor', cursor);
       if (tipo) params.set('tipo', tipo);
-      if (from) params.set('from', from);
-      if (to) params.set('to', to);
+      const effectiveStartDate = startDate || from;
+      const effectiveEndDate = endDate || to;
+      if (effectiveStartDate) params.set('startDate', effectiveStartDate);
+      if (effectiveEndDate) params.set('endDate', effectiveEndDate);
 
       const response = await fetch(`${apiBaseUrl}/finance/list?${params.toString()}`, {
         method: 'GET',
