@@ -459,7 +459,6 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
                       >
                         {typeMap[tipo] || tipo || '-'}
                       </span>
-                      <span className="text-xs text-gray-500">{formatFinanceDate(dataTransacao)}</span>
                     </div>
                     <p className="truncate text-sm font-semibold text-gray-900">{descricao}</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
@@ -475,9 +474,10 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
                   </div>
 
                   <div className="mt-3 flex items-center gap-2 lg:mt-0">
-                    <p className="min-w-[108px] text-right text-sm font-semibold text-gray-900">
-                      {formatMoneyBRL(valor)}
-                    </p>
+                    <div className="min-w-[108px] text-right">
+                      <p className="text-[11px] text-gray-500">{formatFinanceDate(dataTransacao)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatMoneyBRL(valor)}</p>
+                    </div>
                     {comprovantePath && (
                       <button
                         type="button"
