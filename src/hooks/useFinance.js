@@ -113,6 +113,14 @@ export default function useFinance({ apiBaseUrl, jsonHeaders, isOnline, onlineOn
         throw buildError(400, 'Informe um valor válido maior que zero.', 'VALIDATION_ERROR');
       }
 
+      if (!file) {
+        throw buildError(
+          400,
+          'Comprovante é obrigatório nesta versão. Anexe um arquivo para continuar.',
+          'VALIDATION_ERROR'
+        );
+      }
+
       const validation = validateFinanceFile(file);
       if (!validation.ok) {
         throw buildError(400, validation.message, 'INVALID_FILE');

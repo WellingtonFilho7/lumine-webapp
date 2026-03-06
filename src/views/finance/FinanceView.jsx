@@ -158,6 +158,11 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
         return;
       }
 
+      if (!selectedFile) {
+        setSubmitError('Comprovante é obrigatório nesta versão. Anexe um arquivo para continuar.');
+        return;
+      }
+
       if (selectedFile) {
         const validation = validateFinanceFile(selectedFile);
         if (!validation.ok) {
@@ -320,7 +325,7 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
             </label>
 
             <label className="space-y-1">
-              <span className="text-sm font-medium text-gray-700">Comprovante (JPG/PNG/WEBP/PDF, até 10MB)</span>
+              <span className="text-sm font-medium text-gray-700">Comprovante obrigatório (JPG/PNG/WEBP/PDF, até 10MB)</span>
               <label className="flex cursor-pointer items-center justify-between rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
                 <span className="flex min-w-0 items-center gap-2 truncate">
                   <Paperclip size={14} />
