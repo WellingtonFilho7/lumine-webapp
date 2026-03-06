@@ -190,12 +190,23 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
     async (transactionId, comprovantePath) => {
       if (!comprovantePath) return;
 
+      const preOpenedTab = window.open('', '_blank', 'noopener,noreferrer');
+
       setFileLoadingById(prev => ({ ...prev, [transactionId]: true }));
       setListError('');
       try {
         const signedUrl = await getFileUrl(comprovantePath);
-        window.open(signedUrl, '_blank', 'noopener,noreferrer');
+
+        if (preOpenedTab && !preOpenedTab.closed) {
+          preOpenedTab.location.href = signedUrl;
+          return;
+        }
+
+        window.location.assign(signedUrl);
       } catch (error) {
+        if (preOpenedTab && !preOpenedTab.closed) {
+          preOpenedTab.close();
+        }
         setListError(error?.message || 'Não foi possível abrir o comprovante.');
       } finally {
         setFileLoadingById(prev => {
