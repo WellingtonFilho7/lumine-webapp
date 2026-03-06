@@ -7,6 +7,7 @@ describe('ui constants', () => {
       children: 'Crianças',
       'add-child': 'Nova Criança',
       daily: 'Registro',
+      finance: 'Finanças',
       'child-detail': 'Detalhes',
       config: 'Configurações',
     });

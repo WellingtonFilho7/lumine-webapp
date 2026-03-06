@@ -33,6 +33,7 @@ import {
   DEFAULT_BOOTSTRAP_URL,
   AUTO_DOWNLOAD_INTERVAL_MS,
   MOBILE_UI_V2_ENABLED,
+  FINANCE_MODULE_ENABLED,
   ONLINE_ONLY_MODE,
   REQUIRE_LOGIN,
   SHOW_LEGACY_SYNC_UI,
@@ -59,6 +60,7 @@ import useLocalStorage from './hooks/useLocalStorage';
 import useSync from './hooks/useSync';
 import useChildren from './hooks/useChildren';
 import useRecords from './hooks/useRecords';
+import useFinance from './hooks/useFinance';
 import Sidebar from './components/layout/Sidebar';
 import MobileNav from './components/layout/MobileNav';
 import FloatingActions from './components/layout/FloatingActions';
@@ -78,6 +80,7 @@ import ChildDetailView from './views/children/ChildDetailView';
 import ChildDetailDesktop from './views/children/ChildDetailDesktop';
 import DailyRecordView from './views/records/DailyRecordView';
 import DailyRecordDesktop from './views/records/DailyRecordDesktop';
+import FinanceView from './views/finance/FinanceView';
 import ConfigView from './views/config/ConfigView';
 import {
   getStatusMeta,
@@ -237,6 +240,19 @@ export default function LumineTracker() {
     upsertDailyRecord,
   });
 
+  const { checkFinanceAccess } = useFinance({
+    apiBaseUrl: API_BASE_URL,
+    jsonHeaders: JSON_HEADERS,
+    isOnline,
+    onlineOnly: ONLINE_ONLY_MODE,
+  });
+
+  const [financeAccessState, setFinanceAccessState] = useState(
+    FINANCE_MODULE_ENABLED ? 'checking' : 'disabled'
+  );
+  const [financeAccessError, setFinanceAccessError] = useState('');
+  const canAccessFinance = FINANCE_MODULE_ENABLED && financeAccessState === 'allowed';
+
   const handleOnboardingDone = useCallback(() => {
     setOnboardingFlag(true);
     setOnboardingOpen(false);
@@ -374,6 +390,55 @@ export default function LumineTracker() {
     if (REQUIRE_LOGIN && !session) return;
     bootstrapFromServer();
   }, [authReady, session, bootstrapFromServer]);
+
+  useEffect(() => {
+    if (!authReady) return;
+
+    if (!FINANCE_MODULE_ENABLED) {
+      setFinanceAccessState('disabled');
+      setFinanceAccessError('');
+      return;
+    }
+
+    if (REQUIRE_LOGIN && !session) {
+      setFinanceAccessState('forbidden');
+      setFinanceAccessError('');
+      return;
+    }
+
+    if (bootState !== 'ready') return;
+    if (!isOnline) return;
+
+    let mounted = true;
+    const loadAccess = async () => {
+      setFinanceAccessError('');
+      setFinanceAccessState(prev => (prev === 'allowed' ? 'allowed' : 'checking'));
+
+      const result = await checkFinanceAccess();
+      if (!mounted) return;
+
+      if (result?.ok) {
+        setFinanceAccessState('allowed');
+        setFinanceAccessError('');
+        return;
+      }
+
+      if (result?.forbidden) {
+        setFinanceAccessState('forbidden');
+        setFinanceAccessError('');
+        return;
+      }
+
+      setFinanceAccessState('error');
+      setFinanceAccessError(result?.message || 'Falha ao validar acesso financeiro.');
+    };
+
+    loadAccess();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authReady, session, bootState, isOnline, checkFinanceAccess]);
 
   const refreshAfterWrite = useCallback(async () => {
     if (!isOnline) return;
@@ -648,7 +713,13 @@ export default function LumineTracker() {
       />
 
     <div className="min-h-dvh bg-teal-50 pb-20 lg:flex lg:h-dvh lg:overflow-hidden lg:pb-0">
-      <Sidebar view={view} setView={setView} lastSyncLabel={lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : ""} isOnline={isOnline} />
+      <Sidebar
+        view={view}
+        setView={setView}
+        lastSyncLabel={lastSync ? `${formatDate(lastSync)} ${formatTime(lastSync)}` : ''}
+        isOnline={isOnline}
+        canAccessFinance={canAccessFinance}
+      />
       <div className="flex-1 lg:flex lg:flex-col lg:overflow-hidden">
       {/* ========== HEADER COMPACTO ========== */}
       <header className={cn('sticky top-0 z-30 bg-cyan-700 px-4 text-white shadow-lg lg:hidden', MOBILE_UI_V2_ENABLED ? 'py-2' : 'py-3')}>
@@ -894,10 +965,33 @@ export default function LumineTracker() {
             </div>
           </>
         )}
+        {view === 'finance' && (
+          <div className="mx-auto w-full lg:max-w-5xl">
+            {canAccessFinance ? (
+              <FinanceView
+                apiBaseUrl={API_BASE_URL}
+                jsonHeaders={JSON_HEADERS}
+                isOnline={isOnline}
+                onlineOnly={ONLINE_ONLY_MODE}
+              />
+            ) : (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                {financeAccessState === 'checking'
+                  ? 'Validando acesso ao módulo financeiro...'
+                  : financeAccessState === 'forbidden'
+                  ? 'Acesso ao financeiro permitido somente para admin e secretaria.'
+                  : financeAccessError ||
+                    'Não foi possível validar o acesso ao módulo financeiro agora.'}
+              </div>
+            )}
+          </div>
+        )}
         {view === 'config' && (
           <ConfigView
             children={children}
             dailyRecords={dailyRecords}
+            apiBaseUrl={API_BASE_URL}
+            jsonHeaders={JSON_HEADERS}
             syncWithServer={syncWithServer}
             downloadFromServer={downloadFromServer}
             lastSync={lastSync}
@@ -931,7 +1025,12 @@ export default function LumineTracker() {
         setShowFABMenu={setShowFABMenu}
       />
 
-      <MobileNav view={view} setView={setView} pendingDailyCount={pendingDailyCount} />
+      <MobileNav
+        view={view}
+        setView={setView}
+        pendingDailyCount={pendingDailyCount}
+        canAccessFinance={canAccessFinance}
+      />
     </div>
     </>
   );

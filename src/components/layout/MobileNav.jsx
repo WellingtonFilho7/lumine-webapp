@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Home, Settings, Users } from 'lucide-react';
+import { Calendar, CircleDollarSign, Home, Settings, Users } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 function NavItem({ icon: Icon, label, active, onClick, badgeCount = 0 }) {
@@ -29,7 +29,12 @@ function NavItem({ icon: Icon, label, active, onClick, badgeCount = 0 }) {
   );
 }
 
-export default function MobileNav({ view, setView, pendingDailyCount = 0 }) {
+export default function MobileNav({
+  view,
+  setView,
+  pendingDailyCount = 0,
+  canAccessFinance = false,
+}) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white shadow-lg lg:hidden"
@@ -50,6 +55,14 @@ export default function MobileNav({ view, setView, pendingDailyCount = 0 }) {
           onClick={() => setView('daily')}
           badgeCount={pendingDailyCount}
         />
+        {canAccessFinance && (
+          <NavItem
+            icon={CircleDollarSign}
+            label="Finanças"
+            active={view === 'finance'}
+            onClick={() => setView('finance')}
+          />
+        )}
         <NavItem icon={Settings} label="Config" active={view === 'config'} onClick={() => setView('config')} />
       </div>
     </nav>

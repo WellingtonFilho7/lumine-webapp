@@ -8,6 +8,8 @@ export const SHOW_LEGACY_SYNC_UI =
   (process.env.REACT_APP_SHOW_LEGACY_SYNC_UI || 'false').toLowerCase() === 'true';
 export const MOBILE_UI_V2_ENABLED =
   (process.env.REACT_APP_MOBILE_UI_V2 || 'true').toLowerCase() !== 'false';
+export const FINANCE_MODULE_ENABLED =
+  (process.env.REACT_APP_FINANCE_MODULE_ENABLED || 'true').toLowerCase() !== 'false';
 export const REQUIRE_LOGIN =
   (process.env.REACT_APP_REQUIRE_LOGIN || 'false').toLowerCase() !== 'false';
 

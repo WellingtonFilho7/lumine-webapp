@@ -18,4 +18,21 @@ describe('MobileNav', () => {
     fireEvent.click(screen.getByLabelText('Registro'));
     expect(setView).toHaveBeenCalledWith('daily');
   });
+
+  it('shows Finanças item only when access is allowed', () => {
+    const setView = jest.fn();
+
+    const { rerender } = render(
+      <MobileNav view="dashboard" setView={setView} pendingDailyCount={0} canAccessFinance={false} />
+    );
+    expect(screen.queryByLabelText('Finanças')).not.toBeInTheDocument();
+
+    rerender(
+      <MobileNav view="dashboard" setView={setView} pendingDailyCount={0} canAccessFinance={true} />
+    );
+    expect(screen.getByLabelText('Finanças')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Finanças'));
+    expect(setView).toHaveBeenCalledWith('finance');
+  });
 });
