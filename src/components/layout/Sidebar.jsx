@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Home, Settings, Users } from 'lucide-react';
+import { Calendar, CircleDollarSign, Home, Settings, Users } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 function SidebarItem({ icon: Icon, label, active, onClick }) {
@@ -17,7 +17,7 @@ function SidebarItem({ icon: Icon, label, active, onClick }) {
   );
 }
 
-export default function Sidebar({ view, setView, lastSyncLabel, isOnline }) {
+export default function Sidebar({ view, setView, lastSyncLabel, isOnline, canAccessFinance = false }) {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:bg-gray-900 lg:text-white">
       <div className="px-6 py-6">
@@ -44,6 +44,14 @@ export default function Sidebar({ view, setView, lastSyncLabel, isOnline }) {
           active={view === 'daily'}
           onClick={() => setView('daily')}
         />
+        {canAccessFinance && (
+          <SidebarItem
+            icon={CircleDollarSign}
+            label="Finanças"
+            active={view === 'finance'}
+            onClick={() => setView('finance')}
+          />
+        )}
         <SidebarItem
           icon={Settings}
           label="Configurações"
