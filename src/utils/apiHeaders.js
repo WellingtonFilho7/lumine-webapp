@@ -1,5 +1,4 @@
 export function buildApiHeaders({
-  apiToken = '',
   userJwt = '',
   appVersion = '',
   deviceId = '',
@@ -10,7 +9,6 @@ export function buildApiHeaders({
   };
 
   const authHeaders = {
-    ...(apiToken ? { Authorization: `Bearer ${apiToken}` } : {}),
     ...(userJwt ? { 'X-User-Jwt': userJwt } : {}),
   };
   const baseHeaders = { ...authHeaders, ...metaHeaders };

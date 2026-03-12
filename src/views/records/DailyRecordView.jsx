@@ -294,8 +294,8 @@ function DailyRecordView({
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-teal-100">
           <div
-            className="h-full rounded-full bg-cyan-600 transition-all"
-            style={{ width: `${progressPercent}%` }}
+            className="h-full origin-left rounded-full bg-cyan-600 transition-transform duration-200 ease-out motion-reduce:transition-none"
+            style={{ transform: `scaleX(${progressPercent / 100})` }}
           />
         </div>
         <p className="mt-2 text-xs text-gray-500 tabular-nums">{pendingExpectedCount} pendentes</p>
@@ -487,7 +487,7 @@ function DailyRecordView({
                   aria-pressed={form.attendance === opt.value}
                   onClick={() => setForm({ ...form, attendance: opt.value })}
                   className={cn(
-                    'rounded-lg py-3 text-sm font-medium transition-all',
+                    'rounded-lg py-3 text-sm font-medium transition-colors duration-150',
                     form.attendance === opt.value
                       ? opt.color === 'green'
                         ? 'bg-green-500 text-white'
@@ -522,7 +522,7 @@ function DailyRecordView({
                       aria-pressed={form.mood === opt.value}
                       onClick={() => setForm({ ...form, mood: opt.value })}
                       className={cn(
-                        'rounded-lg py-3 text-2xl transition-all',
+                        'rounded-lg py-3 text-2xl transition-colors duration-150',
                         form.mood === opt.value ? 'bg-cyan-100 ring-2 ring-cyan-500' : 'bg-teal-50'
                       )}
                     >

@@ -135,7 +135,6 @@ O Sistema Lumine é um webapp offline‑first para triagem, matrícula e acompan
 ### Variáveis de ambiente
 - `SPREADSHEET_ID`
 - `GOOGLE_CREDENTIALS` (JSON da service account)
-- `API_TOKEN` (token Bearer)
 - `ORIGINS_ALLOWLIST` (domínios permitidos)
   - Ex.: produção `https://lumine-webapp.vercel.app`
   - Ex.: dev `http://localhost:3000`
@@ -258,9 +257,9 @@ Campos principais:
 - Service account (JSON em variável de ambiente) autoriza a API a ler/escrever as planilhas principal e de backup.
 
 ### Acesso
-- API exige token Bearer.
-- CORS/Origin com allowlist (barreira de navegador).
-- Não há autenticação por usuário (acesso único).
+- Webapp autentica via Supabase Auth e envia `X-User-Jwt`.
+- API exige perfil interno ativo e papel permitido.
+- CORS/Origin com allowlist complementa a barreira principal de autenticação.
 
 ### Dados sensíveis
 - Campos sensíveis ficam apenas no detalhe da criança no app.
@@ -269,10 +268,9 @@ Campos principais:
 ## 8. PONTOS DE ATENÇÃO
 
 ### Limitações conhecidas
-- Token visível no bundle do frontend.
-- Sem autenticação por usuário.
 - Dados locais não criptografados.
-- Dependência de Google Sheets (limites e latência).
+- Dependência de Google Sheets em trilhas legadas/espelho.
+- Operação depende de sessão interna válida no Supabase Auth.
 
 ### Débitos técnicos
 - Migração futura para renomear `Registros.childId` para `childInternalId`.
@@ -280,5 +278,5 @@ Campos principais:
 - Considerar cache de `childName` no record ou XLOOKUP quando disponível.
 
 ### Riscos identificados
-- Overwrite indevido sem treinamento (mitigado por `DATA_REV` e bloqueios).
-- Falhas de conexão em campo (mitigadas por offline‑first).
+- Overwrite indevido sem treinamento (mitigado por `DATA_REV`, revisão e endpoint de overwrite desabilitado por padrão).
+- Falhas de conexão em campo afetam operação online-only e exigem contingência impressa.
