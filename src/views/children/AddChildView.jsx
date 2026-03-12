@@ -153,15 +153,14 @@ function AddChildView({
             <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
               <div
                 className={cn(
-                  'h-full rounded-full transition-all duration-500',
+                  'h-full origin-left rounded-full transition-transform duration-200 ease-out motion-reduce:transition-none',
                   triageComplete ? 'bg-green-700' : 'bg-blue-600'
                 )}
                 style={{
-                  width: `${Math.round(
+                  transform: `scaleX(${
                     (triageChecklistItems.filter(item => item.complete).length /
-                      Math.max(triageChecklistItems.length, 1)) *
-                      100
-                  )}%`,
+                      Math.max(triageChecklistItems.length, 1))
+                  })`,
                 }}
               />
             </div>

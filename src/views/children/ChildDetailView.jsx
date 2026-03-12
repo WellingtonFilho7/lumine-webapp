@@ -257,7 +257,12 @@ function ChildDetailView({
             <span className="tabular-nums">{rate}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-teal-100">
-            <div className="h-full rounded-full bg-cyan-600" style={{ width: String(Math.max(0, Math.min(100, Number(rate) || 0))) + '%' }} />
+            <div
+              className="h-full origin-left rounded-full bg-cyan-600 transition-transform duration-200 ease-out motion-reduce:transition-none"
+              style={{
+                transform: `scaleX(${Math.max(0, Math.min(100, Number(rate) || 0)) / 100})`,
+              }}
+            />
           </div>
           <p className="mt-2 text-xs text-gray-500 tabular-nums">{present} presenças · {absent} faltas</p>
         </div>

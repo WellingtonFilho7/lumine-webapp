@@ -1,9 +1,9 @@
 # Segurança — Sistema Lumine
 
 ## Autenticação
-- A API exige token Bearer em todas as requisições (GET/POST).
-- Token configurado via variáveis de ambiente, não versionado.
-- O token é uma barreira de acesso simples (visível no bundle do frontend).
+- O webapp usa Supabase Auth e envia o JWT da sessão interna em `X-User-Jwt`.
+- A API exige perfil interno ativo e papel permitido para leitura e escrita operacionais.
+- Não há mais dependência de token Bearer exposto no bundle do frontend.
 
 ## Proteção de dados
 - CORS/Origin restritos por allowlist (barreiras leves de navegador).
@@ -19,13 +19,11 @@
 - Evitar uso em computadores públicos.
 
 ## Rotação de token
-1. Gerar novo token (ex.: `openssl rand -hex 32`).
-2. Atualizar `API_TOKEN` no Vercel (lumine-api) e redeploy.
-3. Atualizar `REACT_APP_API_TOKEN` no Vercel (lumine-webapp) e redeploy.
-4. Testar GET e POST.
+1. Se um usuário interno for comprometido, desative o perfil em `perfis_internos`.
+2. Se necessário, revogue sessões no Supabase Auth e force novo login.
+3. Revalide `GET /api/bootstrap` e operações principais com `X-User-Jwt`.
 
 ## Limitações conhecidas
-- Token visível no bundle do frontend.
-- Sem autenticação por usuário.
 - Dados locais em `localStorage` sem criptografia.
-- Origin check é best effort (não substitui token).
+- Origin check é barreira complementar, não substitui autenticação.
+- Sessão expirada ou perfil interno desativado bloqueiam o uso até novo login/aprovação.

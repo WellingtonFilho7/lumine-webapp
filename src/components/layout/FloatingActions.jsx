@@ -67,7 +67,7 @@ export default function FloatingActions({ view, setView, showFABMenu, setShowFAB
           type="button"
           onClick={handlePrimaryAction}
           className={cn(
-            'flex size-14 items-center justify-center rounded-full shadow-lg transition-all',
+            'flex size-14 items-center justify-center rounded-full shadow-lg transition-transform transition-colors duration-150',
             isDashboard && showFABMenu ? 'rotate-45 bg-gray-600' : 'bg-orange-500 hover:bg-orange-400'
           )}
           aria-label={fabLabel}

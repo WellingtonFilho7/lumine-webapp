@@ -81,7 +81,10 @@ export default function DashboardView({
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-teal-100">
-            <div className="h-full rounded-full bg-cyan-600" style={{ width: `${progressPercent}%` }} />
+            <div
+              className="h-full origin-left rounded-full bg-cyan-600 transition-transform duration-200 ease-out motion-reduce:transition-none"
+              style={{ transform: `scaleX(${progressPercent / 100})` }}
+            />
           </div>
         </div>
 

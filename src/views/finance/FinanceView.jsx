@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileImage, FileText, Loader2, Paperclip, RefreshCw, Wallet } from 'lucide-react';
 import {
   FINANCE_CATEGORIES,
+  FINANCE_CATEGORY_LEGACY_LABELS,
   FINANCE_PAGE_SIZE,
   FINANCE_PAYMENT_METHODS,
   FINANCE_TYPES,
@@ -18,13 +19,23 @@ import useFinance from '../../hooks/useFinance';
 
 const initialForm = {
   tipo: 'gasto',
-  categoria: 'alimentacao',
+  categoria: FINANCE_CATEGORIES[0]?.value || 'aluguel_utilidades',
   descricao: '',
   valor: '',
   dataTransacao: new Date().toISOString().split('T')[0],
   formaPagamento: '',
   observacoes: '',
 };
+
+function normalizeCategoryToken(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
 
 export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineOnly = true }) {
   const { listTransactions, createTransactionWithUpload, getFileUrl } = useFinance({
@@ -54,11 +65,26 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
   const [filters, setFilters] = useState({ tipo: '', from: '', to: '' });
 
   const categoryMap = useMemo(() => {
-    return FINANCE_CATEGORIES.reduce((acc, item) => {
-      acc[item.value] = item.label;
-      return acc;
-    }, {});
+    const map = { ...FINANCE_CATEGORY_LEGACY_LABELS };
+    FINANCE_CATEGORIES.forEach(item => {
+      map[item.value] = item.label;
+      map[normalizeCategoryToken(item.value)] = item.label;
+    });
+    return map;
   }, []);
+
+  const resolveCategoryLabel = useCallback(
+    category => {
+      const raw = String(category || '').trim();
+      if (!raw) return '-';
+      return (
+        categoryMap[raw] ||
+        categoryMap[normalizeCategoryToken(raw)] ||
+        raw
+      );
+    },
+    [categoryMap]
+  );
 
   const paymentMap = useMemo(() => {
     return FINANCE_PAYMENT_METHODS.reduce((acc, item) => {
@@ -489,7 +515,7 @@ export default function FinanceView({ apiBaseUrl, jsonHeaders, isOnline, onlineO
                     </div>
                     <p className="truncate text-sm font-semibold text-gray-900">{descricao}</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
-                      <span>{categoryMap[categoria] || categoria || '-'}</span>
+                      <span>{resolveCategoryLabel(categoria)}</span>
                       <span>{paymentMap[formaPagamento] || formaPagamento || 'Forma não informada'}</span>
                       {comprovantePath && (
                         <span className="inline-flex items-center gap-1">

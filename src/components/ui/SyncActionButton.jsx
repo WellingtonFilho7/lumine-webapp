@@ -9,7 +9,7 @@ import {
 } from '../../constants/syncUi';
 
 const VARIANT_BASE_CLASSES = {
-  mobile: 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
+  mobile: 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150',
   desktop: 'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition',
 };
 

@@ -336,14 +336,14 @@ function ConfigView({
                 <div className="h-2 w-12 overflow-hidden rounded-full bg-gray-200">
                   <div
                     className={cn(
-                      'h-full rounded-full',
+                      'h-full origin-left rounded-full',
                       child.rate >= ATTENDANCE_THRESHOLDS.GREEN
                         ? 'bg-green-500'
                         : child.rate >= ATTENDANCE_THRESHOLDS.YELLOW
                         ? 'bg-yellow-500'
                         : 'bg-red-500'
                     )}
-                    style={{ width: `${child.rate}%` }}
+                    style={{ transform: `scaleX(${child.rate / 100})` }}
                   />
                 </div>
                 <span
