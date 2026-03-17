@@ -8,6 +8,7 @@ describe('tailwind local setup', () => {
     const indexHtml = fs.readFileSync(path.join(projectRoot, 'index.html'), 'utf8');
 
     expect(indexHtml).not.toContain('https://cdn.tailwindcss.com');
+    expect(indexHtml).not.toContain('fonts.googleapis.com');
   });
 
   test('uses Tailwind directives in local css entrypoint', () => {
@@ -16,5 +17,6 @@ describe('tailwind local setup', () => {
     expect(indexCss).toContain('@tailwind base;');
     expect(indexCss).toContain('@tailwind components;');
     expect(indexCss).toContain('@tailwind utilities;');
+    expect(indexCss).not.toContain('fonts.googleapis.com');
   });
 });

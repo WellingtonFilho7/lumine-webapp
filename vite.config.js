@@ -50,6 +50,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       setupFiles: './src/test/setup.js',
       css: true,
+      testTimeout: 15000,
+      hookTimeout: 15000,
     },
   };
 });
