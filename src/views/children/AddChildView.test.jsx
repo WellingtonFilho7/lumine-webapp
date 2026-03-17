@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import AddChildView from './AddChildView';
 
 const triageResultOptions = [
@@ -34,8 +34,8 @@ const statusFieldLabels = {
 
 describe('AddChildView', () => {
   test('shows sync error when save fails', async () => {
-    const addChild = jest.fn().mockResolvedValue(false);
-    const setView = jest.fn();
+    const addChild = vi.fn().mockResolvedValue(false);
+    const setView = vi.fn();
 
     render(
       <AddChildView
@@ -59,12 +59,12 @@ describe('AddChildView', () => {
   });
 
   test('disables save button and shows loading text while saving', async () => {
-    const addChild = jest.fn(() => new Promise(() => {}));
+    const addChild = vi.fn(() => new Promise(() => {}));
 
     render(
       <AddChildView
         addChild={addChild}
-        setView={jest.fn()}
+        setView={vi.fn()}
         triageResultOptions={triageResultOptions}
         participationDays={participationDays}
         statusFieldLabels={statusFieldLabels}

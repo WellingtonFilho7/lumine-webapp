@@ -7,15 +7,15 @@ const baseProps = {
   alerts: [],
   children: [],
   dailyRecords: [],
-  setSelectedChild: jest.fn(),
-  setView: jest.fn(),
+  setSelectedChild: vi.fn(),
+  setView: vi.fn(),
   isMatriculated: child => child.enrollmentStatus === 'matriculado',
   formatDate: value => value,
 };
 
 describe('DashboardDesktop', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows done-state when no pending children exist', () => {

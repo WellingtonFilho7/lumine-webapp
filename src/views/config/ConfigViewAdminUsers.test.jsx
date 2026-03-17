@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import ConfigView from './ConfigView';
 
 const noop = () => {};
@@ -36,11 +36,11 @@ function renderConfig(extraProps = {}) {
 
 describe('ConfigView admin approvals', () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('shows admin section when pending endpoint returns 200', async () => {

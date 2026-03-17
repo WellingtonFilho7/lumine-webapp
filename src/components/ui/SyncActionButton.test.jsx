@@ -4,7 +4,7 @@ import SyncActionButton from './SyncActionButton';
 
 describe('SyncActionButton', () => {
   test('renders mobile syncing variant and handles click', () => {
-    const onSync = jest.fn();
+    const onSync = vi.fn();
 
     render(
       <SyncActionButton
@@ -30,7 +30,7 @@ describe('SyncActionButton', () => {
         syncStateKey="success"
         isSyncing={false}
         disabled={false}
-        onSync={jest.fn()}
+        onSync={vi.fn()}
       />
     );
 

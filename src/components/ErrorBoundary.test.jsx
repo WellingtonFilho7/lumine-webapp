@@ -18,7 +18,7 @@ describe('ErrorBoundary', () => {
   });
 
   test('shows fallback UI and action button when child throws', () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <ErrorBoundary>

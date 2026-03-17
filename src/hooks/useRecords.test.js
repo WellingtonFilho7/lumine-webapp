@@ -3,11 +3,11 @@ import useRecords from './useRecords';
 
 describe('useRecords hook', () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('upserts existing record online and updates local state', async () => {
@@ -27,8 +27,8 @@ describe('useRecords hook', () => {
       json: async () => ({ success: true, data: { dataRev: 22, record: { mood: 'happy' } } }),
     });
 
-    const setDataRev = jest.fn();
-    const setLastSync = jest.fn();
+    const setDataRev = vi.fn();
+    const setLastSync = vi.fn();
 
     const { result } = renderHook(() =>
       useRecords({
@@ -62,8 +62,8 @@ describe('useRecords hook', () => {
   test('posts records/upsert for new record and applies dataRev', async () => {
     let recordsState = [];
     let pendingState = 0;
-    const setDataRev = jest.fn();
-    const setLastSync = jest.fn();
+    const setDataRev = vi.fn();
+    const setLastSync = vi.fn();
 
     const setDailyRecords = updater => {
       recordsState = typeof updater === 'function' ? updater(recordsState) : updater;
@@ -141,8 +141,8 @@ describe('useRecords hook', () => {
         dailyRecords: [],
         setDailyRecords,
         setPendingChanges,
-        setDataRev: jest.fn(),
-        setLastSync: jest.fn(),
+        setDataRev: vi.fn(),
+        setLastSync: vi.fn(),
         upsertDailyRecord: () => ({
           recordPayload: { id: 'r-fail', childInternalId: 'c1', date: '2026-02-12' },
           nextRecords,

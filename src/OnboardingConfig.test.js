@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { ConfigView } from './App';
 
 const noop = () => {};
 
 test('shows onboarding card and triggers reopen', () => {
-  const onOpenOnboarding = jest.fn();
+  const onOpenOnboarding = vi.fn();
 
   render(
     <ConfigView

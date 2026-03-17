@@ -3,8 +3,8 @@ import { getOrCreateDeviceId, DEVICE_ID_STORAGE_KEY } from './device';
 describe('device helpers', () => {
   test('returns existing device id from storage', () => {
     const storage = {
-      getItem: jest.fn().mockReturnValue('existing-id'),
-      setItem: jest.fn(),
+      getItem: vi.fn().mockReturnValue('existing-id'),
+      setItem: vi.fn(),
     };
 
     const id = getOrCreateDeviceId({ storage });
@@ -16,8 +16,8 @@ describe('device helpers', () => {
 
   test('generates uuid from crypto when available', () => {
     const storage = {
-      getItem: jest.fn().mockReturnValue(''),
-      setItem: jest.fn(),
+      getItem: vi.fn().mockReturnValue(''),
+      setItem: vi.fn(),
     };
 
     const id = getOrCreateDeviceId({
@@ -31,8 +31,8 @@ describe('device helpers', () => {
 
   test('generates fallback id when crypto is unavailable', () => {
     const storage = {
-      getItem: jest.fn().mockReturnValue(''),
-      setItem: jest.fn(),
+      getItem: vi.fn().mockReturnValue(''),
+      setItem: vi.fn(),
     };
 
     const id = getOrCreateDeviceId({

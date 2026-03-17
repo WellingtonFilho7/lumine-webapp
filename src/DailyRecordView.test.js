@@ -1,15 +1,16 @@
 import React from 'react';
 import { act, render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { DailyRecordView } from './App';
 
 describe('DailyRecordView edit flow', () => {
   beforeEach(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-01-21T10:00:00.000Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-21T10:00:00.000Z'));
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('loads record into form when selecting a same-day record', () => {
@@ -36,7 +37,7 @@ describe('DailyRecordView edit flow', () => {
       <DailyRecordView
         children={children}
         dailyRecords={dailyRecords}
-        addDailyRecord={jest.fn()}
+        addDailyRecord={vi.fn()}
       />
     );
 
@@ -58,7 +59,7 @@ describe('DailyRecordView edit flow', () => {
         enrollmentStatus: 'matriculado',
       },
     ];
-    const addDailyRecord = jest.fn().mockResolvedValue(true);
+    const addDailyRecord = vi.fn().mockResolvedValue(true);
 
     render(
       <DailyRecordView
@@ -75,12 +76,12 @@ describe('DailyRecordView edit flow', () => {
     expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
 
     act(() => {
-      jest.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(2500);
     });
     expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
 
     act(() => {
-      jest.advanceTimersByTime(600);
+      vi.advanceTimersByTime(600);
     });
     expect(screen.queryByText('Registro salvo!')).not.toBeInTheDocument();
   });
@@ -92,7 +93,7 @@ describe('DailyRecordView edit flow', () => {
           { id: 'c1', name: 'Ana Clara', enrollmentStatus: 'matriculado', participationDays: ['ter'] },
         ]}
         dailyRecords={[]}
-        addDailyRecord={jest.fn()}
+        addDailyRecord={vi.fn()}
       />
     );
 

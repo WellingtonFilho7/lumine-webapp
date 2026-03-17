@@ -12,7 +12,7 @@ const defaultProps = {
     },
   ],
   dailyRecords: [],
-  addDailyRecord: jest.fn().mockResolvedValue(true),
+  addDailyRecord: vi.fn().mockResolvedValue(true),
   isOnline: true,
   onlineOnly: true,
   isMatriculated: child => child.enrollmentStatus === 'matriculado',

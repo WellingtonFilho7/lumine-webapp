@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
-jest.mock('./hooks/useAuthSession', () => jest.fn());
-jest.mock('./utils/onboarding', () => ({
+vi.mock('./hooks/useAuthSession', () => ({ default: vi.fn() }));
+vi.mock('./utils/onboarding', () => ({
   getOnboardingFlag: () => false,
-  setOnboardingFlag: jest.fn(),
-  clearOnboardingFlag: jest.fn(),
+  setOnboardingFlag: vi.fn(),
+  clearOnboardingFlag: vi.fn(),
 }));
 
 import useAuthSession from './hooks/useAuthSession';
@@ -17,10 +17,10 @@ test('shows onboarding modal on first use and closes on Entendi', async () => {
     authReady: true,
     authError: '',
     session: { access_token: 'test-jwt' },
-    supabase: { auth: { signOut: jest.fn() } },
+    supabase: { auth: { signOut: vi.fn() } },
   });
 
-  global.fetch = jest.fn().mockResolvedValue({
+  global.fetch = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     json: async () => ({ success: true, data: { children: [], records: [] }, dataRev: 1 }),

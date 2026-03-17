@@ -2,7 +2,7 @@
 
 ## Visao geral
 
-`lumine-webapp` e um aplicativo React (Create React App) para operacao diaria do Instituto Lumine.
+`lumine-webapp` e um aplicativo React (Vite) para operacao diaria do Instituto Lumine.
 
 Trilhas principais:
 
@@ -21,7 +21,7 @@ O webapp e **server-first**:
 ## Stack tecnica
 
 - React 18
-- Create React App
+- Vite
 - Tailwind utility classes
 - Radix Dialog em pontos criticos
 - Supabase JS no frontend apenas para autenticacao
@@ -177,21 +177,21 @@ Feature flags:
 
 - `REACT_APP_FINANCE_MODULE_ENABLED`
 - `REACT_APP_MOBILE_UI_V2`
-- `REACT_APP_ONLINE_ONLY_MODE`
+- `REACT_APP_ONLINE_ONLY`
 - `REACT_APP_REQUIRE_LOGIN`
 
 ## Testes
 
-Testes principais rodam com `react-scripts test`.
+Testes principais rodam com `vitest run`.
 
 Exemplos uteis:
 
 ```bash
-npm test -- --watch=false --runInBand src/utils/apiHeaders.test.js src/hooks/useSync.test.js
+npm test -- src/utils/apiHeaders.test.js src/hooks/useSync.test.js
 ```
 
 ```bash
-npm test -- --watch=false --runInBand src/utils/finance.test.js src/views/config/ConfigViewAdminUsers.test.jsx
+npm test -- src/utils/finance.test.js src/views/config/ConfigViewAdminUsers.test.jsx
 ```
 
 ## Decisoes arquiteturais atuais

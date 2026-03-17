@@ -1,83 +1,89 @@
 import React from 'react';
 import { act, render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { DailyRecordDesktop } from './App';
 
 describe('DailyRecordDesktop edit flow', () => {
-  beforeEach(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-01-21T10:00:00.000Z'));
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   test('loads record into form when selecting a same-day record', () => {
-    const children = [
-      {
-        id: 'c1',
-        name: 'Lucas',
-        enrollmentStatus: 'matriculado',
-      },
-    ];
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-21T10:00:00.000Z'));
 
-    const dailyRecords = [
-      {
-        id: 'r1',
-        childInternalId: 'c1',
-        childId: 'c1',
-        date: '2026-01-21',
-        attendance: 'present',
-        notes: 'nota teste',
-      },
-    ];
+    try {
+      const children = [
+        {
+          id: 'c1',
+          name: 'Lucas',
+          enrollmentStatus: 'matriculado',
+        },
+      ];
 
-    render(
-      <DailyRecordDesktop
-        children={children}
-        dailyRecords={dailyRecords}
-        addDailyRecord={jest.fn()}
-      />
-    );
+      const dailyRecords = [
+        {
+          id: 'r1',
+          childInternalId: 'c1',
+          childId: 'c1',
+          date: '2026-01-21',
+          attendance: 'present',
+          notes: 'nota teste',
+        },
+      ];
 
-    fireEvent.click(screen.getByRole('button', { name: /Lucas/i }));
+      render(
+        <DailyRecordDesktop
+          children={children}
+          dailyRecords={dailyRecords}
+          addDailyRecord={vi.fn()}
+        />
+      );
 
-    expect(screen.getByText('Atualizar registro')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Algo importante...')).toHaveValue('nota teste');
+      fireEvent.click(screen.getByRole('button', { name: /Lucas.*Presente/i }));
+
+      expect(screen.getByText('Atualizar registro')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Algo importante...')).toHaveValue('nota teste');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test('keeps success toast visible for around 3 seconds', async () => {
-    const children = [
-      {
-        id: 'c1',
-        name: 'Lucas',
-        enrollmentStatus: 'matriculado',
-      },
-    ];
-    const addDailyRecord = jest.fn().mockResolvedValue(true);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-21T10:00:00.000Z'));
 
-    render(
-      <DailyRecordDesktop
-        children={children}
-        dailyRecords={[]}
-        addDailyRecord={addDailyRecord}
-      />
-    );
+    try {
+      const children = [
+        {
+          id: 'c1',
+          name: 'Lucas',
+          enrollmentStatus: 'matriculado',
+        },
+      ];
+      const addDailyRecord = vi.fn().mockResolvedValue(true);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Marcar Lucas como presente/i }));
-    });
+      render(
+        <DailyRecordDesktop
+          children={children}
+          dailyRecords={[]}
+          addDailyRecord={addDailyRecord}
+        />
+      );
 
-    expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Marcar Lucas como presente/i }));
+      });
 
-    act(() => {
-      jest.advanceTimersByTime(2500);
-    });
-    expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
+      expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
 
-    act(() => {
-      jest.advanceTimersByTime(600);
-    });
-    expect(screen.queryByText('Registro salvo!')).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(screen.getByText('Registro salvo!')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(screen.queryByText('Registro salvo!')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

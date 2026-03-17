@@ -7,16 +7,16 @@ const defaultProps = {
   alerts: [],
   children: [],
   dailyRecords: [],
-  setSelectedChild: jest.fn(),
-  setView: jest.fn(),
-  onQuickAttendance: jest.fn().mockResolvedValue(true),
+  setSelectedChild: vi.fn(),
+  setView: vi.fn(),
+  onQuickAttendance: vi.fn().mockResolvedValue(true),
   quickAttendanceLoadingByChildId: {},
   isMatriculated: child => child.enrollmentStatus === 'matriculado',
 };
 
 describe('DashboardView', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows done-state and empty-state when there are no pending children or records', () => {

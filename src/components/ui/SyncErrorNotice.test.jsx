@@ -9,7 +9,7 @@ describe('SyncErrorNotice', () => {
         syncStatus="idle"
         syncError=""
         syncErrorLevel="none"
-        onClear={jest.fn()}
+        onClear={vi.fn()}
         variant="mobile"
       />
     );
@@ -18,7 +18,7 @@ describe('SyncErrorNotice', () => {
   });
 
   test('renders message and clear button for critical error', () => {
-    const onClear = jest.fn();
+    const onClear = vi.fn();
 
     render(
       <SyncErrorNotice

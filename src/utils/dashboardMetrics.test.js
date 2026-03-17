@@ -2,11 +2,12 @@ import { getDashboardStats, getAttendanceAlerts } from './dashboardMetrics';
 
 describe('dashboardMetrics', () => {
   beforeAll(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-02-15T12:00:00.000Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-02-15T12:00:00.000Z'));
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('calculates daily and monthly stats', () => {

@@ -4,8 +4,8 @@ import SyncConflictDialog from './SyncConflictDialog';
 
 describe('SyncConflictDialog', () => {
   test('clicking "Baixar agora" downloads also for server-new conflict', async () => {
-    const downloadFromServer = jest.fn().mockResolvedValue(true);
-    const setSyncModal = jest.fn();
+    const downloadFromServer = vi.fn().mockResolvedValue(true);
+    const setSyncModal = vi.fn();
 
     render(
       <SyncConflictDialog

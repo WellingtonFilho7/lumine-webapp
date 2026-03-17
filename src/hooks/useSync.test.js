@@ -18,14 +18,14 @@ function createBaseProps(overrides = {}) {
     dailyRecords: [{ id: 'r1', childInternalId: 'c1', date: '2026-02-12' }],
     isOnline: true,
     dataRev: 1,
-    setDataRev: jest.fn(),
-    setLastSync: jest.fn(),
-    setChildren: jest.fn(),
-    setDailyRecords: jest.fn(),
-    normalizeChildren: jest.fn(input => ({ children: input, changed: false })),
-    normalizeRecords: jest.fn(input => ({ records: input, changed: false })),
+    setDataRev: vi.fn(),
+    setLastSync: vi.fn(),
+    setChildren: vi.fn(),
+    setDailyRecords: vi.fn(),
+    normalizeChildren: vi.fn(input => ({ children: input, changed: false })),
+    normalizeRecords: vi.fn(input => ({ records: input, changed: false })),
     pendingChanges: 0,
-    setPendingChanges: jest.fn(),
+    setPendingChanges: vi.fn(),
     reviewMode: false,
     ...overrides,
   };
@@ -33,11 +33,11 @@ function createBaseProps(overrides = {}) {
 
 describe('useSync hook', () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('returns warning when offline', async () => {

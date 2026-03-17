@@ -11,10 +11,10 @@ const baseProps = {
       enrollmentStatus: 'matriculado',
     },
   ],
-  setSelectedChild: jest.fn(),
-  setView: jest.fn(),
+  setSelectedChild: vi.fn(),
+  setView: vi.fn(),
   searchTerm: '',
-  setSearchTerm: jest.fn(),
+  setSearchTerm: vi.fn(),
   isTriageDraft: () => false,
   getEnrollmentStatus: child => child.enrollmentStatus,
   calculateAge: () => 7,
@@ -22,7 +22,7 @@ const baseProps = {
 
 describe('ChildrenView mobile filters', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows horizontal scrollable filters and status border card', () => {

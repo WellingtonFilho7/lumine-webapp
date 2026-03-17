@@ -3,11 +3,11 @@ import useChildren from './useChildren';
 
 describe('useChildren hook', () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('adds child locally when offline', async () => {
@@ -28,10 +28,10 @@ describe('useChildren hook', () => {
         isOnline: false,
         normalizeChild: input => ({ child: input, changed: false }),
         setChildren,
-        setSelectedChild: jest.fn(),
+        setSelectedChild: vi.fn(),
         setPendingChanges,
-        setDataRev: jest.fn(),
-        setLastSync: jest.fn(),
+        setDataRev: vi.fn(),
+        setLastSync: vi.fn(),
       })
     );
 
@@ -51,8 +51,8 @@ describe('useChildren hook', () => {
   test('syncs addChild and applies returned childId/dataRev when online', async () => {
     let childrenState = [];
     let pendingState = 0;
-    const setDataRev = jest.fn();
-    const setLastSync = jest.fn();
+    const setDataRev = vi.fn();
+    const setLastSync = vi.fn();
 
     const setChildren = updater => {
       childrenState = typeof updater === 'function' ? updater(childrenState) : updater;
@@ -74,7 +74,7 @@ describe('useChildren hook', () => {
         isOnline: true,
         normalizeChild: input => ({ child: input, changed: false }),
         setChildren,
-        setSelectedChild: jest.fn(),
+        setSelectedChild: vi.fn(),
         setPendingChanges,
         setDataRev,
         setLastSync,
@@ -119,10 +119,10 @@ describe('useChildren hook', () => {
         isOnline: true,
         normalizeChild: input => ({ child: input, changed: false }),
         setChildren,
-        setSelectedChild: jest.fn(),
+        setSelectedChild: vi.fn(),
         setPendingChanges,
-        setDataRev: jest.fn(),
-        setLastSync: jest.fn(),
+        setDataRev: vi.fn(),
+        setLastSync: vi.fn(),
       })
     );
 
@@ -165,10 +165,10 @@ describe('useChildren hook', () => {
         normalizeChild: input => ({ child: input, changed: false }),
         setChildren,
         setDailyRecords,
-        setSelectedChild: jest.fn(),
+        setSelectedChild: vi.fn(),
         setPendingChanges,
-        setDataRev: jest.fn(),
-        setLastSync: jest.fn(),
+        setDataRev: vi.fn(),
+        setLastSync: vi.fn(),
       })
     );
 
@@ -188,8 +188,8 @@ describe('useChildren hook', () => {
     let childrenState = [{ id: 'c1', name: 'Ana' }];
     let recordsState = [{ id: 'r1', childInternalId: 'c1', date: '2026-02-01' }];
     let pendingState = 0;
-    const setDataRev = jest.fn();
-    const setLastSync = jest.fn();
+    const setDataRev = vi.fn();
+    const setLastSync = vi.fn();
 
     const setChildren = updater => {
       childrenState = typeof updater === 'function' ? updater(childrenState) : updater;
@@ -215,7 +215,7 @@ describe('useChildren hook', () => {
         normalizeChild: input => ({ child: input, changed: false }),
         setChildren,
         setDailyRecords,
-        setSelectedChild: jest.fn(),
+        setSelectedChild: vi.fn(),
         setPendingChanges,
         setDataRev,
         setLastSync,
@@ -266,10 +266,10 @@ describe('useChildren hook', () => {
         normalizeChild: input => ({ child: input, changed: false }),
         setChildren,
         setDailyRecords,
-        setSelectedChild: jest.fn(),
+        setSelectedChild: vi.fn(),
         setPendingChanges,
-        setDataRev: jest.fn(),
-        setLastSync: jest.fn(),
+        setDataRev: vi.fn(),
+        setLastSync: vi.fn(),
       })
     );
 

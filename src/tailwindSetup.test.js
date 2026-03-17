@@ -4,8 +4,8 @@ import path from 'path';
 const projectRoot = path.resolve(__dirname, '..');
 
 describe('tailwind local setup', () => {
-  test('does not load the Tailwind CDN script in production html', () => {
-    const indexHtml = fs.readFileSync(path.join(projectRoot, 'public', 'index.html'), 'utf8');
+  test('uses a root vite index.html without the Tailwind CDN script', () => {
+    const indexHtml = fs.readFileSync(path.join(projectRoot, 'index.html'), 'utf8');
 
     expect(indexHtml).not.toContain('https://cdn.tailwindcss.com');
   });

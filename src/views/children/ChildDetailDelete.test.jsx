@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import ChildDetailView from './ChildDetailView';
 import ChildDetailDesktop from './ChildDetailDesktop';
 
@@ -14,7 +14,7 @@ const baseProps = {
     enrollmentHistory: [],
   },
   dailyRecords: [],
-  onUpdateChild: jest.fn(),
+  onUpdateChild: vi.fn(),
   getStatusMeta: () => ({ status: 'em_triagem' }),
   parseEnrollmentHistory: input => (Array.isArray(input) ? input : []),
   buildStatusFormData: child => ({
@@ -52,8 +52,8 @@ const baseProps = {
 
 describe('Child detail delete action', () => {
   test('calls delete callback after confirmation on mobile detail', async () => {
-    const onDeleteChild = jest.fn().mockResolvedValue(true);
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    const onDeleteChild = vi.fn().mockResolvedValue(true);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     render(<ChildDetailView {...baseProps} onDeleteChild={onDeleteChild} />);
 
@@ -68,8 +68,8 @@ describe('Child detail delete action', () => {
   });
 
   test('calls delete callback after confirmation on desktop detail', async () => {
-    const onDeleteChild = jest.fn().mockResolvedValue(true);
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    const onDeleteChild = vi.fn().mockResolvedValue(true);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     render(<ChildDetailDesktop {...baseProps} onDeleteChild={onDeleteChild} />);
 
