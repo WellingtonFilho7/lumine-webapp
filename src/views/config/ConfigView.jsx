@@ -4,6 +4,7 @@ import { ATTENDANCE_THRESHOLDS } from '../../constants';
 import { cn } from '../../utils/cn';
 import ClearLocalDataDialog from '../../components/dialogs/ClearLocalDataDialog';
 import useAdminUsers from '../../hooks/useAdminUsers';
+import useOperationalBackup from '../../hooks/useOperationalBackup';
 
 const defaultIsMatriculated = child => {
   if (!child) return false;
@@ -92,6 +93,16 @@ function ConfigView({
   });
 
   const showAdminUsersCard = checkedAccess && canManageUsers;
+  const {
+    isDownloadingBackup,
+    backupError,
+    backupNotice,
+    downloadOperationalBackup,
+  } = useOperationalBackup({
+    apiBaseUrl,
+    jsonHeaders: safeJsonHeaders,
+    enabled: showAdminUsersCard,
+  });
 
   const renderOnboardingCard = className => (
     <div className={cn('space-y-3 rounded-lg bg-white p-4 shadow-md', className)}>
@@ -219,6 +230,38 @@ function ConfigView({
     </div>
   );
 
+  const renderOperationalBackupCard = className => (
+    <div className={cn('space-y-4 rounded-lg bg-white p-4 shadow-md', className)}>
+      <div>
+        <h3 className="text-balance text-base font-semibold text-gray-800">Backup operacional</h3>
+        <p className="text-pretty mt-1 text-sm text-gray-500">
+          Baixe um snapshot JSON atualizado de crianças e registros para guardar fora do app.
+        </p>
+      </div>
+
+      {backupError && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {backupError}
+        </div>
+      )}
+      {backupNotice && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+          {backupNotice}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={downloadOperationalBackup}
+        disabled={isDownloadingBackup}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-700 py-3 text-sm font-semibold text-white disabled:opacity-50"
+      >
+        <Download size={16} />
+        {isDownloadingBackup ? 'Gerando backup...' : 'Gerar backup JSON'}
+      </button>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="space-y-4 lg:hidden">
@@ -280,6 +323,8 @@ function ConfigView({
       {renderOnboardingCard()}
 
       {showAdminUsersCard && renderAdminUsersCard()}
+
+      {showAdminUsersCard && renderOperationalBackupCard()}
 
       {/* Segurança */}
       <div className="space-y-3 rounded-lg bg-rose-50 p-4 shadow-md">
@@ -447,6 +492,8 @@ function ConfigView({
         {renderOnboardingCard('rounded-2xl p-5')}
 
         {showAdminUsersCard && renderAdminUsersCard('rounded-2xl p-5')}
+
+        {showAdminUsersCard && renderOperationalBackupCard('rounded-2xl p-5')}
 
         {showLegacySyncUi && (
           <div className="rounded-2xl bg-white p-5 shadow-md">

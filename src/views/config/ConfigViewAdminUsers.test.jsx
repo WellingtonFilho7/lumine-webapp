@@ -37,10 +37,12 @@ function renderConfig(extraProps = {}) {
 describe('ConfigView admin approvals', () => {
   beforeEach(() => {
     global.fetch = vi.fn();
+    global.URL.createObjectURL = vi.fn(() => 'blob:backup');
+    global.URL.revokeObjectURL = vi.fn();
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('shows admin section when pending endpoint returns 200', async () => {
@@ -155,6 +157,50 @@ describe('ConfigView admin approvals', () => {
       expect(
         screen.getAllByText('Falha de rede ao carregar pendências de acesso.').length
       ).toBeGreaterThan(0);
+    });
+  });
+
+  it('downloads operational backup from admin card', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    global.fetch
+      .mockResolvedValueOnce(
+        buildResponse(200, {
+          success: true,
+          data: {
+            items: [],
+            total: 0,
+          },
+        })
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get(name) {
+            if (name.toLowerCase() === 'content-disposition') {
+              return 'attachment; filename="operational-backup-20260323_220000.json"';
+            }
+            return null;
+          },
+        },
+        blob: async () => new Blob(['{}'], { type: 'application/json' }),
+        json: async () => ({}),
+      });
+
+    renderConfig();
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getAllByRole('button', { name: /gerar backup json/i })[0]);
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    expect(global.fetch.mock.calls[1][0]).toBe(
+      'https://lumine-api.vercel.app/api/admin/operational-backup/download'
+    );
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getAllByText(/backup operacional baixado/i).length).toBeGreaterThan(0);
     });
   });
 });

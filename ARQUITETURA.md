@@ -46,6 +46,7 @@ Orquestra:
 - `useRecords`: upsert de registros diarios
 - `useFinance`: verificacao de acesso e chamadas do modulo financeiro
 - `useAdminUsers`: painel de aprovacao de usuarios
+- `useOperationalBackup`: download admin-only do snapshot operacional
 - `useLocalStorage`: cache local fino
 
 ### `src/views/`
@@ -55,6 +56,7 @@ Orquestra:
 - `records/`: registro diario mobile/desktop
 - `finance/`: lancamentos e comprovantes
 - `config/`: configuracoes gerais e admin
+- `config/`: configuracoes gerais, aprovacao de usuarios e backup operacional admin
 
 ### `src/utils/`
 
@@ -159,6 +161,7 @@ RBAC esperado:
 - sem Bearer legado no frontend
 - origem e CORS sao barreiras complementares do lado da API
 - `localStorage` nao e fonte de verdade
+- backup operacional via UI fica restrito ao bloco admin em `Config`
 
 ## Variaveis de ambiente importantes
 
