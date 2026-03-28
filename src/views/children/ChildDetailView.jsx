@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { ChevronDown, Clock, MessageCircle, Phone, School, User } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { getMissingMatriculaFields, getMissingTriageFields } from '../../utils/enrollment';
+import ChildBasicEditFields from '../../components/children/ChildBasicEditFields';
 import InfoRow from '../../components/ui/InfoRow';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ChildAvatar from '../../components/ui/ChildAvatar';
 import { FIXED_LEAVE_ALONE_CONFIRMATION } from '../../utils/enrollmentHardening';
 import { formatPhoneBR } from '../../utils/phone';
+import { buildEditableChildUpdates } from '../../utils/statusWorkflow';
 
 function ChildDetailView({
   child,
@@ -45,6 +47,8 @@ function ChildDetailView({
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [statusFormData, setStatusFormData] = useState(() => buildStatusFormData(child));
   const writeBlocked = onlineOnly && !isOnline;
   const offlineWriteMessage =
@@ -57,6 +61,8 @@ function ChildDetailView({
     setDeleteArmed(false);
     setDeleteError('');
     setIsDeleting(false);
+    setEditError('');
+    setIsSavingEdit(false);
   }, [child, buildStatusFormData]);
 
   const requiresTriage = ['em_triagem', 'aprovado', 'lista_espera', 'recusado', 'matriculado']
@@ -200,6 +206,24 @@ function ChildDetailView({
     setStatusNotes('');
   };
 
+  const saveBasicData = async () => {
+    if (writeBlocked) {
+      setEditError(offlineWriteMessage);
+      return;
+    }
+
+    setEditError('');
+    setIsSavingEdit(true);
+    try {
+      const updated = onUpdateChild ? await onUpdateChild(child.id, buildEditableChildUpdates(statusFormData)) : false;
+      if (updated === false) {
+        setEditError('Não foi possível salvar agora. Verifique a conexão e tente novamente.');
+      }
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleDeleteChild = async () => {
     if (writeBlocked) {
       setDeleteError(offlineWriteMessage);
@@ -267,6 +291,27 @@ function ChildDetailView({
           <p className="mt-2 text-xs text-gray-500 tabular-nums">{present} presenças · {absent} faltas</p>
         </div>
       </div>
+      <section className="rounded-lg bg-white p-4 shadow-md">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-gray-900">Editar cadastro</h3>
+            <p className="text-xs text-gray-500">Corrija os dados sem alterar o status.</p>
+          </div>
+          <button
+            type="button"
+            onClick={saveBasicData}
+            disabled={isSavingEdit}
+            className={cn(
+              'rounded-lg bg-cyan-700 px-3 py-2 text-xs font-semibold text-white',
+              isSavingEdit && 'opacity-70'
+            )}
+          >
+            {isSavingEdit ? 'Salvando...' : 'Salvar dados'}
+          </button>
+        </div>
+        <ChildBasicEditFields prefix="child-mobile-edit" data={statusFormData} onChange={updateStatusField} />
+        {editError && <p className="mt-3 text-sm text-rose-600">{editError}</p>}
+      </section>
       <details className="rounded-lg bg-white p-4 shadow-md">
         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-gray-900">
           Alterar status

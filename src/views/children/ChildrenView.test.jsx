@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import ChildrenView from './ChildrenView';
 
 const baseProps = {
@@ -41,5 +42,26 @@ describe('ChildrenView mobile filters', () => {
     fireEvent.click(screen.getByText('Ana Clara'));
     expect(baseProps.setSelectedChild).toHaveBeenCalled();
     expect(baseProps.setView).toHaveBeenCalledWith('child-detail');
+  });
+
+  it('orders children by name by default and can reorder by status', () => {
+    const props = {
+      ...baseProps,
+      children: [
+        { id: 'child-1', name: 'Zeca', birthDate: '2018-02-01', enrollmentStatus: 'matriculado' },
+        { id: 'child-2', name: 'Ana', birthDate: '2018-02-01', enrollmentStatus: 'aprovado' },
+        { id: 'child-3', name: 'Bruno', birthDate: '2018-02-01', enrollmentStatus: 'em_triagem' },
+      ],
+    };
+    const { container } = render(<ChildrenView {...props} />);
+
+    const getNames = () =>
+      Array.from(container.querySelectorAll('h3')).map(element => element.textContent?.trim());
+
+    expect(getNames()).toEqual(['Ana', 'Bruno', 'Zeca']);
+
+    fireEvent.change(screen.getByLabelText(/ordenar por/i), { target: { value: 'status' } });
+
+    expect(getNames()).toEqual(['Bruno', 'Ana', 'Zeca']);
   });
 });

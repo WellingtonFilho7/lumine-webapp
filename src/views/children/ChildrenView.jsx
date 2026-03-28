@@ -3,7 +3,7 @@ import { ChevronRight, Search, Users } from 'lucide-react';
 import StatusBadge, { getStatusVisual } from '../../components/ui/StatusBadge';
 import ChildAvatar from '../../components/ui/ChildAvatar';
 import { cn } from '../../utils/cn';
-import { filterChildrenForMainList } from '../../utils/childData';
+import { filterChildrenForMainList, sortChildrenList } from '../../utils/childData';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Todas' },
@@ -41,6 +41,7 @@ export default function ChildrenView({
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
+  const [sortBy, setSortBy] = useState('name_asc');
 
   const statusOptions = useMemo(() => {
     if (showArchived) return STATUS_OPTIONS;
@@ -60,6 +61,15 @@ export default function ChildrenView({
     return getEnrollmentStatus(child) === statusFilter;
   });
 
+  const sorted = useMemo(
+    () =>
+      sortChildrenList(filtered, {
+        sortBy,
+        getStatusValue: child => (isTriageDraft(child) ? 'draft' : getEnrollmentStatus(child)),
+      }),
+    [filtered, getEnrollmentStatus, isTriageDraft, sortBy]
+  );
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -75,6 +85,26 @@ export default function ChildrenView({
       </div>
 
       <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p role="status" aria-live="polite" className="text-sm text-gray-500 tabular-nums">
+            {sorted.length} criança{sorted.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <label htmlFor="children-mobile-sort" className="text-xs font-medium text-gray-600">
+              Ordenar por
+            </label>
+            <select
+              id="children-mobile-sort"
+              value={sortBy}
+              onChange={event => setSortBy(event.target.value)}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700"
+            >
+              <option value="name_asc">Nome (A-Z)</option>
+              <option value="name_desc">Nome (Z-A)</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+        </div>
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
           <div className="flex w-max items-center gap-2 whitespace-nowrap">
             <button
@@ -111,13 +141,10 @@ export default function ChildrenView({
           </div>
         </div>
 
-        <p role="status" aria-live="polite" className="text-sm text-gray-500 tabular-nums">
-          {filtered.length} criança{filtered.length !== 1 ? 's' : ''}
-        </p>
       </div>
 
       <div className="space-y-2">
-        {filtered.map(child => {
+        {sorted.map(child => {
           const childStatus = getEnrollmentStatus(child);
           const isDraft = isTriageDraft(child);
 
@@ -154,7 +181,7 @@ export default function ChildrenView({
         })}
       </div>
 
-      {filtered.length === 0 && (
+      {sorted.length === 0 && (
         <div className="py-12 text-center">
           <Users size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="text-pretty text-gray-500">

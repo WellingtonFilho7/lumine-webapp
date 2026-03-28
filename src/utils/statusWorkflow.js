@@ -119,6 +119,25 @@ export function buildStatusFormData(child) {
   };
 }
 
+export function buildEditableChildUpdates(data) {
+  return {
+    name: data.name.trim(),
+    sexo: data.sexo,
+    birthDate: data.birthDate,
+    guardianName: data.guardianName.trim(),
+    parentesco: data.parentesco.trim(),
+    guardianPhone: data.guardianPhone.trim(),
+    contatoEmergenciaNome: data.contatoEmergenciaNome.trim(),
+    contatoEmergenciaTelefone: data.contatoEmergenciaTelefone.trim(),
+    neighborhood: data.neighborhood.trim(),
+    school: data.school.trim(),
+    schoolShift: data.schoolShift,
+    triageNotes: data.triageNotes || '',
+    priority: data.priority || '',
+    priorityReason: data.priorityReason || '',
+  };
+}
+
 export function getMissingFieldsForStatus(status, data) {
   const requiresTriage = TRIAGE_REQUIRED_STATUSES.includes(status);
   const requiresMatricula = status === 'matriculado';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import ChildDetailView from './ChildDetailView';
+import '@testing-library/jest-dom/vitest';
+import ChildDetailDesktop from './ChildDetailDesktop';
 
 const buildStatusFormData = () => ({
   name: 'Ana Maria',
@@ -14,14 +15,26 @@ const buildStatusFormData = () => ({
   neighborhood: 'Centro',
   school: 'Escola A',
   schoolShift: 'manha',
+  triageNotes: '',
+  priority: 'media',
+  priorityReason: '',
   referralSource: 'indicacao',
   schoolCommuteAlone: 'nao',
   renovacao: 'nao',
   termoLgpdAssinado: true,
+  healthCareNeeded: 'nao',
+  healthNotes: '',
+  restricaoAlimentar: '',
+  alergiaAlimentar: '',
+  alergiaMedicamento: '',
+  medicamentosEmUso: '',
+  specialNeeds: '',
   startDate: '',
   participationDays: [],
   authorizedPickup: '',
   canLeaveAlone: 'nao',
+  leaveAloneConsent: false,
+  leaveAloneConfirmation: '',
   leaveAloneConfirmado: false,
   formaChegada: '',
   consentimentoSaude: false,
@@ -55,10 +68,7 @@ const defaultProps = {
   getMissingFieldsForStatus: () => [],
   isStatusTransitionAllowed: () => true,
   normalizeImageConsent: value => value,
-  participationDays: [
-    { value: 'seg', label: 'Seg' },
-    { value: 'qua', label: 'Qua' },
-  ],
+  participationDays: [],
   enrollmentStatusMeta: {},
   formatDate: value => value,
   calculateAge: () => 6,
@@ -66,17 +76,10 @@ const defaultProps = {
   moodLabels: {},
 };
 
-describe('ChildDetailView', () => {
-  it('renders status form directly inside status section without nested toggle button', () => {
-    render(<ChildDetailView {...defaultProps} />);
-
-    expect(screen.queryByRole('button', { name: 'Alterar status' })).toBeNull();
-    expect(screen.getByText('Dados obrigatórios')).not.toBeNull();
-  });
-
+describe('ChildDetailDesktop', () => {
   it('saves basic child data without requiring status change', async () => {
     const onUpdateChild = vi.fn().mockResolvedValue(true);
-    render(<ChildDetailView {...defaultProps} onUpdateChild={onUpdateChild} />);
+    render(<ChildDetailDesktop {...defaultProps} onUpdateChild={onUpdateChild} />);
 
     fireEvent.change(screen.getByLabelText(/nome do respons[áa]vel/i), {
       target: { value: 'Novo Responsavel' },

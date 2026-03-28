@@ -3,12 +3,30 @@ const LEGACY_STATUS_MAP = {
   inactive: 'inativo',
 };
 const ARCHIVED_STATUSES = new Set(['inativo', 'desistente']);
+const CHILD_STATUS_SORT_ORDER = {
+  draft: 0,
+  em_triagem: 1,
+  aprovado: 2,
+  lista_espera: 3,
+  matriculado: 4,
+  recusado: 5,
+  desistente: 6,
+  inativo: 7,
+};
 
 function normalizeAsciiToken(value) {
   return String(value || '')
     .trim()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function normalizeChildName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
     .toLowerCase();
 }
 
@@ -59,6 +77,35 @@ export function filterChildrenForMainList(childrenList, options = {}) {
   if (!Array.isArray(childrenList)) return [];
   if (includeArchived) return childrenList;
   return childrenList.filter(child => !isArchivedChild(child));
+}
+
+export function compareChildrenByName(a, b) {
+  return normalizeChildName(a?.name).localeCompare(normalizeChildName(b?.name), 'pt-BR');
+}
+
+export function compareChildrenByStatus(a, b, getStatusValue) {
+  const statusA = normalizeAsciiToken(getStatusValue?.(a) || getEnrollmentStatus(a));
+  const statusB = normalizeAsciiToken(getStatusValue?.(b) || getEnrollmentStatus(b));
+  const orderA = CHILD_STATUS_SORT_ORDER[statusA] ?? Number.MAX_SAFE_INTEGER;
+  const orderB = CHILD_STATUS_SORT_ORDER[statusB] ?? Number.MAX_SAFE_INTEGER;
+
+  if (orderA !== orderB) return orderA - orderB;
+  return compareChildrenByName(a, b);
+}
+
+export function sortChildrenList(childrenList, options = {}) {
+  const { sortBy = 'name_asc', getStatusValue } = options;
+  const list = Array.isArray(childrenList) ? [...childrenList] : [];
+
+  switch (sortBy) {
+    case 'name_desc':
+      return list.sort((a, b) => compareChildrenByName(b, a));
+    case 'status':
+      return list.sort((a, b) => compareChildrenByStatus(a, b, getStatusValue));
+    case 'name_asc':
+    default:
+      return list.sort(compareChildrenByName);
+  }
 }
 
 export function parseEnrollmentHistory(value) {

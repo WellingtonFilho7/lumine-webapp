@@ -3,6 +3,7 @@ import { CheckCircle2, Clock3, LayoutGrid, List, Plus, Search, Users } from 'luc
 import ChildAvatar from '../../components/ui/ChildAvatar';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { cn } from '../../utils/cn';
+import { sortChildrenList } from '../../utils/childData';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Todas' },
@@ -52,6 +53,7 @@ export default function ChildrenTable({
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('table');
+  const [sortBy, setSortBy] = useState('name_asc');
 
   const filtered = children.filter(child => {
     const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -61,13 +63,22 @@ export default function ChildrenTable({
     return getEnrollmentStatus(child) === statusFilter;
   });
 
-  const summary = useMemo(() => {
-    const matriculados = filtered.filter(child => getEnrollmentStatus(child) === 'matriculado').length;
-    const triagem = filtered.filter(child => getEnrollmentStatus(child) === 'em_triagem').length;
-    const completos = filtered.filter(child => getDocumentStatus(child).label === 'Completo').length;
+  const sorted = useMemo(
+    () =>
+      sortChildrenList(filtered, {
+        sortBy,
+        getStatusValue: child => (isTriageDraft(child) ? 'draft' : getEnrollmentStatus(child)),
+      }),
+    [filtered, getEnrollmentStatus, isTriageDraft, sortBy]
+  );
 
-    return { total: filtered.length, matriculados, triagem, completos };
-  }, [filtered, getEnrollmentStatus]);
+  const summary = useMemo(() => {
+    const matriculados = sorted.filter(child => getEnrollmentStatus(child) === 'matriculado').length;
+    const triagem = sorted.filter(child => getEnrollmentStatus(child) === 'em_triagem').length;
+    const completos = sorted.filter(child => getDocumentStatus(child).label === 'Completo').length;
+
+    return { total: sorted.length, matriculados, triagem, completos };
+  }, [sorted, getEnrollmentStatus]);
 
   const openChild = child => {
     setSelectedChild(child);
@@ -143,38 +154,59 @@ export default function ChildrenTable({
         ))}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p role="status" aria-live="polite" className="text-sm text-gray-500 tabular-nums">
-          {filtered.length} criança{filtered.length !== 1 ? 's' : ''} encontrada
-          {filtered.length !== 1 ? 's' : ''}
+          {sorted.length} criança{sorted.length !== 1 ? 's' : ''} encontrada
+          {sorted.length !== 1 ? 's' : ''}
         </p>
-        <div className="inline-flex rounded-lg bg-gray-100 p-1">
-          <button
-            type="button"
-            onClick={() => setViewMode('table')}
-            className={cn(
-              'inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold',
-              viewMode === 'table' ? 'bg-white text-cyan-700 shadow-sm' : 'text-gray-600 hover:text-gray-800'
-            )}
-          >
-            <List size={14} />
-            Tabela
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('cards')}
-            className={cn(
-              'inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold',
-              viewMode === 'cards' ? 'bg-white text-cyan-700 shadow-sm' : 'text-gray-600 hover:text-gray-800'
-            )}
-          >
-            <LayoutGrid size={14} />
-            Cards
-          </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="children-table-sort" className="text-xs font-medium text-gray-600">
+              Ordenar por
+            </label>
+            <select
+              id="children-table-sort"
+              value={sortBy}
+              onChange={event => setSortBy(event.target.value)}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700"
+            >
+              <option value="name_asc">Nome (A-Z)</option>
+              <option value="name_desc">Nome (Z-A)</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+          <div className="inline-flex rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold',
+                viewMode === 'table'
+                  ? 'bg-white text-cyan-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              )}
+            >
+              <List size={14} />
+              Tabela
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold',
+                viewMode === 'cards'
+                  ? 'bg-white text-cyan-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              )}
+            >
+              <LayoutGrid size={14} />
+              Cards
+            </button>
+          </div>
         </div>
       </div>
 
-      {viewMode === 'table' && filtered.length > 0 && (
+      {viewMode === 'table' && sorted.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] text-left text-sm">
@@ -190,7 +222,7 @@ export default function ChildrenTable({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(child => {
+                {sorted.map(child => {
                   const childStatus = getEnrollmentStatus(child);
                   const isDraft = isTriageDraft(child);
                   const docsStatus = getDocumentStatus(child);
@@ -273,9 +305,9 @@ export default function ChildrenTable({
         </div>
       )}
 
-      {viewMode === 'cards' && filtered.length > 0 && (
+      {viewMode === 'cards' && sorted.length > 0 && (
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {filtered.map(child => {
+          {sorted.map(child => {
             const childStatus = getEnrollmentStatus(child);
             const isDraft = isTriageDraft(child);
             const docsStatus = getDocumentStatus(child);
@@ -347,7 +379,7 @@ export default function ChildrenTable({
         </div>
       )}
 
-      {filtered.length === 0 && (
+      {sorted.length === 0 && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md">
           <table className="w-full text-left text-sm">
             <tbody>
