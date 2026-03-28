@@ -6,6 +6,7 @@ import {
   normalizeImageConsent,
   getEnrollmentStatus,
 } from './childData';
+import { FIXED_LEAVE_ALONE_CONFIRMATION } from './enrollmentHardening';
 import {
   ENROLLMENT_STATUS_META,
   STATUS_FIELD_LABELS,
@@ -119,8 +120,10 @@ export function buildStatusFormData(child) {
   };
 }
 
-export function buildEditableChildUpdates(data) {
-  return {
+export function buildEditableChildUpdates(data, options = {}) {
+  const { includeMatricula = false, normalizeImageConsentValue = normalizeImageConsent } = options;
+
+  const updates = {
     name: data.name.trim(),
     sexo: data.sexo,
     birthDate: data.birthDate,
@@ -136,6 +139,37 @@ export function buildEditableChildUpdates(data) {
     priority: data.priority || '',
     priorityReason: data.priorityReason || '',
   };
+
+  if (includeMatricula) {
+    updates.referralSource = data.referralSource;
+    updates.schoolCommuteAlone = data.schoolCommuteAlone;
+    updates.renovacao = data.renovacao;
+    updates.healthCareNeeded = data.healthCareNeeded;
+    updates.healthNotes = data.healthNotes || '';
+    updates.restricaoAlimentar = data.restricaoAlimentar || '';
+    updates.alergiaAlimentar = data.alergiaAlimentar || '';
+    updates.alergiaMedicamento = data.alergiaMedicamento || '';
+    updates.medicamentosEmUso = data.medicamentosEmUso || '';
+    updates.specialNeeds = data.specialNeeds || '';
+    updates.startDate = data.startDate;
+    updates.entryDate = data.startDate;
+    updates.participationDays = data.participationDays;
+    updates.authorizedPickup = data.authorizedPickup.trim();
+    updates.canLeaveAlone = data.canLeaveAlone;
+    updates.leaveAloneConfirmado = data.canLeaveAlone === 'sim' ? data.leaveAloneConfirmado === true : false;
+    updates.leaveAloneConsent = updates.leaveAloneConfirmado;
+    updates.leaveAloneConfirmation = updates.leaveAloneConfirmado ? FIXED_LEAVE_ALONE_CONFIRMATION : '';
+    updates.formaChegada = data.formaChegada;
+    updates.consentimentoSaude = data.consentimentoSaude === true;
+    updates.responsibilityTerm = data.termsAccepted;
+    updates.consentTerm = data.termsAccepted;
+    updates.classGroup = data.classGroup || '';
+    updates.imageConsent = normalizeImageConsentValue(data.imageConsent);
+    updates.documentsReceived = Array.isArray(data.documentsReceived) ? data.documentsReceived : [];
+    updates.initialObservations = data.initialObservations || '';
+  }
+
+  return updates;
 }
 
 export function getMissingFieldsForStatus(status, data) {

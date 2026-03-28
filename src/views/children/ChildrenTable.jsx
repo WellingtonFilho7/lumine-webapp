@@ -3,18 +3,13 @@ import { CheckCircle2, Clock3, LayoutGrid, List, Plus, Search, Users } from 'luc
 import ChildAvatar from '../../components/ui/ChildAvatar';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { cn } from '../../utils/cn';
+import { OPERATIONAL_STATUS_OPTIONS } from '../../constants/enrollment';
 import { sortChildrenList } from '../../utils/childData';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Todas' },
   { value: 'em_triagem', label: 'Triagem' },
-  { value: 'draft', label: 'Rascunhos' },
-  { value: 'aprovado', label: 'Aprovado' },
-  { value: 'lista_espera', label: 'Lista de espera' },
-  { value: 'matriculado', label: 'Matriculado' },
-  { value: 'recusado', label: 'Não atendida' },
-  { value: 'desistente', label: 'Desistente' },
-  { value: 'inativo', label: 'Inativo' },
+  ...OPERATIONAL_STATUS_OPTIONS.filter(option => option.value !== 'em_triagem'),
 ];
 
 function formatTableDate(value) {
@@ -59,7 +54,6 @@ export default function ChildrenTable({
     const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesName) return false;
     if (statusFilter === 'all') return true;
-    if (statusFilter === 'draft') return isTriageDraft(child);
     return getEnrollmentStatus(child) === statusFilter;
   });
 

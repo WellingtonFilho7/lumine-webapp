@@ -64,4 +64,29 @@ describe('ChildrenView mobile filters', () => {
 
     expect(getNames()).toEqual(['Bruno', 'Ana', 'Zeca']);
   });
+
+  it('shows only operational status filters in the main bar', () => {
+    render(<ChildrenView {...baseProps} />);
+
+    expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Matriculado' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Em triagem' })).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', { name: 'Aprovado' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Lista de espera' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rascunhos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Não atendida' })).not.toBeInTheDocument();
+  });
+
+  it('reveals archived status filters only after enabling archived view', () => {
+    render(<ChildrenView {...baseProps} />);
+
+    expect(screen.queryByRole('button', { name: 'Desistente' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Inativo' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /mostrar arquivados/i }));
+
+    expect(screen.getByRole('button', { name: 'Desistente' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Inativo' })).toBeInTheDocument();
+  });
 });

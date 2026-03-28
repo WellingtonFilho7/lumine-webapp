@@ -1,6 +1,10 @@
 import {
   ENROLLMENT_STATUS_META,
   TRIAGE_RESULT_OPTIONS,
+  OPERATIONAL_STATUS_OPTIONS,
+  ACTIVE_STATUS_OPTIONS,
+  ARCHIVED_STATUS_OPTIONS,
+  getOperationalStatusSelectOptions,
   PARTICIPATION_DAYS,
   STATUS_FIELD_LABELS,
   TRIAGE_REQUIRED_STATUSES,
@@ -23,6 +27,32 @@ describe('enrollment constants', () => {
     ]);
 
     expect(PARTICIPATION_DAYS.map(d => d.value)).toEqual(['seg', 'ter', 'qua', 'qui', 'sex']);
+  });
+
+  test('operational ui status options stay simplified but preserve legacy current status', () => {
+    expect(ACTIVE_STATUS_OPTIONS.map(option => option.value)).toEqual(['em_triagem', 'matriculado']);
+    expect(ARCHIVED_STATUS_OPTIONS.map(option => option.value)).toEqual(['desistente', 'inativo']);
+    expect(OPERATIONAL_STATUS_OPTIONS.map(option => option.value)).toEqual([
+      'em_triagem',
+      'matriculado',
+      'desistente',
+      'inativo',
+    ]);
+
+    expect(getOperationalStatusSelectOptions('matriculado').map(option => option.value)).toEqual([
+      'em_triagem',
+      'matriculado',
+      'desistente',
+      'inativo',
+    ]);
+
+    expect(getOperationalStatusSelectOptions('aprovado').map(option => option.value)).toEqual([
+      'aprovado',
+      'em_triagem',
+      'matriculado',
+      'desistente',
+      'inativo',
+    ]);
   });
 
   test('required status/data maps include expected fields', () => {

@@ -3,9 +3,11 @@ import { Clock, Phone, School, User } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { getMissingMatriculaFields, getMissingTriageFields } from '../../utils/enrollment';
 import ChildBasicEditFields from '../../components/children/ChildBasicEditFields';
+import ChildEnrollmentEditFields from '../../components/children/ChildEnrollmentEditFields';
 import InfoRow from '../../components/ui/InfoRow';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ChildAvatar from '../../components/ui/ChildAvatar';
+import { getOperationalStatusSelectOptions } from '../../constants/enrollment';
 import { FIXED_LEAVE_ALONE_CONFIRMATION } from '../../utils/enrollmentHardening';
 import { formatPhoneBR } from '../../utils/phone';
 import { buildEditableChildUpdates } from '../../utils/statusWorkflow';
@@ -63,6 +65,7 @@ function ChildDetailDesktop({
   const requiresTriage = ['em_triagem', 'aprovado', 'lista_espera', 'recusado', 'matriculado']
     .includes(nextStatus);
   const requiresMatricula = nextStatus === 'matriculado';
+  const canEditMatriculaData = statusMeta.status === 'matriculado';
   const missingTriage = requiresTriage ? getMissingTriageFields(statusFormData) : [];
   const missingMatricula = requiresMatricula ? getMissingMatriculaFields(statusFormData) : [];
 
@@ -87,15 +90,7 @@ function ChildDetailDesktop({
     });
   };
 
-  const allowedStatusOptions = [
-        { value: 'em_triagem', label: 'Em triagem' },
-    { value: 'aprovado', label: 'Aprovado' },
-    { value: 'lista_espera', label: 'Lista de espera' },
-    { value: 'matriculado', label: 'Matriculado' },
-    { value: 'recusado', label: 'Não atendida' },
-    { value: 'desistente', label: 'Desistente' },
-    { value: 'inativo', label: 'Inativo' },
-  ];
+  const allowedStatusOptions = getOperationalStatusSelectOptions(statusMeta.status);
 
   const validateStatusTransition = status => {
     if (status === statusMeta.status) return 'Escolha um status diferente.';
@@ -211,7 +206,15 @@ function ChildDetailDesktop({
     setEditError('');
     setIsSavingEdit(true);
     try {
-      const updated = onUpdateChild ? await onUpdateChild(child.id, buildEditableChildUpdates(statusFormData)) : false;
+      const updated = onUpdateChild
+        ? await onUpdateChild(
+            child.id,
+            buildEditableChildUpdates(statusFormData, {
+              includeMatricula: canEditMatriculaData,
+              normalizeImageConsentValue: normalizeImageConsent,
+            })
+          )
+        : false;
       if (updated === false) {
         setEditError('Não foi possível salvar agora. Verifique a conexão e tente novamente.');
       }
@@ -803,6 +806,15 @@ function ChildDetailDesktop({
             </button>
           </div>
           <ChildBasicEditFields prefix="child-desktop-edit" data={statusFormData} onChange={updateStatusField} />
+          {canEditMatriculaData && (
+            <ChildEnrollmentEditFields
+              prefix="child-desktop-enrollment-edit"
+              data={statusFormData}
+              onChange={updateStatusField}
+              onToggleDocument={toggleStatusDocument}
+              participationDays={participationDays}
+            />
+          )}
           {editError && <p className="mt-3 text-sm text-rose-600">{editError}</p>}
         </section>
 

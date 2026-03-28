@@ -15,6 +15,35 @@ export const TRIAGE_RESULT_OPTIONS = [
   { value: 'recusado', label: 'Não atendida no momento' },
 ];
 
+export const OPERATIONAL_STATUS_OPTIONS = [
+  { value: 'em_triagem', label: 'Em triagem' },
+  { value: 'matriculado', label: 'Matriculado' },
+  { value: 'desistente', label: 'Desistente' },
+  { value: 'inativo', label: 'Inativo' },
+];
+
+export const ACTIVE_STATUS_OPTIONS = OPERATIONAL_STATUS_OPTIONS.filter(
+  option => option.value !== 'desistente' && option.value !== 'inativo'
+);
+
+export const ARCHIVED_STATUS_OPTIONS = OPERATIONAL_STATUS_OPTIONS.filter(
+  option => option.value === 'desistente' || option.value === 'inativo'
+);
+
+export function getOperationalStatusSelectOptions(currentStatus) {
+  const normalizedStatus = String(currentStatus || '').trim();
+  const baseOptions = [...OPERATIONAL_STATUS_OPTIONS];
+
+  if (!normalizedStatus || baseOptions.some(option => option.value === normalizedStatus)) {
+    return baseOptions;
+  }
+
+  const currentMeta = ENROLLMENT_STATUS_META[normalizedStatus];
+  if (!currentMeta?.label) return baseOptions;
+
+  return [{ value: normalizedStatus, label: currentMeta.label }, ...baseOptions];
+}
+
 export const PARTICIPATION_DAYS = [
   { value: 'seg', label: 'Seg' },
   { value: 'ter', label: 'Ter' },

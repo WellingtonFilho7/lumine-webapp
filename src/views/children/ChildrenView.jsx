@@ -3,19 +3,8 @@ import { ChevronRight, Search, Users } from 'lucide-react';
 import StatusBadge, { getStatusVisual } from '../../components/ui/StatusBadge';
 import ChildAvatar from '../../components/ui/ChildAvatar';
 import { cn } from '../../utils/cn';
+import { ACTIVE_STATUS_OPTIONS, ARCHIVED_STATUS_OPTIONS } from '../../constants/enrollment';
 import { filterChildrenForMainList, sortChildrenList } from '../../utils/childData';
-
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todas' },
-  { value: 'matriculado', label: 'Matriculado' },
-  { value: 'em_triagem', label: 'Em triagem' },
-  { value: 'aprovado', label: 'Aprovado' },
-  { value: 'lista_espera', label: 'Lista de espera' },
-  { value: 'draft', label: 'Rascunhos' },
-  { value: 'recusado', label: 'Não atendida' },
-  { value: 'desistente', label: 'Desistente' },
-  { value: 'inativo', label: 'Inativo' },
-];
 
 const ARCHIVED_FILTERS = new Set(['desistente', 'inativo']);
 
@@ -44,8 +33,9 @@ export default function ChildrenView({
   const [sortBy, setSortBy] = useState('name_asc');
 
   const statusOptions = useMemo(() => {
-    if (showArchived) return STATUS_OPTIONS;
-    return STATUS_OPTIONS.filter(option => !ARCHIVED_FILTERS.has(option.value));
+    return showArchived
+      ? [{ value: 'all', label: 'Todas' }, ...ACTIVE_STATUS_OPTIONS, ...ARCHIVED_STATUS_OPTIONS]
+      : [{ value: 'all', label: 'Todas' }, ...ACTIVE_STATUS_OPTIONS];
   }, [showArchived]);
 
   const listBase = useMemo(
@@ -57,7 +47,6 @@ export default function ChildrenView({
     const matchesName = child.name?.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesName) return false;
     if (statusFilter === 'all') return true;
-    if (statusFilter === 'draft') return isTriageDraft(child);
     return getEnrollmentStatus(child) === statusFilter;
   });
 

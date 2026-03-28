@@ -98,4 +98,77 @@ describe('ChildDetailDesktop', () => {
 
     expect(onUpdateChild.mock.calls[0][1].enrollmentStatus).toBeUndefined();
   });
+
+  it('saves matriculation data when current child is already matriculated', async () => {
+    const onUpdateChild = vi.fn().mockResolvedValue(true);
+    render(
+      <ChildDetailDesktop
+        {...defaultProps}
+        child={{
+          ...defaultProps.child,
+          enrollmentStatus: 'matriculado',
+          referralSource: 'igreja',
+          healthCareNeeded: 'nao',
+          startDate: '2026-02-01',
+        }}
+        getStatusMeta={() => ({ status: 'matriculado' })}
+        buildStatusFormData={() => ({
+          ...buildStatusFormData(),
+          referralSource: 'igreja',
+          healthCareNeeded: 'nao',
+          startDate: '2026-02-01',
+        })}
+        onUpdateChild={onUpdateChild}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText(/como conheceu o lumine/i), {
+      target: { value: 'escola' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /salvar dados/i }));
+
+    await waitFor(() => {
+      expect(onUpdateChild).toHaveBeenCalledWith(
+        'child-1',
+        expect.objectContaining({
+          referralSource: 'escola',
+        })
+      );
+    });
+  });
+
+  it('shows only operational target statuses for active children', () => {
+    render(<ChildDetailDesktop {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /alterar status/i }));
+
+    const notesField = screen.getByPlaceholderText(/notas da mudan[çc]a de status/i);
+    const statusSelect = notesField.parentElement?.querySelector('select');
+    const options = Array.from(statusSelect?.querySelectorAll('option') || []).map(option =>
+      option.textContent?.trim()
+    );
+
+    expect(options).toEqual(['Em triagem', 'Matriculado', 'Desistente', 'Inativo']);
+  });
+
+  it('keeps current legacy status visible in the selector for legacy children', () => {
+    render(
+      <ChildDetailDesktop
+        {...defaultProps}
+        child={{ ...defaultProps.child, enrollmentStatus: 'aprovado' }}
+        getStatusMeta={() => ({ status: 'aprovado' })}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /alterar status/i }));
+
+    const notesField = screen.getByPlaceholderText(/notas da mudan[çc]a de status/i);
+    const statusSelect = notesField.parentElement?.querySelector('select');
+    const options = Array.from(statusSelect?.querySelectorAll('option') || []).map(option =>
+      option.textContent?.trim()
+    );
+
+    expect(options).toContain('Aprovado');
+    expect(options).toContain('Em triagem');
+    expect(options).toContain('Matriculado');
+  });
 });

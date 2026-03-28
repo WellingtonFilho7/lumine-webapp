@@ -41,4 +41,19 @@ describe('ChildrenTable sorting', () => {
 
     expect(getNames()).toEqual(['Bruno', 'Ana', 'Zeca']);
   });
+
+  it('shows only operational status filters', () => {
+    render(<ChildrenTable {...baseProps} />);
+
+    expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Triagem' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Matriculado' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Desistente' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Inativo' })).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', { name: 'Rascunhos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aprovado' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Lista de espera' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Não atendida' })).not.toBeInTheDocument();
+  });
 });
