@@ -55,7 +55,6 @@ Orquestra:
 - `children/`: lista, cadastro, detalhe e tabela
 - `records/`: registro diario mobile/desktop
 - `finance/`: lancamentos e comprovantes
-- `config/`: configuracoes gerais e admin
 - `config/`: configuracoes gerais, aprovacao de usuarios e backup operacional admin
 
 ### `src/utils/`
@@ -70,6 +69,11 @@ Responsabilidades pequenas e puras:
 - `syncErrors`
 - `phone`
 - `dashboardMetrics`
+- `enrollment` / `enrollmentHardening`: triagem, matricula e validacoes LGPD
+- `onboarding`
+- `dateFormat`
+- `device`
+- `cn`
 
 ## Fluxo de autenticacao
 
@@ -159,15 +163,25 @@ RBAC esperado:
 - JWT interno em `X-User-Jwt`
 - sessao obrigatoria quando `REQUIRE_LOGIN` esta ligada
 - sem Bearer legado no frontend
-- origem e CORS sao barreiras complementares do lado da API
-- `localStorage` nao e fonte de verdade
+- origem e CORS sao barreiras complementares do lado da API (nao substituem autenticacao)
+- `localStorage` nao e fonte de verdade e **nao e criptografado** — em dispositivos compartilhados, usar "Sair e limpar dados"
 - backup operacional via UI fica restrito ao bloco admin em `Config`
+
+### Resposta a incidente
+
+1. Usuario interno comprometido: desative o perfil em `perfis_internos`.
+2. Se necessario, revogue sessoes no Supabase Auth e force novo login.
+3. Revalide `GET /api/bootstrap` e operacoes principais com `X-User-Jwt`.
+
+Sessao expirada ou perfil interno desativado bloqueiam o uso ate novo login/aprovacao.
 
 ## Variaveis de ambiente importantes
 
+A lista canonica e o array `REACT_APP_KEYS` em `vite.config.js` — toda variavel nova precisa ser adicionada la.
+
 API:
 
-- `REACT_APP_API_BASE_URL`
+- `REACT_APP_API_BASE_URL` (`REACT_APP_API_URL` legado)
 - `REACT_APP_BOOTSTRAP_URL` opcional
 - `REACT_APP_SYNC_URL` opcional
 
@@ -182,6 +196,11 @@ Feature flags:
 - `REACT_APP_MOBILE_UI_V2`
 - `REACT_APP_ONLINE_ONLY`
 - `REACT_APP_REQUIRE_LOGIN`
+- `REACT_APP_SHOW_LEGACY_SYNC_UI`
+
+Outras:
+
+- `REACT_APP_APP_VERSION` (injetada no payload de sync para rastreio)
 
 ## Testes
 

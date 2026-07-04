@@ -20,11 +20,6 @@
     "build": "vite build",
     "test": "vitest run"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",
