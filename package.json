@@ -10,15 +10,24 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "clsx": "^2.1.1",
+    "csv-parse": "^5.6.0",
+    "googleapis": "^128.0.0",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-merge": "^2.5.2"
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.25.76"
   },
   "scripts": {
     "start": "vite",
     "build": "vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:api": "node --test lib/__tests__/*.test.js scripts/lib/__tests__/*.test.js",
+    "backup:operational": "node scripts/export-operational-backup.js",
+    "ops:backup": "node scripts/ops-backup.js"
+  },
+  "engines": {
+    "node": "24.x"
   },
   "eslintConfig": {
     "extends": [

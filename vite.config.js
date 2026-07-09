@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { configDefaults } from 'vitest/config';
 
 const REACT_APP_KEYS = [
   'REACT_APP_API_BASE_URL',
@@ -49,6 +50,11 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       globals: true,
       setupFiles: './src/test/setup.js',
+      exclude: [
+        ...configDefaults.exclude,
+        'lib/__tests__/**/*.test.js',
+        'scripts/lib/__tests__/**/*.test.js',
+      ],
       css: true,
       testTimeout: 15000,
       hookTimeout: 15000,
