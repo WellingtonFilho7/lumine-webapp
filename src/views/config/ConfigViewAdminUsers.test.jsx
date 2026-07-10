@@ -18,7 +18,7 @@ function renderConfig(extraProps = {}) {
     <ConfigView
       children={[]}
       dailyRecords={[]}
-      apiBaseUrl="https://lumine-api.vercel.app/api"
+      apiBaseUrl="/api"
       jsonHeaders={{ 'X-User-Jwt': 'jwt' }}
       syncWithServer={noop}
       downloadFromServer={noop}
@@ -196,7 +196,7 @@ describe('ConfigView admin approvals', () => {
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
     expect(global.fetch.mock.calls[1][0]).toBe(
-      'https://lumine-api.vercel.app/api/admin/operational-backup/download'
+      '/api/admin/operational-backup/download'
     );
     expect(clickSpy).toHaveBeenCalledTimes(1);
     await waitFor(() => {

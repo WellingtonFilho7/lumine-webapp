@@ -38,7 +38,7 @@ describe('useOperationalBackup', () => {
 
     const { result } = renderHook(() =>
       useOperationalBackup({
-        apiBaseUrl: 'https://lumine-api.vercel.app/api',
+        apiBaseUrl: '/api',
         jsonHeaders: { 'X-User-Jwt': 'jwt' },
         enabled: true,
       })
@@ -49,7 +49,7 @@ describe('useOperationalBackup', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://lumine-api.vercel.app/api/admin/operational-backup/download',
+      '/api/admin/operational-backup/download',
       expect.objectContaining({
         method: 'GET',
         headers: { 'X-User-Jwt': 'jwt' },

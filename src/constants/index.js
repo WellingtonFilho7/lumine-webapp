@@ -1,4 +1,4 @@
-export const DEFAULT_API_BASE_URL = 'https://lumine-api.vercel.app/api';
+export const DEFAULT_API_BASE_URL = '/api';
 export const DEFAULT_API_URL = `${DEFAULT_API_BASE_URL}/sync`;
 export const DEFAULT_BOOTSTRAP_URL = `${DEFAULT_API_BASE_URL}/bootstrap`;
 

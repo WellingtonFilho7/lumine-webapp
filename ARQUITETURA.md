@@ -167,7 +167,8 @@ RBAC esperado:
 
 API:
 
-- `REACT_APP_API_BASE_URL`
+- `REACT_APP_API_BASE_URL` opcional; omitida usa `/api` no mesmo dominio
+  - rollback temporario: `https://lumine-api.vercel.app/api`
 - `REACT_APP_BOOTSTRAP_URL` opcional
 - `REACT_APP_SYNC_URL` opcional
 
