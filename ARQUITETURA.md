@@ -15,7 +15,7 @@ Trilhas principais:
 O webapp e **server-first**:
 
 - Supabase Auth controla a sessao do usuario interno
-- a API do `lumine-api` e a fonte primaria de verdade
+- a API servida por este mesmo repositorio (`api/`, mesmo dominio) e a fonte primaria de verdade
 - `localStorage` existe apenas como cache auxiliar de leitura/estado, nao como origem canonica
 
 ## Stack tecnica
@@ -167,8 +167,8 @@ RBAC esperado:
 
 API:
 
-- `REACT_APP_API_BASE_URL` opcional; omitida usa `/api` no mesmo dominio
-  - rollback temporario: `https://lumine-api.vercel.app/api`
+- `REACT_APP_API_BASE_URL` opcional; omitida usa `/api` no mesmo dominio (padrao)
+  - rollback historico: `https://lumine-api.vercel.app/api` — deploy legado, em aposentadoria; ver secao "Deploy legado"
 - `REACT_APP_BOOTSTRAP_URL` opcional
 - `REACT_APP_SYNC_URL` opcional
 
@@ -202,5 +202,27 @@ npm test -- src/utils/finance.test.js src/views/config/ConfigViewAdminUsers.test
 
 1. Supabase Auth faz autenticacao; a API continua sendo o backend de negocio.
 2. A API e a fonte primaria; cache local nao decide o estado canonico.
+   Frontend e API vivem no mesmo repositorio e no mesmo deploy Vercel.
 3. Mobile e tratado como fluxo principal de operacao.
 4. Financeiro e isolado por RBAC e feature flag.
+
+## Deploy legado (`lumine-api`)
+
+O repositorio `lumine-api` foi um deploy separado da mesma API. Todo o codigo
+dele (`api/`, `lib/`, `db/`, `scripts/`) ja existe neste repositorio, identico
+arquivo a arquivo — este repo e superconjunto daquele, e o unico deploy ativo.
+
+O `lumine-api` permanece no ar apenas como alvo de rollback e esta em processo
+de aposentadoria. Enquanto os dois existirem, vale a advertencia:
+
+- as dependencias dos dois ja divergiram (`@supabase/supabase-js`, `zod`,
+  `csv-parse`), entao o mesmo codigo de validacao roda contra bibliotecas
+  diferentes em cada deploy;
+- nenhuma correcao deve ser aplicada la. Corrija aqui.
+
+Passos para encerrar:
+
+1. Confirmar no Vercel que `lumine-api` nao recebe mais trafego.
+2. Pausar o projeto `lumine-api` no Vercel.
+3. Arquivar o repositorio `lumine-api` no GitHub (arquivar, nao apagar).
+4. Remover esta secao e a linha de rollback historico acima.

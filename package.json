@@ -24,7 +24,14 @@
     "test": "vitest run",
     "test:api": "node --test lib/__tests__/*.test.js scripts/lib/__tests__/*.test.js",
     "backup:operational": "node scripts/export-operational-backup.js",
-    "ops:backup": "node scripts/ops-backup.js"
+    "ops:backup": "node scripts/ops-backup.js",
+    "import:csv": "node scripts/import-csv-to-supabase.js",
+    "backfill:hardening": "node scripts/backfill-enrollment-hardening.js --dry-run",
+    "import:finance:gastos": "node scripts/import-gastos-sheet-to-finance.js",
+    "export:finance:gastos": "node scripts/export-finance-to-gastos-sheet.js",
+    "backfill:finance:gastos": "node scripts/backfill-finance-gastos-sheet.js",
+    "prune:finance:gastos": "node scripts/prune-finance-gastos-sheet.js",
+    "sync:finance:gastos": "node scripts/sync-finance-gastos-safe.js"
   },
   "engines": {
     "node": "24.x"
